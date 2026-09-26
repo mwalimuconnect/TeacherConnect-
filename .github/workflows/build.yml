@@ -1,4 +1,4 @@
-name: Unzip and Build Universal APK
+name: Unzip and Build Standalone APK
 
 on:
   push:
@@ -35,11 +35,11 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Signed Debug APK
-        run: flutter build apk --debug
+      - name: Build Standalone Profile APK
+        run: flutter build apk --profile
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TeacherConnect-Debug-APK
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: TeacherConnect-Standalone-APK
+          path: build/app/outputs/flutter-apk/app-profile.apk
