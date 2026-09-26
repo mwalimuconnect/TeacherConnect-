@@ -10,22 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Unzip Project Code
+      - name: Unzip Project Files
         run: |
-          unzip -o Teacher-Connect-7.zip -d extracted_project
-          # Move contents if zipped inside a subfolder
-          if [ -d "extracted_project/Teacher-Connect-7" ]; then
-            cp -r extracted_project/Teacher-Connect-7/* .
-          elif [ -d "extracted_project/teacherconnect" ]; then
-            cp -r extracted_project/teacherconnect/* .
-          else
-            cp -r extracted_project/* .
-          fi
+          unzip -o Teacher-Connect-7.zip -d extracted_temp
+          PROJECT_ROOT=$(find extracted_temp -name "pubspec.yaml" -exec dirname {} \;)
+          echo "Found pubspec.yaml at $PROJECT_ROOT"
+          cp -r $PROJECT_ROOT/* .
+          rm -rf extracted_temp
 
       - name: Set up Java JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -35,10 +31,10 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Get Dependencies
+      - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Universal Release APK
+      - name: Build Standalone Universal APK
         run: flutter build apk --release --no-shrink
 
       - name: Upload APK Artifact
