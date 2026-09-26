@@ -1,0 +1,48 @@
+name: Unzip and Build Universal APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Unzip Project Code
+        run: |
+          unzip -o Teacher-Connect-7.zip -d extracted_project
+          # Move contents if zipped inside a subfolder
+          if [ -d "extracted_project/Teacher-Connect-7" ]; then
+            cp -r extracted_project/Teacher-Connect-7/* .
+          elif [ -d "extracted_project/teacherconnect" ]; then
+            cp -r extracted_project/teacherconnect/* .
+          else
+            cp -r extracted_project/* .
+          fi
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Universal Release APK
+        run: flutter build apk --release --no-shrink
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TeacherConnect-19MB-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
