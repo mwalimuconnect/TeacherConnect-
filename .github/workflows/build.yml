@@ -31,13 +31,16 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Force Update Kotlin Version in Project
+        run: |
+          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "2.1.0"/' android/build.gradle || true
+          sed -i 's/id "org.jetbrains.kotlin.android" version .*/id "org.jetbrains.kotlin.android" version "2.1.0" apply false/' android/settings.gradle || true
+
       - name: Install Dependencies
         run: flutter pub get
 
       - name: Build Standalone Universal APK
-        run: |
-          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx3072m -Dkotlin.daemon.jvm.options=-Xmx2048m"
-          flutter build apk --release --no-shrink --extra-front-end-options=--no-g3-classpath
+        run: flutter build apk --release --no-shrink
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
