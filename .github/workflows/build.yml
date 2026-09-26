@@ -1,4 +1,4 @@
-name: Unzip and Build Standalone APK
+name: Unzip and Build Universal APK
 
 on:
   push:
@@ -35,11 +35,16 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Standalone Profile APK
-        run: flutter build apk --profile
+      - name: Build Unsigned Release APK
+        run: flutter build apk --release --no-shrink
+
+      - name: Sign APK Automatically
+        run: |
+          keytool -genkey -v -keystore auto_keystore.jks -storepass password123 -alias auto_key -keypass password123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Developer, OU=Dev, O=Dev, L=City, S=State, C=US"
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore auto_keystore.jks -storepass password123 build/app/outputs/flutter-apk/app-release.apk auto_key
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TeacherConnect-Standalone-APK
-          path: build/app/outputs/flutter-apk/app-profile.apk
+          name: TeacherConnect-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
