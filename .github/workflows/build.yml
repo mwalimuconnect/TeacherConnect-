@@ -35,11 +35,11 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Standalone Universal APK
-        run: flutter build apk --release --no-shrink
+      - name: Build Signed Debug APK
+        run: flutter build apk --debug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TeacherConnect-19MB-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: TeacherConnect-Debug-APK
+          path: build/app/outputs/flutter-apk/app-debug.apk
