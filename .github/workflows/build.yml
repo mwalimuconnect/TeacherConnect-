@@ -37,7 +37,7 @@ jobs:
       - name: Build Standalone Universal APK
         run: flutter build apk --release --no-shrink
 
-      - name: Upload APK Artifact
+            - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TeacherConnect-19MB-Release-APK
