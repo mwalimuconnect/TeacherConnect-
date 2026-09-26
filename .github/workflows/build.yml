@@ -21,7 +21,7 @@ jobs:
           rm -rf extracted_temp
 
       - name: Set up Java JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
