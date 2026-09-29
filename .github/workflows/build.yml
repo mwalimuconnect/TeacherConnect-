@@ -8,17 +8,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Unzip Project Files
-        run: |
-          unzip -o Teacher-Connect-7.zip -d extracted_temp
-          PROJECT_ROOT=$(find extracted_temp -name "pubspec.yaml" -exec dirname {} \;)
-          echo "Found pubspec.yaml at $PROJECT_ROOT"
-          cp -r $PROJECT_ROOT/* .
-          rm -rf extracted_temp
 
       - name: Set up Java JDK
         uses: actions/setup-java@v4
@@ -34,7 +27,7 @@ jobs:
 
       - name: Create Temporary Signing Keystore
         run: |
-          keytool -genkey -v -keystore android/app/auto_keystore.jks -storepass password123 -alias auto_key -keypass password123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=TeacherConnect, OU=Dev, O=Dev, L=Nairobi, S=Nairobi, C=KE"
+          keytool -genkey -v -keystore android/app/auto_keystore.jks -storepass password123 -alias auto_key -keypass password123 -dname "CN=Developer, OU=Dev, O=Dev, L=City, S=State, C=US" -keyalg RSA -keysize 2048 -validity 10000
           cat <<EOF > android/key.properties
           storePassword=password123
           keyPassword=password123
