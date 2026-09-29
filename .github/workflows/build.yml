@@ -27,7 +27,7 @@ jobs:
 
       - name: Create Temporary Signing Keystore
         run: |
-          keytool -genkey -v -keystore android/app/auto_keystore.jks -storepass password123 -alias auto_key -keypass password123 -dname "CN=Developer, OU=Dev, O=Dev, L=City, S=State, C=US"
+          keytool -genkeypair -v -keystore android/app/auto_keystore.jks -storepass password123 -alias auto_key -keypass password123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Developer, OU=Dev, O=Dev, L=City, S=State, C=US"
           cat <<EOF > android/key.properties
           storePassword=password123
           keyPassword=password123
