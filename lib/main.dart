@@ -10,7 +10,9 @@ import 'package:teacherconnect/auth_screen.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
-import 'upload_service.dart'; // or 'package:teacherconnect/services/upload_service.dart'
+import 'package:teacherconnect/services/upload_service.dart';
+
+import 'package:file_picker/file_picker.dart';
 
 void main() async {
 
