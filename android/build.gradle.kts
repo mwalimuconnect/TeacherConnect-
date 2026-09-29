@@ -1,53 +1,56 @@
-buildscript {
+plugins {
 
-    val kotlinVersion = "1.9.20"
+    id("com.android.application")
 
-    repositories {
+    id("kotlin-android")
 
-        google()
+    id("dev.flutter.flutter-gradle-plugin")
 
-        mavenCentral()
+}
+
+android {
+
+    namespace = "com.teacherconnect"
+
+    compileSdk = 35
+
+    defaultConfig {
+
+        applicationId = "com.teacherconnect"
+
+        minSdk = 21
+
+        targetSdk = 35
+
+        versionCode = 1
+
+        versionName = "1.0.0"
+
+        ndk {
+            abiFilters.addAll(setOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+
+        }
 
     }
 
-    dependencies {
+    compileOptions {
 
-        classpath("com.android.tools.build:gradle:8.1.0")
+        sourceCompatibility = JavaVersion.VERSION_1_8
 
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        targetCompatibility = JavaVersion.VERSION_1_8
+
+    }
+
+    kotlinOptions {
+
+        jvmTarget = "1.8"
 
     }
 
 }
 
-allprojects {
+flutter {
 
-    repositories {
-
-        google()
-
-        mavenCentral()
-
-    }
-
-}
-
-rootProject.buildDir = file("../build")
-
-subprojects {
-
-    project.buildDir = file("${rootProject.buildDir}/${project.name}")
-
-}
-
-subprojects {
-
-    project.evaluationDependsOn(":app")
-
-}
-
-tasks.register<Delete>("clean") {
-
-    delete(rootProject.buildDir)
+    source = "../.."
 
 }
