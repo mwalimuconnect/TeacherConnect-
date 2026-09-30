@@ -55,93 +55,102 @@ class _AuthScreenState extends State<AuthScreen> {
     _tscController.dispose();
     _phoneController.dispose();
     _idController.dispose();
-    super.dispose();
-  }
+    super.dispose();  }
 
   void _showSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+  }
+    
+  Future<void> _handleSubmit() async {
+  if (!_formKey.currentState!.validate()) {
+    return;
   }
 
-  Future<void> _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  setState(() {
+    _isLoading = true;
+  });
 
-    setState(() => _isLoading = true);
+  // Dynamically target either /login or /register
+  final String endpoint = _isLogin
+      ? 'https://teacher-connect-backend.vercel.app/api/auth/login'
+      : 'https://teacher-connect-backend.vercel.app/api/auth/register';
 
-    const String endpoint = 'https://teacher-connect-backend.vercel.app/api/auth/register-or-login';
+  final String tsc = _tscController.text.trim();
+  final String idNumber = _idController.text.trim();
 
-    final String tsc = _tscController.text.trim();
-    final String idNumber = _idController.text.trim();
-
-    // Send payload according to mode selected
-    final Map<String, dynamic> requestBody = {
-      'tscNumber': tsc,
-      'nationalId': idNumber,
-      'isLogin': _isLogin,
-    };
-
-    if (!_isLogin) {
-      requestBody['fullName'] = _fullNameController.text.trim();
-      requestBody['phone'] = _phoneController.text.trim();
-      requestBody['role'] = _selectedRole;
-    }
-
-    try {
-      final response = await http
-          .post(
-            Uri.parse(endpoint),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(requestBody),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final userStatus = data['user']?['status'];
-
-        if (userStatus == 'pending') {
-          _showSnackBar('Account pending admin verification.');
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/pending-approval');
-          }
-          return;
+  // Prepare request payload
+  final Map<String, dynamic> requestBody = _isLogin
+      ? {
+          'tscNumber': tsc,
+          'nationalId': idNumber,
         }
+      : {
+          'fullName': _fullNameController.text.trim(),
+          'tscNumber': tsc,
+          'phone': _phoneController.text.trim(),
+          'nationalId': idNumber,
+          'role': _selectedRole,
+        };
 
-        // Save session details locally
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setString(
-          'userName',
-          data['user']?['fullName'] ?? (_isLogin ? 'Teacher' : _fullNameController.text.trim()),
-        );
-        await prefs.setString(
-          'userRole',
-          data['user']?['role'] ?? (_isLogin ? 'Member Teacher' : _selectedRole),
-        );
-        await prefs.setString('userPhone', data['user']?['phone'] ?? _phoneController.text.trim());
+  try {
+    final response = await http
+        .post(
+          Uri.parse(endpoint),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(requestBody),
+        )
+        .timeout(const Duration(seconds: 20));
 
-        if (data['token'] != null) {
-          await prefs.setString('token', data['token']);
-        }
+    final data = jsonDecode(response.body);
 
-        _showSnackBar(_isLogin ? 'Login Successful!' : 'Registration Successful!');
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final userStatus = data['user']?['status'];
 
+      if (userStatus == 'pending') {
+        _showSnackBar('Account pending admin verification.');
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/');
+          Navigator.pushReplacementNamed(context, '/pending-approval');
         }
-      } else {
-        _showSnackBar(data['error'] ?? data['message'] ?? 'Authentication failed.');
+        return;
       }
-    } catch (e) {
-      _showSnackBar('Network error. Please check your internet connection.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+
+      // Save session details locally
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString(
+        'userName',
+        data['user']?['fullName'] ?? (_isLogin ? 'Teacher' : _fullNameController.text.trim()),
+      );
+      await prefs.setString(
+        'userRole',
+        data['user']?['role'] ?? (_isLogin ? 'Member Teacher' : _selectedRole),
+      );
+      await prefs.setString('userPhone', data['user']?['phone'] ?? _phoneController.text.trim());
+
+      if (data['token'] != null) {
+        await prefs.setString('token', data['token']);
+      }
+
+      _showSnackBar(_isLogin ? 'Login Successful!' : 'Registration Successful!');
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/');
+      }
+    } else {
+      _showSnackBar(data['error'] ?? data['message'] ?? 'Authentication failed.');
     }
+  } catch (e) {
+    _showSnackBar('Error: ${e.toString()}');
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
   }
 
   @override
@@ -162,7 +171,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 Icons.school,
                 size: 64,
                 color: Color(0xFF00897B),
-              ),
+      
+            ),
               const SizedBox(height: 16),
               Text(
                 _isLogin ? 'Welcome Back' : 'Welcome to Teacher Portal',
