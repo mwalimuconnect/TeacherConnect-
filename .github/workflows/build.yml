@@ -32,9 +32,8 @@ jobs:
           storePassword=password123
           keyPassword=password123
           keyAlias=auto_key
-          storeFile=app/auto_keystore.jks
+          storeFile=auto_keystore.jks
           EOF
-
       - name: Install Dependencies
         run: flutter pub get
 
