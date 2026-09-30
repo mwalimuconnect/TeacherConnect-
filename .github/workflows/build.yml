@@ -35,13 +35,18 @@ jobs:
           storeFile=auto_keystore.jks
           EOF
 
+      - name: Setup Gradle 8 Wrapper
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.7
+          chmod +x gradlew
+
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Generate Gradle Wrapper & Build APK
+      - name: Build Release APK via Gradle Wrapper
         run: |
           cd android
-          gradle wrapper
           ./gradlew assembleRelease --no-daemon
 
       - name: Locate and Prepare APK
