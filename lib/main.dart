@@ -112,7 +112,7 @@ class MyApp extends StatelessWidget {
 
                 ))
 
-          : const LoginScreen(),
+          : const AuthScreen(),
 
     );
 
