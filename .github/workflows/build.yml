@@ -36,6 +36,8 @@ jobs:
           EOF
 
       - name: Setup Gradle 8 Wrapper
+        env:
+          FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
         run: |
           cd android
           gradle wrapper --gradle-version 8.7
@@ -45,6 +47,8 @@ jobs:
         run: flutter pub get
 
       - name: Build Release APK via Gradle Wrapper
+        env:
+          FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
         run: |
           cd android
           ./gradlew assembleRelease --no-daemon
