@@ -38,8 +38,11 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+      - name: Generate Gradle Wrapper & Build APK
+        run: |
+          cd android
+          gradle wrapper
+          ./gradlew assembleRelease --no-daemon
 
       - name: Locate and Prepare APK
         run: |
