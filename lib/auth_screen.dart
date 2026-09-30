@@ -18,7 +18,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
 
-  bool _isLogin = false;
+  bool _isLogin = true;
 
   bool _isLoading = false;
 
