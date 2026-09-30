@@ -34,11 +34,20 @@ jobs:
           keyAlias=auto_key
           storeFile=auto_keystore.jks
           EOF
+
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Release APK
-        run: flutter build apk --release
+      - name: Build Release APK via Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Locate and Prepare APK
+        run: |
+          mkdir -p build/app/outputs/flutter-apk/
+          find android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} build/app/outputs/flutter-apk/app-release.apk \;
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
