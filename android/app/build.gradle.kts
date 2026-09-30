@@ -29,7 +29,7 @@ android {
         }
     }
 
-    signingConfigs {
+        signingConfigs {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias") ?: "auto_key"
             keyPassword = keystoreProperties.getProperty("keyPassword") ?: "password123"
