@@ -38,16 +38,19 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Release APK
-        run: flutter build apk --release
+      - name: Build Release APK via Gradle
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
 
       - name: Ensure V2/V3 Android Signing via apksigner
         run: |
           BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
-          $BUILD_TOOLS_DIR/apksigner sign --ks android/app/auto_keystore.jks --ks-pass pass:password123 --ks-key-alias auto_key build/app/outputs/flutter-apk/app-release.apk
+          $BUILD_TOOLS_DIR/apksigner sign --ks android/app/auto_keystore.jks --ks-pass pass:password123 --ks-key-alias auto_key android/app/build/outputs/apk/release/app-release.apk
 
       - name: Upload Signed Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TeacherConnect-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
