@@ -25,31 +25,23 @@ jobs:
           flutter-version: '3.24.3'
           channel: 'stable'
 
-      - name: Create Temporary Signing Keystore
+      - name: Create Signing Keystore & Properties
         run: |
           keytool -genkeypair -v -keystore android/app/auto_keystore.jks -storepass password123 -alias auto_key -keypass password123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Developer, OU=Dev, O=Dev, L=City, S=State, C=US"
           cat <<EOF > android/key.properties
           storePassword=password123
           keyPassword=password123
           keyAlias=auto_key
-          storeFile=auto_keystore.jks
+          storeFile=app/auto_keystore.jks
           EOF
 
       - name: Install Dependencies
         run: flutter pub get
 
       - name: Build Release APK
-        run: |
-          flutter build apk --release || true
-          mkdir -p build/app/outputs/flutter-apk/
-          find android/ -name "*.apk" -exec cp {} build/app/outputs/flutter-apk/app-release.apk \;
+        run: flutter build apk --release
 
-      - name: Ensure V2/V3 Android Signing via apksigner
-        run: |
-          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
-          $BUILD_TOOLS_DIR/apksigner sign --ks android/app/auto_keystore.jks --ks-pass pass:password123 --ks-key-alias auto_key build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Upload Signed Release APK Artifact
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TeacherConnect-Release-APK
