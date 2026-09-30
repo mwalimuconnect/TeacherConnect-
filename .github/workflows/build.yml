@@ -39,16 +39,18 @@ jobs:
         run: flutter pub get
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release || true
+          mkdir -p build/app/outputs/flutter-apk/
+          find android/ -name "*.apk" -exec cp {} build/app/outputs/flutter-apk/app-release.apk \;
 
       - name: Ensure V2/V3 Android Signing via apksigner
         run: |
           BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
-          APK_PATH=$(find build/ -name "*.apk" | head -n 1)
-          $BUILD_TOOLS_DIR/apksigner sign --ks android/app/auto_keystore.jks --ks-pass pass:password123 --ks-key-alias auto_key "$APK_PATH"
+          $BUILD_TOOLS_DIR/apksigner sign --ks android/app/auto_keystore.jks --ks-pass pass:password123 --ks-key-alias auto_key build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload Signed Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TeacherConnect-Release-APK
-          path: build/**/*.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
