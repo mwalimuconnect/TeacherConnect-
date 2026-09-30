@@ -47,37 +47,23 @@ class _AuthScreenState extends State<AuthScreen> {
   // Blocklists for invalid/placeholder entries
 
   final Set<String> _blockedPhoneNumbers = {
+  '0712345678',
+  '0700000000',
+  '0711111111',
+  '0722222222',
+  '0799999999',
+  '0123456789',
+};
 
-    '0712345678',
-
-    '0700000000',
-
-    '0711111111',
-
-    '0722222222',
-
-    '0799999999',
-
-    '0123456789',
-
-  };
-
-  final Set<String> _blockedIds = {
-
-    '123456',
-
-    '1234567',
-
-    '12345678',
-
-    '000000',
-
-    '111111',
-
-    '999999',
-
-  };
-
+final Set<String> _blockedIds = {
+  '12345',
+  '123456',
+  '1234567',
+  '12345678',
+  '000000',
+  '111111',
+  '999999',
+};
   @override
 
   void dispose() {
