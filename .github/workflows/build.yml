@@ -38,11 +38,8 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Release APK via Gradle
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease
+      - name: Build Release APK
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Locate and Prepare APK
         run: |
