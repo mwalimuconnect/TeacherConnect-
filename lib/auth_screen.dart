@@ -13,14 +13,13 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  bool _isLogin = true; // Default to Login mode
+  bool _isLogin = true; // Defaults to Login Mode
   bool _isLoading = false;
 
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _tscController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _idController = TextEditingController();
-  final TextEditingController _adminPasscodeController = TextEditingController();
 
   final List<String> _roles = [
     'Member Teacher',
@@ -30,7 +29,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   String _selectedRole = 'Member Teacher';
 
-  // Blacklists for invalid/placeholder entries
+  // Blacklist filters matching backend validation
   final Set<String> _blockedPhoneNumbers = {
     '0712345678',
     '0700000000',
@@ -56,7 +55,6 @@ class _AuthScreenState extends State<AuthScreen> {
     _tscController.dispose();
     _phoneController.dispose();
     _idController.dispose();
-    _adminPasscodeController.dispose();
     super.dispose();
   }
 
@@ -68,40 +66,28 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    // Validate Form first
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     setState(() => _isLoading = true);
 
-    const String baseUrl = 'https://teacher-connect-backend.vercel.app/api/auth';
-    final String endpoint = _isLogin ? '$baseUrl/login' : '$baseUrl/register';
+    const String endpoint = 'https://teacher-connect-backend.vercel.app/api/auth/register-or-login';
 
     final String tsc = _tscController.text.trim();
     final String idNumber = _idController.text.trim();
 
-    Map<String, dynamic> requestBody;
+    // Send payload according to mode selected
+    final Map<String, dynamic> requestBody = {
+      'tscNumber': tsc,
+      'nationalId': idNumber,
+      'isLogin': _isLogin,
+    };
 
-    if (_isLogin) {
-      // LOGIN PAYLOAD: ONLY CREDENTIALS REQUIRED FOR AUTHENTICATION
-      requestBody = {
-        'tscNumber': tsc,
-        'nationalId': idNumber,
-      };
-    } else {
-      // REGISTRATION PAYLOAD: FULL DETAILS REQUIRED
-      requestBody = {
-        'fullName': _fullNameController.text.trim(),
-        'tscNumber': tsc,
-        'phone': _phoneController.text.trim(),
-        'nationalId': idNumber,
-        'role': _selectedRole,
-      };
-
-      if (_selectedRole == 'Administrator' || _selectedRole == 'Assistant Admin') {
-        requestBody['adminPasscode'] = _adminPasscodeController.text.trim();
-      }
+    if (!_isLogin) {
+      requestBody['fullName'] = _fullNameController.text.trim();
+      requestBody['phone'] = _phoneController.text.trim();
+      requestBody['role'] = _selectedRole;
     }
 
     try {
@@ -116,7 +102,7 @@ class _AuthScreenState extends State<AuthScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final userStatus = data['user']?['status'] ?? data['status'];
+        final userStatus = data['user']?['status'];
 
         if (userStatus == 'pending') {
           _showSnackBar('Account pending admin verification.');
@@ -126,7 +112,7 @@ class _AuthScreenState extends State<AuthScreen> {
           return;
         }
 
-        // Save session locally for verified users
+        // Save session details locally
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString(
@@ -149,7 +135,7 @@ class _AuthScreenState extends State<AuthScreen> {
           Navigator.pushReplacementNamed(context, '/');
         }
       } else {
-        _showSnackBar(data['message'] ?? 'Authentication failed.');
+        _showSnackBar(data['error'] ?? data['message'] ?? 'Authentication failed.');
       }
     } catch (e) {
       _showSnackBar('Network error. Please check your internet connection.');
@@ -302,7 +288,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 16),
 
-              // REGISTER-ONLY FIELDS: ROLE & ADMIN PASSCODE
+              // REGISTER-ONLY FIELD: ROLE DROPDOWN
               if (!_isLogin) ...[
                 DropdownButtonFormField<String>(
                   value: _selectedRole,
@@ -321,28 +307,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     if (val != null) setState(() => _selectedRole = val);
                   },
                 ),
-                if (_selectedRole == 'Administrator' || _selectedRole == 'Assistant Admin') ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _adminPasscodeController,
-                    obscureText: true,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Admin Passcode',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin &&
-                          (_selectedRole == 'Administrator' || _selectedRole == 'Assistant Admin')) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Please enter the admin passcode';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                ],
                 const SizedBox(height: 24),
               ],
 
