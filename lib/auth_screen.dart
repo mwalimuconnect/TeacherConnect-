@@ -142,15 +142,14 @@ class _AuthScreenState extends State<AuthScreen> {
     } else {
       _showSnackBar(data['error'] ?? data['message'] ?? 'Authentication failed.');
     }
-  } catch (e) {
-    _showSnackBar('Error: ${e.toString()}');
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
+      } catch (e) {
+      _showSnackBar('EXACT ERROR: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
   }
 
   @override
