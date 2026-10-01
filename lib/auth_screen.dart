@@ -255,16 +255,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),               validator: (val) {
-                    if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                      return 'Please enter your National ID Number';
-                    }
-                    return null;
-                  },
-                ),
-                ,
-              ],
-
+                const SizedBox(height: 16),               
+                    
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
