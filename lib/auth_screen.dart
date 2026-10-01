@@ -69,8 +69,7 @@ class _AuthScreenState extends State<AuthScreen> {
             'password': _passwordController.text.trim(),
           };
 
-    try {
-      final response = await http
+          final response = await http
           .post(
             Uri.parse(endpoint),
             headers: {'Content-Type': 'application/json'},
@@ -78,18 +77,18 @@ class _AuthScreenState extends State<AuthScreen> {
           )
           .timeout(const Duration(seconds: 20));
 
-      final data = jsonDecode(response.body);
+      Map<String, dynamic> data = {};
+      
+      // Check if the server returned JSON
+      if (response.headers['content-type']?.contains('application/json') ?? false) {
+        data = jsonDecode(response.body);
+      } else {
+        _showSnackBar('Server response (${response.statusCode}): ${response.body}');
+        return;
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final userStatus = data['user']?['status'];
-
-        if (userStatus == 'pending') {
-          _showSnackBar('Account pending admin verification.');
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/pending-approval');
-          }
-          return;
-        }
+        // ... rest of your success logic
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
