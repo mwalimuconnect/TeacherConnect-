@@ -189,44 +189,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     prefixIcon: Icon(Icons.badge),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (val) {
-                    if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                      return 'Please enter your National ID Number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _tscNumberController,
-                  decoration: const InputDecoration(
-                    labelText: 'TSC Number',
-                    prefixIcon: Icon(Icons.card_membership),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) {
-                    if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                      return 'Please enter your TSC Number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _schoolNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Current School Name',
-                    prefixIcon: Icon(Icons.domain),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) {
-                    if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                      return 'Please enter your Current School Name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
+                   // Role Dropdown Selection
                 DropdownButtonFormField<String>(
                   value: _selectedRole,
                   decoration: const InputDecoration(
@@ -234,7 +197,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     prefixIcon: Icon(Icons.work),
                     border: OutlineInputBorder(),
                   ),
-                  items: ['Member Teacher', 'Admin', 'Representative']
+                  items: [
+                    'Member Teacher',
+                    'Job Seeker (BOM)',
+                    'Admin',
+                    'Representative'
+                  ]
                       .map((role) => DropdownMenuItem(value: role, child: Text(role)))
                       .toList(),
                   onChanged: (val) {
@@ -246,6 +214,55 @@ class _AuthScreenState extends State<AuthScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                // TSC Number Field (Optional for Job Seekers)
+                TextFormField(
+                  controller: _tscNumberController,
+                  decoration: InputDecoration(
+                    labelText: _selectedRole == 'Job Seeker (BOM)'
+                        ? 'TSC Number (Optional)'
+                        : 'TSC Number',
+                    prefixIcon: const Icon(Icons.card_membership),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (val) {
+                    if (!_isLogin && _selectedRole != 'Job Seeker (BOM)') {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Please enter your TSC Number';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Current School Name Field (Optional for Job Seekers)
+                TextFormField(
+                  controller: _schoolNameController,
+                  decoration: InputDecoration(
+                    labelText: _selectedRole == 'Job Seeker (BOM)'
+                        ? 'Current School / Preferred Region (Optional)'
+                        : 'Current School Name',
+                    prefixIcon: const Icon(Icons.domain),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (val) {
+                    if (!_isLogin && _selectedRole == 'Member Teacher') {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Please enter your Current School Name';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),               validator: (val) {
+                    if (!_isLogin && (val == null || val.trim().isEmpty)) {
+                      return 'Please enter your National ID Number';
+                    }
+                    return null;
+                  },
+                ),
+                ,
               ],
 
               TextFormField(
