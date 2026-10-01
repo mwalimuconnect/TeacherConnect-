@@ -136,15 +136,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
       _showSnackBar(_isLogin ? 'Login Successful!' : 'Registration Successful!');
 
-      if (mounted) {
+            if (mounted) {
         Navigator.pushReplacementNamed(context, '/');
       }
     } else {
       _showSnackBar(data['error'] ?? data['message'] ?? 'Authentication failed.');
     }
-      } catch (e) {
-      _showSnackBar('EXACT ERROR: $e');
-    } finally {
+  } catch (e) {
+    _showSnackBar('EXACT ERROR: $e');
+  } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
