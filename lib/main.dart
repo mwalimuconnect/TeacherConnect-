@@ -267,455 +267,308 @@ final sampleListing3 = ListingModel(
 );
 
 // ==========================================
-
 // 1. REGISTRATION / LOGIN SCREEN
-
 // ==========================================
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
-
   State<LoginScreen> createState() => _LoginScreenState();
-   
 }
- class _LoginScreenState extends State<LoginScreen> {
 
+class _LoginScreenState extends State<LoginScreen> {
   final _fullNameController = TextEditingController();
-
   final _tscController = TextEditingController();
-
   final _phoneController = TextEditingController();
-
   final _idController = TextEditingController();
-
   final _adminPasscodeController = TextEditingController();
 
   String _selectedRole = 'Member Teacher';
-
   bool _isLoading = false;
 
-  // Read dynamically from environment variables at build time
-static const String _correctAdminPasscode = String.fromEnvironment('ADMIN_PASSCODE');
+  // Roles updated to match application specs
   final List<String> _roles = [
-
     'Member Teacher',
-
-    'Administrator',
-
-    'Assistant Admin',
-
+    'Job Seeker (BOM)',
+    'Admin',
+    'Representative',
   ];
 
+  // Base URL for your Node.js backend API
+  final String _baseUrl = 'https://your-api-domain.com'; // Replace with your backend URL
+
   @override
-
   void dispose() {
-
     _fullNameController.dispose();
-
     _tscController.dispose();
-
     _phoneController.dispose();
-
     _idController.dispose();
-
     _adminPasscodeController.dispose();
-
     super.dispose();
+  }
 
+  // Verify Admin passcode via Node.js server
+  Future<bool> _verifyAdminPasscode(String passcode) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/admin/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'passcode': passcode}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<void> _handleRegistrationAndLogin() async {
-
     final name = _fullNameController.text.trim();
-
     final tsc = _tscController.text.trim();
-
     final phone = _phoneController.text.trim();
-
     final idNumber = _idController.text.trim();
-
     final passcode = _adminPasscodeController.text.trim();
 
-    if (name.isEmpty || tsc.isEmpty || phone.isEmpty || idNumber.isEmpty) {
-
+    // Standard validation
+    if (name.isEmpty || phone.isEmpty || idNumber.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-
-        const SnackBar(content: Text('Please fill in all details to proceed')),
-
+        const SnackBar(content: Text('Please fill in all required details to proceed')),
       );
-
       return;
+    }
 
+    // Require TSC number only if NOT a Job Seeker (BOM)
+    if (_selectedRole != 'Job Seeker (BOM)' && tsc.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your TSC Number')),
+      );
+      return;
     }
 
     if (phone.length < 10) {
-
       ScaffoldMessenger.of(context).showSnackBar(
-
         const SnackBar(content: Text('Please enter a valid phone number')),
-
       );
-
       return;
-
     }
 
-    if (_selectedRole == 'Administrator') {
-
+    // Backend passcode verification for Admin
+    if (_selectedRole == 'Admin') {
       if (passcode.isEmpty) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           const SnackBar(content: Text('Please enter the Admin Passcode')),
-
         );
-
         return;
-
       }
 
-      if (passcode != _correctAdminPasscode) {
+      setState(() => _isLoading = true);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-
-          const SnackBar(
-
-            content: Text('Incorrect Admin Passcode! Access Denied.'),
-
-            backgroundColor: Colors.red,
-
-          ),
-
-        );
-
+      final isValidPasscode = await _verifyAdminPasscode(passcode);
+      if (!isValidPasscode) {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Incorrect Admin Passcode! Access Denied.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
-
       }
-
+    } else {
+      setState(() => _isLoading = true);
     }
-
-    setState(() => _isLoading = true);
 
     try {
-
       final prefs = await SharedPreferences.getInstance();
-
       await prefs.setBool('isLoggedIn', true);
-
       await prefs.setString('userPhone', phone);
-
       await prefs.setString('userName', name);
-
       await prefs.setString('userRole', _selectedRole);
 
       if (!mounted) return;
 
-      if (_selectedRole == 'Administrator') {
-
+      if (_selectedRole == 'Admin') {
         Navigator.pushReplacement(
-
           context,
-
           MaterialPageRoute(
-
             builder: (_) => AdminDashboardScreen(adminName: name),
-
           ),
-
         );
-
       } else {
-
         Navigator.pushReplacement(
-
           context,
-
           MaterialPageRoute(
-
             builder: (_) => TeacherPortalScreen(
-
               userName: name,
-
               userRole: _selectedRole,
-
               userPhone: phone,
-
             ),
-
           ),
-
         );
-
       }
-
     } catch (e) {
-
       if (mounted) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           SnackBar(content: Text('Login failed: ${e.toString()}')),
-
         );
-
       }
-
     } finally {
-
       if (mounted) {
-
         setState(() => _isLoading = false);
-
       }
-
     }
-
   }
 
   @override
-
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       backgroundColor: Colors.white,
-
       appBar: AppBar(
-
         title: const Text('Member Registration & Login'),
-
         centerTitle: true,
-
       ),
-
       body: SingleChildScrollView(
-
         padding: const EdgeInsets.all(24.0),
-
         child: Column(
-
           children: [
-
             const SizedBox(height: 10),
-
             const Icon(Icons.school, size: 70, color: Color(0xFF009688)),
-
             const SizedBox(height: 12),
-
             const Text(
-
               'Welcome to Teacher Portal',
-
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-
             ),
-
             const SizedBox(height: 6),
-
             const Text(
-
               'Enter your details below to register or log in',
-
               style: TextStyle(fontSize: 14, color: Colors.grey),
-
             ),
-
             const SizedBox(height: 28),
 
+            // Full Name
             TextField(
-
               controller: _fullNameController,
-
               decoration: const InputDecoration(
-
                 prefixIcon: Icon(Icons.person),
-
                 labelText: 'Full Name',
-
                 border: OutlineInputBorder(),
-
               ),
-
             ),
-
             const SizedBox(height: 16),
 
+            // TSC Number (Optional for Job Seeker (BOM))
             TextField(
-
               controller: _tscController,
-
               keyboardType: TextInputType.number,
-
-              decoration: const InputDecoration(
-
-                prefixIcon: Icon(Icons.badge),
-
-                labelText: 'TSC Number',
-
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.badge),
+                labelText: _selectedRole == 'Job Seeker (BOM)'
+                    ? 'TSC Number (Optional)'
+                    : 'TSC Number',
                 hintText: 'e.g. 123456',
-
-                border: OutlineInputBorder(),
-
+                border: const OutlineInputBorder(),
               ),
-
             ),
-
             const SizedBox(height: 16),
 
+            // Phone Number
             TextField(
-
               controller: _phoneController,
-
               keyboardType: TextInputType.phone,
-
               decoration: const InputDecoration(
-
                 prefixIcon: Icon(Icons.phone),
-
                 labelText: 'Phone Number',
-
                 hintText: 'e.g. 0712345678',
-
                 border: OutlineInputBorder(),
-
               ),
-
             ),
-
             const SizedBox(height: 16),
 
+            // National ID Number
             TextField(
-
               controller: _idController,
-
               keyboardType: TextInputType.number,
-
               decoration: const InputDecoration(
-
                 prefixIcon: Icon(Icons.card_membership),
-
                 labelText: 'National ID Number',
-
                 hintText: 'e.g. 12345678',
-
                 border: OutlineInputBorder(),
-
               ),
-
             ),
-
             const SizedBox(height: 16),
 
+            // Role Dropdown
             DropdownButtonFormField<String>(
-
               value: _selectedRole,
-
               decoration: const InputDecoration(
-
                 prefixIcon: Icon(Icons.work),
-
                 labelText: 'Role',
-
                 border: OutlineInputBorder(),
-
               ),
-
               items: _roles.map((role) {
-
                 return DropdownMenuItem(value: role, child: Text(role));
-
               }).toList(),
-
               onChanged: (val) {
-
                 if (val != null) {
-
-                    setState(() => _selectedRole = val);
-
+                  setState(() => _selectedRole = val);
                 }
-
               },
-
             ),
 
-            if (_selectedRole == 'Administrator') ...[
-
+            // Admin Security Passcode Field
+            if (_selectedRole == 'Admin') ...[
               const SizedBox(height: 16),
-
               TextField(
-
                 controller: _adminPasscodeController,
-
                 obscureText: true,
-
                 keyboardType: TextInputType.number,
-
                 decoration: const InputDecoration(
-
                   prefixIcon: Icon(Icons.lock, color: Colors.red),
-
                   labelText: 'Admin Security Passcode',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
             ],
 
             const SizedBox(height: 28),
 
+            // Submit Button
             SizedBox(
-
               width: double.infinity,
-
               height: 50,
-
               child: ElevatedButton(
-
                 style: ElevatedButton.styleFrom(
-
                   backgroundColor: const Color(0xFF009688),
-
                   shape: RoundedRectangleBorder(
-
                     borderRadius: BorderRadius.circular(25),
-
                   ),
-
                 ),
-
                 onPressed: _isLoading ? null : _handleRegistrationAndLogin,
-
                 child: _isLoading
-
                     ? const CircularProgressIndicator(color: Colors.white)
-
                     : const Text(
-
                         'Register & Log In',
-
                         style: TextStyle(fontSize: 18, color: Colors.white),
-
                       ),
-
               ),
-
             ),
-
           ],
-
         ),
-
       ),
-
     );
-
   }
-
 }
 
 // ==========================================
