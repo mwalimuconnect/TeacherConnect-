@@ -593,13 +593,18 @@ SizedBox(
             }
           },
     child: _isLoading
-        ? const CircularProgressIndicator(color: Colors.white)
-        : const Text(
-            'Register & Log In',
-            style: TextStyle(fontSize: 18, color: Colors.white),
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text(
+                    'Register & Log In',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
           ),
-  ),
-),
+        ),
+      ],
+    ),
+  );
+}
+}
 
 // ==========================================
 
