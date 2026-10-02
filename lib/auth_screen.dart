@@ -223,20 +223,35 @@ class _AuthScreenState extends State<AuthScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-
+            
                 // Submit Button
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleSubmit,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00897B),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(50),
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: _isLoading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                      : Text(_isLogin ? 'Login' : 'Register'),
+                      : Text(
+                          _isLogin ? 'Login' : 'Register',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 16),
 
