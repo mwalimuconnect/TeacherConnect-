@@ -331,13 +331,25 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!isValidPasscode) {
         setState(() => _isLoading = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Incorrect Admin Pa  // Verify Admin passcode via Node.js server
+                  ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Incorrect Admin Passcode! Access Denied.'),
+          ),
+        );
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
+
+    // Call registration / login handler
+    await _handleRegistrationAndLogin();
+  }
+
   Future<bool> _verifyAdminPasscode(String passcode) async {
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/auth/admin/verify'), // Fixed route: added /auth
+        Uri.parse('$_baseUrl/api/auth/admin/verify'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'passcode': passcode}),
       );
@@ -593,19 +605,18 @@ SizedBox(
             }
           },
     child: _isLoading
-                ? const CircularProgressIndicator(color: Colors.white)
-                : const Text(
-                    'Register & Log In',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      'Register & Log In',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
-}
-
 // ==========================================
 
 // 2. TEACHER PORTAL MAIN SCREEN
