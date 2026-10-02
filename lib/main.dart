@@ -602,7 +602,7 @@ SizedBox(
               );
             }
           },
-                  child: _isLoading
+                            child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
                   : const Text(
                       'Register & Log In',
@@ -616,12 +616,10 @@ SizedBox(
   }
 }
 
-// ==========================================
-
+// =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
-
-// ==========================================
- class TeacherPortalScreen extends StatefulWidget {
+// =========================================================
+class TeacherPortalScreen extends StatefulWidget {
 
   final String userName;
 
