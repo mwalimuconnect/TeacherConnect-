@@ -307,47 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Verify Admin passcode via Node.js server
-  Future<bool> _verifyAdminPasscode(String passcode) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/admin/verify'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'passcode': passcode}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['success'] == true;
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<void> _handleRegistrationAndLogin() async {
-    final name = _fullNameController.text.trim();
-    final tsc = _tscController.text.trim();
-    final phone = _phoneController.text.trim();
-    final idNumber = _idController.text.trim();
-    final passcode = _adminPasscodeController.text.trim();
-
-    // Standard validation
-    if (name.isEmpty || phone.isEmpty || idNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required details to proceed')),
-      );
-      return;
-    }
-
-    // Require TSC number only if NOT a Job Seeker (BOM)
-    if (_selectedRole != 'Job Seeker (BOM)' && tsc.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your TSC Number')),
-      );
-      return;
-    }
+  
 
     if (phone.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -373,7 +333,75 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Incorrect Admin Passcode! Access Denied.'),
+              content: Text('Incorrect Admin Pa  // Verify Admin passcode via Node.js server
+  Future<bool> _verifyAdminPasscode(String passcode) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/auth/admin/verify'), // Fixed route: added /auth
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'passcode': passcode}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> _handleRegistrationAndLogin() async {
+    final name = _fullNameController.text.trim();
+    final tsc = _tscController.text.trim();
+    final phone = _phoneController.text.trim();
+    final idNumber = _idController.text.trim();
+    final passcode = _adminPasscodeController.text.trim();
+
+    // Standard validation
+    if (name.isEmpty || phone.isEmpty || idNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required details')),
+      );
+      setState(() => _isLoading = false); // Ensure button unlocks on fail
+      return;
+    }
+
+    // Require TSC number only if NOT a Job Seeker (BOM)
+    if (_selectedRole != 'Job Seeker (BOM)' && tsc.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your TSC Number')),
+      );
+      setState(() => _isLoading = false); // Ensure button unlocks on fail
+      return;
+    }
+
+    // Admin passcode check
+    if (_selectedRole == 'Admin') {
+      if (passcode.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter Admin Security Passcode')),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final isValid = await _verifyAdminPasscode(passcode);
+      if (!isValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid Admin Passcode'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+    }
+
+    // Proceed with registration request...
+  }sscode! Access Denied.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -539,31 +567,39 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 28),
 
             // Submit Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF009688),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                ),
-                onPressed: _isLoading ? null : _handleRegistrationAndLogin,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Register & Log In',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-              ),
-            ),
-          ],
-        ),
+SizedBox(
+  width: double.infinity,
+  height: 50,
+  child: ElevatedButton(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF009688),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(25),
       ),
-    );
-  }
-}
+    ),
+    onPressed: _isLoading 
+        ? null 
+        : () {
+            // Force form validation log to debug if any hidden field fails
+            if (_formKey.currentState == null || _formKey.currentState!.validate()) {
+              _handleRegistrationAndLogin();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please fill all required fields correctly'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          },
+    child: _isLoading
+        ? const CircularProgressIndicator(color: Colors.white)
+        : const Text(
+            'Register & Log In',
+            style: TextStyle(fontSize: 18, color: Colors.white),
+          ),
+  ),
+),
 
 // ==========================================
 
