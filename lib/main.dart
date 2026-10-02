@@ -296,8 +296,8 @@ class LoginScreen extends StatefulWidget {
 
   bool _isLoading = false;
 
-  static const String _correctAdminPasscode = "31079824";
-
+  // Read dynamically from environment variables at build time
+static const String _correctAdminPasscode = String.fromEnvironment('ADMIN_PASSCODE');
   final List<String> _roles = [
 
     'Member Teacher',
