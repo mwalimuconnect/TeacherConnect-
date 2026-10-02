@@ -401,7 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final isValid = await _verifyAdminPasscode(passcode);
       if (!isValid) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Incorrect Admin Passcode! Access Denied.'),
             backgroundColor: Colors.red,
@@ -410,7 +410,6 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
     }
-
     // Proceed with registration request...
   }sscode! Access Denied.'),
               backgroundColor: Colors.red,
