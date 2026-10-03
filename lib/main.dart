@@ -399,28 +399,23 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+         }
+
       final isValid = await _verifyAdminPasscode(passcode);
       if (!isValid) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Incorrect Admin Passcode! Access Denied.'),
             backgroundColor: Colors.red,
           ),
         );
+        setState(() => _isLoading = false);
         return;
       }
     }
+
     // Proceed with registration request...
-  }sscode! Access Denied.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-    } else {
-      setState(() => _isLoading = true);
-    }
+    setState(() => _isLoading = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
