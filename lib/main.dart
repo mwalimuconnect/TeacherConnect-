@@ -1215,7 +1215,69 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       final response = await http.get(
 
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/stats'),
+        Uri.parse('https://teacher-connect-backend.vercel.a    _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
+      _stats['paymentsReceived'] = data['paymentsReceived'] ?? 0;
+    });
+  } catch (e) {
+    debugPrint('Error fetching admin stats: $e');
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
+
+void _confirmLogout(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text(
+          'Are you sure you want to log out of your account?',
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text(
+              'Log Out',
+              style: TextStyle(color: Colors.white),
+            ),
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+
+              if (!mounted) return;
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const MemberRegistrationScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _buildStatCard(String title, String value, Color color) {
+  return Card(
+    color: color.withOpacity(0.1),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(app/api/admin/stats'),
 
       );
 
@@ -1227,113 +1289,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
           _stats['totalListings'] = data['totalListings'] ?? 0;
 
-          _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
-
-          _stats['paymentsReceived'] = data['paymentsReceived'] ?? data['totalPayments'] ?? 0;
-
-        });
-
-      }
-
-    } catch (e) {
-
-      debugPrint("Error fetching admin stats: $e");
-
-    } finally {
-
-      if (mounted) setState(() => _isLoading = false);
-
-    }
-
-  }
-
-  void _confirmLogout(BuildContext context) {
-
-    showDialog(
-
-      context: context,
-
-      builder: (BuildContext dialogContext) {
-
-        return AlertDialog(
-
-          title: const Text('Confirm Logout'),
-
-          content: const Text(
-
-            'Are you sure you want to log out of your account?',
-
-          ),
-
-          actions: [
-
-            TextButton(
-
-              child: const Text('Cancel'),
-
-              onPressed: () => Navigator.of(dialogContext).pop(),
-
-            ),
-
-            ElevatedButton(
-
-              style: ElevatedButton.styleFrom(
-
-                backgroundColor: Colors.red,
-
-              ),
-
-              child: const Text(
-
-                'Log Out',
-
-                style: TextStyle(color: Colors.white),
-
-              ),
-
-                              onPressed: () async {
-                  Navigator.of(dialogContext).pop();
-
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.clear();
-
-                  if (!mounted) return;
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MemberRegistrationScreen(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
-Widget _buildStatCard(String title, String value, Color color) {
-
-  Widget _buildStatCard(String title, String value, Color color) {
-
-    return Card(
-
-      color: color.withOpacity(0.1),
-
-      shape: RoundedRectangleBorder(
-
-        borderRadius: BorderRadius.circular(12),
-
-      ),
-
-      child: Padding(
-
-        padding: const EdgeInsets.all(16.0),
-
-        child: Column(
+          
 
           crossAxisAlignment: CrossAxisAlignment.start,
 
