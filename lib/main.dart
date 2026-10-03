@@ -265,7 +265,7 @@ final sampleListing3 = ListingModel(
 
 );
 
- // =========================================================
+// =========================================================
 // 1. REGISTRATION / LOGIN SCREEN
 // =========================================================
 
@@ -278,6 +278,8 @@ class MemberRegistrationScreen extends StatefulWidget {
 }
 
 class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   final _fullNameController = TextEditingController();
   final _idController = TextEditingController();
   final _tscController = TextEditingController();
@@ -286,9 +288,10 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
   final _passwordController = TextEditingController();
   final _adminPasscodeController = TextEditingController();
 
-  String _selectedRole = 'Admin'; // Matches dropdown value exactly
+  String _selectedRole = 'Member Teacher'; // Default user role
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureAdminPasscode = true;
 
   final List<String> _roles = [
     'Member Teacher',
@@ -309,19 +312,91 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
-    // TODO: Connect to backend endpoint
+
+    try {
+      final payload = {
+        'fullName': _fullNameController.text.trim(),
+        'idNumber': _idController.text.trim(),
+        'role': _selectedRole,
+        'tscNumber': _tscController.text.trim(),
+        'currentSchool': _schoolController.text.trim(),
+        'phoneNumber': _phoneController.text.trim(),
+        'password': _passwordController.text.trim(),
+        if (_selectedRole == 'Admin')
+          'adminPasscode': _adminPasscodeController.text.trim(),
+      };
+
+      final response = await http.post(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Registration successful!'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+
+        if (_selectedRole == 'Admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AdminDashboardScreen(
+                adminName: _fullNameController.text.trim(),
+                adminPhone: _phoneController.text.trim(),
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherPortalScreen(
+                userName: _fullNameController.text.trim(),
+                userRole: _selectedRole,
+                userPhone: _phoneController.text.trim(),
+              ),
+            ),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Registration failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error connecting to server: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _navigateToLogin() {
-    // Navigates to your Login screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const Scaffold(
-          body: Center(child: Text('Login Screen')),
-        ),
+        builder: (_) => const LoginScreen(),
       ),
     );
   }
@@ -337,193 +412,230 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Welcome to',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
-            ),
-            const Text(
-              'TeacherConnect',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            // Full Name
-            TextField(
-              controller: _fullNameController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.person),
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const Text(
+                'Welcome to',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
               ),
-            ),
-            const SizedBox(height: 14),
-
-            // ID / Passport Number
-            TextField(
-              controller: _idController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.badge),
-                labelText: 'ID / Passport Number',
-                border: OutlineInputBorder(),
+              const Text(
+                'TeacherConnect',
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 20),
 
-            // Role Dropdown
-            DropdownButtonFormField<String>(
-              value: _selectedRole,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.work),
-                labelText: 'Role',
-                border: OutlineInputBorder(),
-              ),
-              items: _roles.map((role) {
-                return DropdownMenuItem(
-                  value: role,
-                  child: Text(role),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _selectedRole = val;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 14),
-
-            // TSC Number
-            TextField(
-              controller: _tscController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.card_membership),
-                labelText: _selectedRole == 'Job Seeker (BOM)'
-                    ? 'TSC Number (Optional)'
-                    : 'TSC Number',
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Current School Name
-            TextField(
-              controller: _schoolController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.apartment),
-                labelText: 'Current School Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Phone Number
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.phone),
-                labelText: 'Phone Number',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Password
-            TextField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() => _obscurePassword = !_obscurePassword);
-                  },
+              // Full Name
+              TextFormField(
+                controller: _fullNameController,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.person),
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
                 ),
-                labelText: 'Password',
-                border: const OutlineInputBorder(),
+                validator: (val) =>
+                    val == null || val.trim().isEmpty ? 'Full name is required' : null,
               ),
-            ),
-
-            // Dynamically show Admin Security Passcode Field when Role == 'Admin'
-            if (_selectedRole == 'Admin') ...[
               const SizedBox(height: 14),
-              TextField(
-                controller: _adminPasscodeController,
-                obscureText: true,
+
+              // ID / Passport Number
+              TextFormField(
+                controller: _idController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.security, color: Colors.red),
-                  labelText: 'Admin Security Passcode',
-                  hintText: 'Enter passcode',
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.red),
-                  ),
+                  prefixIcon: Icon(Icons.badge),
+                  labelText: 'ID / Passport Number',
+                  border: OutlineInputBorder(),
                 ),
+                validator: (val) =>
+                    val == null || val.trim().isEmpty ? 'ID Number is required' : null,
               ),
-            ],
+              const SizedBox(height: 14),
 
-            const SizedBox(height: 24),
-
-            // Register Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00897B),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+              // Role Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedRole,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.work),
+                  labelText: 'Role',
+                  border: OutlineInputBorder(),
                 ),
-                onPressed: _isLoading ? null : _handleRegister,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Register',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
+                items: _roles.map((role) {
+                  return DropdownMenuItem(
+                    value: role,
+                    child: Text(role),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _selectedRole = val;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // Admin Security Passcode Field (Rendered when Role == 'Admin')
+              if (_selectedRole == 'Admin') ...[
+                TextFormField(
+                  controller: _adminPasscodeController,
+                  obscureText: _obscureAdminPasscode,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.security, color: Colors.red),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureAdminPasscode
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
-              ),
-            ),
-            const SizedBox(height: 20),
+                      onPressed: () {
+                        setState(() {
+                          _obscureAdminPasscode = !_obscureAdminPasscode;
+                        });
+                      },
+                    ),
+                    labelText: 'Admin Security Passcode',
+                    hintText: 'Enter passcode',
+                    border: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (_selectedRole == 'Admin' &&
+                        (val == null || val.trim().isEmpty)) {
+                      return 'Admin passcode is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+              ],
 
-            // Active Login Link
-            GestureDetector(
-              onTap: _navigateToLogin,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: RichText(
-                  text: const TextSpan(
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      TextSpan(text: 'Already have an account? '),
-                      TextSpan(
-                        text: 'Login',
-                        style: TextStyle(
-                          color: Color(0xFF5E35B1),
-                          fontWeight: FontWeight.bold,
+              // TSC Number
+              TextFormField(
+                controller: _tscController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.card_membership),
+                  labelText: _selectedRole == 'Job Seeker (BOM)'
+                      ? 'TSC Number (Optional)'
+                      : 'TSC Number',
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (val) {
+                  if (_selectedRole != 'Job Seeker (BOM)' &&
+                      (val == null || val.trim().isEmpty)) {
+                    return 'TSC Number is required';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // Current School Name
+              TextFormField(
+                controller: _schoolController,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.apartment),
+                  labelText: 'Current School Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Phone Number
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.phone),
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) =>
+                    val == null || val.trim().isEmpty ? 'Phone number is required' : null,
+              ),
+              const SizedBox(height: 14),
+
+              // Password
+              TextFormField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                  ),
+                  labelText: 'Password',
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (val) => val == null || val.length < 6
+                    ? 'Password must be at least 6 characters'
+                    : null,
+              ),
+              const SizedBox(height: 24),
+
+              // Register Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00897B),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: _isLoading ? null : _handleRegister,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Register',
+                          style: TextStyle(fontSize: 18, color: Colors.white),
                         ),
-                      ),
-                    ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Active Login Link
+              GestureDetector(
+                onTap: _navigateToLogin,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: RichText(
+                    text: const TextSpan(
+                      style: TextStyle(fontSize: 15, color: Colors.black87),
+                      children: [
+                        TextSpan(text: 'Already have an account? '),
+                        TextSpan(
+                          text: 'Login',
+                          style: TextStyle(
+                            color: Color(0xFF5E35B1),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-                                                                                                 
+                                                                                                                                       
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
