@@ -1291,39 +1291,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
               ),
 
-              onPressed: () async {
+                              onPressed: () async {
+                  Navigator.of(dialogContext).pop();
 
-                Navigator.of(dialogContext).pop();
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
 
-                final prefs = await SharedPreferences.getInstance();
+                  if (!mounted) return;
 
-                await prefs.clear();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MemberRegistrationScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
-                if (!mounted) return;
-
-                Navigator.pushReplacement(
-
-                  context,
-
-                  MaterialPageRoute(builder: (_) => const MemberRegistrationScreen())
-
-                  ),
-
-                );
-
-              },
-
-            ),
-
-          ],
-
-        );
-
-      },
-
-    );
-
-  }
+Widget _buildStatCard(String title, String value, Color color) {
 
   Widget _buildStatCard(String title, String value, Color color) {
 
