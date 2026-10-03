@@ -266,7 +266,7 @@ final sampleListing3 = ListingModel(
 );
 
 // =========================================================
-// 1. REGISTRATION / LOGIN SCREEN
+// 1. REGISTRATION SCREEN
 // =========================================================
 
 class MemberRegistrationScreen extends StatefulWidget {
@@ -286,7 +286,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
   final _passwordController = TextEditingController();
   final _adminPasscodeController = TextEditingController();
 
-  String _selectedRole = 'Admin'; // Matches dropdown value exactly
+  String _selectedRole = 'Admin';
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -522,7 +522,6 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
               ),
             ),
 
-            // Dynamically show Admin Security Passcode Field when Role == 'Admin'
             if (_selectedRole == 'Admin') ...[
               const SizedBox(height: 14),
               TextField(
@@ -595,7 +594,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 }
 
 // =========================================================
-// 1B. LOGIN SCREEN
+// 2. LOGIN SCREEN
 // =========================================================
 
 class LoginScreen extends StatefulWidget {
@@ -807,7 +806,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-                                                                                                                                                                                 
+                                                                                                                                                                                                                                                  
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
