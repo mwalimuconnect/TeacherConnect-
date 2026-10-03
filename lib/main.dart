@@ -245,7 +245,6 @@ final sampleListing2 = ListingModel(
   contactPhone: '0712345678',
 
   isPaid: false,
-
 );
 
 final sampleListing3 = ListingModel(
@@ -266,9 +265,9 @@ final sampleListing3 = ListingModel(
 
 );
 
-// ==========================================
+// =========================================================
 // 1. REGISTRATION / LOGIN SCREEN
-// ==========================================
+// =========================================================
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -287,7 +286,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String _selectedRole = 'Member Teacher';
   bool _isLoading = false;
 
-  // Roles updated to match application specs
   final List<String> _roles = [
     'Member Teacher',
     'Job Seeker (BOM)',
@@ -295,8 +293,8 @@ class _LoginScreenState extends State<LoginScreen> {
     'Representative',
   ];
 
-  // Base URL for your Node.js backend API
-  final String _baseUrl = 'https://teacher-connect-backend.vercel.app'; 
+  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -305,45 +303,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _idController.dispose();
     _adminPasscodeController.dispose();
     super.dispose();
-  }
-
-  
-
-    if (phone.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid phone number')),
-      );
-      return;
-    }
-
-    // Backend passcode verification for Admin
-    if (_selectedRole == 'Admin') {
-      if (passcode.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter the Admin Passcode')),
-        );
-        return;
-      }
-
-      setState(() => _isLoading = true);
-
-      final isValidPasscode = await _verifyAdminPasscode(passcode);
-      if (!isValidPasscode) {
-        setState(() => _isLoading = false);
-        if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Incorrect Admin Passcode! Access Denied.'),
-          ),
-        );
-        return;
-      }
-    }
-
-    setState(() => _isLoading = true);
-
-    // Call registration / login handler
-    await _handleRegistrationAndLogin();
   }
 
   Future<bool> _verifyAdminPasscode(String passcode) async {
@@ -376,7 +335,15 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all required details')),
       );
-      setState(() => _isLoading = false); // Ensure button unlocks on fail
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    if (phone.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid phone number')),
+      );
+      setState(() => _isLoading = false);
       return;
     }
 
@@ -385,7 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter your TSC Number')),
       );
-      setState(() => _isLoading = false); // Ensure button unlocks on fail
+      setState(() => _isLoading = false);
       return;
     }
 
@@ -398,8 +365,6 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
         return;
       }
-
-         }
 
       final isValid = await _verifyAdminPasscode(passcode);
       if (!isValid) {
@@ -572,45 +537,36 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 28),
 
             // Submit Button
-SizedBox(
-  width: double.infinity,
-  height: 50,
-  child: ElevatedButton(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF009688),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(25),
-      ),
-    ),
-    onPressed: _isLoading 
-        ? null 
-        : () {
-            // Force form validation log to debug if any hidden field fails
-            if (_formKey.currentState == null || _formKey.currentState!.validate()) {
-              _handleRegistrationAndLogin();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Please fill all required fields correctly'),
-                  backgroundColor: Colors.orange,
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF009688),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
                 ),
-              );
-            }
-          },
-                            child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      'Register & Log In',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        _handleRegistrationAndLogin();
+                      },
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Register & Log In',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-}
-
+} 
+                                              
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
