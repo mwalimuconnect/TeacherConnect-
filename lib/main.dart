@@ -392,11 +392,11 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
     }
   }
 
-  void _navigateToLogin() {
+    void _navigateToLogin() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const memberRegistrationScreen(),
+        builder: (_) => const LoginScreen(),
       ),
     );
   }
