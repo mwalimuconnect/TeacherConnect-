@@ -1157,704 +1157,397 @@ final bool hasPaid = isListingUnlocked(listing);
 }
 
 // ==========================================
-
 // 3. ADMIN DASHBOARD MODULE
-
 // ==========================================
+
 class AdminDashboardScreen extends StatefulWidget {
-  
   final String adminName;
-
   final String adminPhone;
-    
-    const AdminDashboardScreen({
 
+  const AdminDashboardScreen({
     Key? key,
-
     required this.adminName,
-
     this.adminPhone = '',
-
   }) : super(key: key);
 
   @override
-
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
-
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-
   bool _isLoading = false;
 
   final Map<String, dynamic> _stats = {
-
     'totalListings': 0,
-
     'pendingApprovals': 0,
-
     'paymentsReceived': 0,
-
   };
 
   @override
-
   void initState() {
-
     super.initState();
-
     _fetchDashboardStats();
-
   }
 
   Future<void> _fetchDashboardStats() async {
-
     setState(() => _isLoading = true);
 
     try {
-
       final response = await http.get(
-
-        Uri.parse('https://teacher-connect-backend.vercel.a    _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
-      _stats['paymentsReceived'] = data['paymentsReceived'] ?? 0;
-    });
-  } catch (e) {
-    debugPrint('Error fetching admin stats: $e');
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
-  }
-}
-
-void _confirmLogout(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: const Text('Confirm Logout'),
-        content: const Text(
-          'Are you sure you want to log out of your account?',
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text(
-              'Log Out',
-              style: TextStyle(color: Colors.white),
-            ),
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-
-              if (!mounted) return;
-
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const MemberRegistrationScreen(),
-                ),
-              );
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Widget _buildStatCard(String title, String value, Color color) {
-  return Card(
-    color: color.withOpacity(0.1),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(app/api/admin/stats'),
-
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/stats'),
       );
 
       if (response.statusCode == 200) {
-
         final data = jsonDecode(response.body);
-
         setState(() {
-
           _stats['totalListings'] = data['totalListings'] ?? 0;
+          _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
+          _stats['paymentsReceived'] = data['paymentsReceived'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching admin stats: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
-          
-
-          crossAxisAlignment: CrossAxisAlignment.start,
-
-          children: [
-
-            Text(
-
-              title,
-
-              style: TextStyle(
-
-                color: color,
-
-                fontWeight: FontWeight.bold,
-
-              ),
-
+  void _confirmLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text(
+            'Are you sure you want to log out of your account?',
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
             ),
-
-            const SizedBox(height: 8),
-
-            Text(
-
-              value,
-
-              style: TextStyle(
-
-                fontSize: 20,
-
-                fontWeight: FontWeight.bold,
-
-                color: color,
-
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
               ),
+              child: const Text(
+                'Log Out',
+                style: TextStyle(color: Colors.white),
+              ),
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
 
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+
+                if (!mounted) return;
+
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MemberRegistrationScreen(),
+                  ),
+                );
+              },
             ),
-
           ],
-
-        ),
-
-      ),
-
+        );
+      },
     );
+  }
 
+  Widget _buildStatCard(String title, String value, Color color) {
+    return Card(
+      color: color.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
-
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
-
         title: const Text('Admin Dashboard'),
-
         backgroundColor: Colors.teal,
-
         actions: [
-
           Padding(
-
             padding: const EdgeInsets.symmetric(vertical: 8.0),
-
             child: ChoiceChip(
-
               avatar: const Icon(Icons.person, size: 18, color: Colors.teal),
-
               label: const Text(
-
                 'User Mode',
-
                 style: TextStyle(fontSize: 12, color: Colors.teal),
-
               ),
-
               selected: false,
-
               backgroundColor: Colors.white,
-
               onSelected: (_) {
-
                 Navigator.pushReplacement(
-
                   context,
-
                   MaterialPageRoute(
-
                     builder: (context) => TeacherPortalScreen(
-
                       userName: widget.adminName,
-
                       userRole: 'Administrator',
-
                       userPhone: widget.adminPhone,
-
                     ),
-
                   ),
-
                 );
-
               },
-
             ),
-
           ),
-
           const SizedBox(width: 8),
-
           IconButton(
-
             icon: const Icon(Icons.logout, color: Colors.white),
-
             tooltip: 'Log Out',
-
             onPressed: () => _confirmLogout(context),
-
           ),
-
           const SizedBox(width: 8),
-
         ],
-
       ),
-
       body: RefreshIndicator(
-
         onRefresh: _fetchDashboardStats,
-
         child: SingleChildScrollView(
-
           physics: const AlwaysScrollableScrollPhysics(),
-
           padding: const EdgeInsets.all(16.0),
-
           child: Column(
-
             crossAxisAlignment: CrossAxisAlignment.start,
-
             children: [
-
               Container(
-
                 width: double.infinity,
-
                 padding: const EdgeInsets.all(16.0),
-
                 decoration: BoxDecoration(
-
                   color: Colors.teal.shade50,
-
                   borderRadius: BorderRadius.circular(12),
-
                 ),
-
                 child: Row(
-
                   children: [
-
                     const CircleAvatar(
-
                       radius: 28,
-
                       backgroundColor: Colors.teal,
-
                       child: Icon(
-
                         Icons.admin_panel_settings,
-
                         size: 32,
-
                         color: Colors.white,
-
                       ),
-
                     ),
-
                     const SizedBox(width: 14),
-
                     Column(
-
                       crossAxisAlignment: CrossAxisAlignment.start,
-
                       children: [
-
                         Text(
-
                           widget.adminName.isNotEmpty
-
                               ? widget.adminName
-
                               : 'System Admin',
-
                           style: const TextStyle(
-
                             fontSize: 16,
-
                             fontWeight: FontWeight.bold,
-
                           ),
-
                         ),
-
                         const SizedBox(height: 2),
-
                         const Text(
-
                           'Role: Administrator',
-
                           style: TextStyle(
-
                             color: Colors.teal,
-
                             fontSize: 13,
-
                             fontWeight: FontWeight.w500,
-
                           ),
-
                         ),
-
                       ],
-
                     ),
-
                   ],
-
                 ),
-
               ),
-
               const SizedBox(height: 20),
-
               const Text(
-
                 'System Overview',
-
                 style: TextStyle(
-
                   fontSize: 18,
-
                   fontWeight: FontWeight.bold,
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               if (_isLoading)
-
                 const Center(
-
                   child: Padding(
-
                     padding: EdgeInsets.symmetric(vertical: 20.0),
-
                     child: CircularProgressIndicator(),
-
                   ),
-
                 )
-
               else ...[
-
                 Row(
-
                   children: [
-
                     Expanded(
-
                       child: InkWell(
-
                         onTap: () {
-
                           Navigator.push(
-
                             context,
-
                             MaterialPageRoute(
-
                               builder: (context) => const ManageListingsScreen(),
-
                             ),
-
                           ).then((_) => _fetchDashboardStats());
-
                         },
-
                         borderRadius: BorderRadius.circular(12),
-
                         child: _buildStatCard(
-
                           'Total Listings',
-
                           '${_stats['totalListings']}',
-
                           Colors.blue,
-
                         ),
-
                       ),
-
                     ),
-
                     const SizedBox(width: 12),
-
                     Expanded(
-
                       child: InkWell(
-
                         onTap: () {
-
                           Navigator.push(
-
                             context,
-
                             MaterialPageRoute(
-
                               builder: (context) => const PendingApprovalsScreen(),
-
                             ),
-
                           ).then((_) => _fetchDashboardStats());
-
                         },
-
                         borderRadius: BorderRadius.circular(12),
-
                         child: _buildStatCard(
-
                           'Pending Approvals',
-
                           '${_stats['pendingApprovals']}',
-
                           Colors.orange,
-
                         ),
-
                       ),
-
                     ),
-
                   ],
-
                 ),
-
                 const SizedBox(height: 12),
-
                 Row(
-
                   children: [
-
                     Expanded(
-
                       child: InkWell(
-
                         onTap: () {
-
                           Navigator.push(
-
                             context,
-
                             MaterialPageRoute(
-
                               builder: (context) => PaymentHistoryScreen(
-
                                 userPhoneNumber: widget.adminPhone,
-
                               ),
-
                             ),
-
                           ).then((_) => _fetchDashboardStats());
-
                         },
-
                         borderRadius: BorderRadius.circular(12),
-
                         child: _buildStatCard(
-
                           'Payments Received',
-
                           'KSh ${_stats['paymentsReceived']}',
-
                           Colors.green,
-
                         ),
-
                       ),
-
                     ),
-
                   ],
-
                 ),
-
               ],
-
               const SizedBox(height: 24),
-
               const Text(
-
                 'Admin Actions',
-
                 style: TextStyle(
-
                   fontSize: 18,
-
                   fontWeight: FontWeight.bold,
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               ListTile(
-
                 leading: const Icon(Icons.payment, color: Colors.teal),
-
                 title: const Text('Payment History'),
-
                 trailing: const Icon(Icons.chevron_right),
-
                 onTap: () {
-
                   Navigator.push(
-
                     context,
-
                     MaterialPageRoute(
-
                       builder: (context) => PaymentHistoryScreen(
-
                         userPhoneNumber: widget.adminPhone,
-
                       ),
-
                     ),
-
                   ).then((_) => _fetchDashboardStats());
-
                 },
-
               ),
-
               ListTile(
-
                 leading: const Icon(Icons.hourglass_top, color: Colors.teal),
-
                 title: const Text('Pending Approvals'),
-
                 trailing: const Icon(Icons.chevron_right),
-
                 onTap: () {
-
                   Navigator.push(
-
                     context,
-
                     MaterialPageRoute(
-
                       builder: (context) => const PendingApprovalsScreen(),
-
                     ),
-
                   ).then((_) => _fetchDashboardStats());
-
                 },
-
               ),
-
               ListTile(
-
                 leading: const Icon(Icons.list_alt, color: Colors.teal),
-
                 title: const Text('View All Swap Listings'),
-
                 trailing: const Icon(Icons.chevron_right),
-
                 onTap: () {
-
                   Navigator.push(
-
                     context,
-
                     MaterialPageRoute(
-
                       builder: (context) => const ManageListingsScreen(),
-
                     ),
-
                   ).then((_) => _fetchDashboardStats());
-
                 },
-
               ),
-
               ListTile(
-
                 leading: const Icon(Icons.business_center, color: Colors.teal),
-
                 title: const Text('BOM School Vacancies'),
-
                 trailing: const Icon(Icons.chevron_right),
-
                 onTap: () {
-
                   Navigator.push(
-
                     context,
-
                     MaterialPageRoute(
-
                       builder: (context) => const ManageBomVacanciesScreen(),
-
                     ),
-
                   ).then((_) => _fetchDashboardStats());
-
                 },
-
               ),
-
               ListTile(
-
                 leading: const Icon(Icons.people_outline, color: Colors.teal),
-
                 title: const Text('BOM Job Seekers'),
-
                 trailing: const Icon(Icons.chevron_right),
-
                 onTap: () {
-
                   Navigator.push(
-
                     context,
-
                     MaterialPageRoute(
-
                       builder: (context) => const ManageJobSeekersScreen(),
-
                     ),
-
                   ).then((_) => _fetchDashboardStats());
-
                 },
-
               ),
-
             ],
-
           ),
-
         ),
-
       ),
-
     );
-
   }
-
 }
 
 // ==========================================
