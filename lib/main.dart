@@ -265,14 +265,16 @@ final sampleListing3 = ListingModel(
 
 );
 
-// =========================================================
+ // =========================================================
 // 1. REGISTRATION / LOGIN SCREEN
 // =========================================================
+
 class MemberRegistrationScreen extends StatefulWidget {
   const MemberRegistrationScreen({Key? key}) : super(key: key);
 
   @override
-  State<MemberRegistrationScreen> createState() => _MemberRegistrationScreenState();
+  State<MemberRegistrationScreen> createState() =>
+      _MemberRegistrationScreenState();
 }
 
 class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
@@ -521,8 +523,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
     );
   }
 }
-            
-                                              
+                                                                                                 
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
