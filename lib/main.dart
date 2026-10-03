@@ -561,27 +561,24 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
                       ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            // Active Login Link
-            GestureDetector(
-              onTap: _navigateToLogin,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: RichText(
-                  text: const TextSpan(
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      TextSpan(text: 'Already have an account? '),
-                      TextSpan(
-                        text: 'Login',
-                        style: TextStyle(
-                          color: Color(0xFF5E35B1),
-                          fontWeight: FontWeight.bold,
-                        ),
+            // Active Login Link wrapped in TextButton
+            TextButton(
+              onPressed: _navigateToLogin,
+              child: RichText(
+                text: const TextSpan(
+                  style: TextStyle(fontSize: 15, color: Colors.black87),
+                  children: [
+                    TextSpan(text: 'Already have an account? '),
+                    TextSpan(
+                      text: 'Login',
+                      style: TextStyle(
+                        color: Color(0xFF5E35B1),
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -776,27 +773,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            // Link back to Register
-            GestureDetector(
-              onTap: _navigateToRegister,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: RichText(
-                  text: const TextSpan(
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      TextSpan(text: "Don't have an account? "),
-                      TextSpan(
-                        text: 'Register',
-                        style: TextStyle(
-                          color: Color(0xFF5E35B1),
-                          fontWeight: FontWeight.bold,
-                        ),
+            // Link back to Register wrapped in TextButton
+            TextButton(
+              onPressed: _navigateToRegister,
+              child: RichText(
+                text: const TextSpan(
+                  style: TextStyle(fontSize: 15, color: Colors.black87),
+                  children: [
+                    TextSpan(text: "Don't have an account? "),
+                    TextSpan(
+                      text: 'Register',
+                      style: TextStyle(
+                        color: Color(0xFF5E35B1),
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -806,7 +800,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-                                                                                                                                                                                                                                                  
+            
+                                                                                                                                                                                                                                                                   
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
