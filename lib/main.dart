@@ -797,8 +797,7 @@ bool get isAdmin => widget.userRole.
 
       context,
 
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-
+      MaterialPageRoute(builder: (_) => const MemberRegistrationScreen())
     );
 
   }
@@ -1306,9 +1305,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                   context,
 
-                  MaterialPageRoute(
-
-                    builder: (_) => const LoginScreen(),
+                  MaterialPageRoute(builder: (_) => const MemberRegistrationScreen())
 
                   ),
 
