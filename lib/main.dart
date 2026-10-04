@@ -2906,8 +2906,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-  Future<void> _downloadOrOpenUrl(String url) async {
-    if (url.trim().isEmpty) {
+  Future<void> _downloadOrOpenUrl(String rawUrl) async {
+    if (rawUrl.trim().isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invalid resource link.')),
@@ -2916,10 +2916,16 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       return;
     }
 
-    final Uri uri = Uri.parse(url.trim());
+    // Force Cloudinary attachment header so DOCX/PDF files download cleanly
+    String formattedUrl = rawUrl.trim();
+    if (formattedUrl.contains('/upload/') && !formattedUrl.contains('/fl_attachment/')) {
+      formattedUrl = formattedUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
+    }
+
+    final Uri uri = Uri.parse(formattedUrl);
 
     try {
-      // 1. Primary Attempt: Launch in external browser/PDF viewer
+      // 1. Primary Attempt: Launch in external browser/file handler
       bool launched = await launchUrl(
         uri,
         mode: LaunchMode.externalApplication,
@@ -2935,7 +2941,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $url')),
+          SnackBar(content: Text('Could not launch $formattedUrl')),
         );
       }
     } catch (e) {
@@ -3231,8 +3237,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       ],
     );
   }
-}     
-                                                              
+}
+                                                                          
 // ==========================================
 // 1. FILE UPLOAD SERVICE CLASS
 // ==========================================
