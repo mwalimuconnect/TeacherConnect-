@@ -2843,14 +2843,14 @@ class _ManageJobSeekersScreenState extends State<ManageJobSeekersScreen> {
   }
 }
 
- //===========================================================================
+// ============================================================================
 // TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS)
 // ============================================================================
 
 class TeacherResourcesTab extends StatefulWidget {
   const TeacherResourcesTab({Key? key}) : super(key: key);
-    
-   @override
+
+  @override
   State<TeacherResourcesTab> createState() => _TeacherResourcesTabState();
 }
 
@@ -2893,7 +2893,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load resources. Server returned status code ${response.statusCode}';
+          _errorMessage =
+              'Failed to load resources. Server returned status code ${response.statusCode}';
           _isLoading = false;
         });
       }
@@ -2919,7 +2920,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   }
 
   void showPaymentModal(
-    BuildContext context,
+    BuildContext parentContext,
     String resourceTitle,
     double price,
     VoidCallback onPaymentSuccess,
@@ -2927,8 +2928,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     TextEditingController phoneController = TextEditingController(text: "254");
 
     showDialog(
-      context: context,
-      builder: (context) {
+      context: parentContext,
+      builder: (dialogContext) {
         bool isLoading = false;
         return StatefulBuilder(
           builder: (context, setState) {
@@ -2952,13 +2953,30 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   child: const Text("Cancel"),
                 ),
                 ElevatedButton(
                   onPressed: isLoading
                       ? null
                       : () async {
+                          String rawPhone = phoneController.text.trim();
+                          String formattedPhone =
+                              rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+                          if (formattedPhone.startsWith('0')) {
+                            formattedPhone = '254${formattedPhone.substring(1)}';
+                          }
+
+                          if (formattedPhone.length != 12) {
+                            ScaffoldMessenger.of(parentContext).showSnackBar(
+                              const SnackBar(
+                                content: Text("Enter a valid phone number (e.g., 254712345678)"),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
                           setState(() => isLoading = true);
 
                           try {
@@ -2966,7 +2984,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                               Uri.parse('https://teacher-connect-backend.vercel.app/api/mpesa/stkpush'),
                               headers: {'Content-Type': 'application/json'},
                               body: jsonEncode({
-                                'phone': phoneController.text.trim(),
+                                'phone': formattedPhone,
                                 'amount': price,
                                 'accountReference': 'ResourceDownload',
                                 'transactionDesc': 'Payment for $resourceTitle',
@@ -2978,55 +2996,50 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                             if (response.statusCode == 200) {
                               final data = jsonDecode(response.body);
                               if (data['success'] == true) {
-                                if (context.mounted && Navigator.canPop(context)) {
-                                  Navigator.pop(context);
+                                if (Navigator.canPop(dialogContext)) {
+                                  Navigator.pop(dialogContext);
                                 }
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("STK Push sent! Please check your phone to enter your M-Pesa PIN."),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
+                                ScaffoldMessenger.of(parentContext).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("STK Push sent! Please check your phone to enter your M-Pesa PIN."),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
                                 onPaymentSuccess();
                               } else {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(data['error'] ?? "Failed to initiate M-Pesa payment."),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            } else {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Server error. Please try again later."),
+                                ScaffoldMessenger.of(parentContext).showSnackBar(
+                                  SnackBar(
+                                    content: Text(data['error'] ?? "Failed to initiate M-Pesa payment."),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
                               }
-                            }
-                          } catch (e) {
-                            setState(() => isLoading = false);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Error: $e"),
+                            } else {
+                              ScaffoldMessenger.of(parentContext).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Server error. Please try again later."),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                             }
+                          } catch (e) {
+                            setState(() => isLoading = false);
+                            ScaffoldMessenger.of(parentContext).showSnackBar(
+                              SnackBar(
+                                content: Text("Error: $e"),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
                           }
                         },
                   child: isLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
                       : const Text("Pay Now"),
                 ),
@@ -3042,39 +3055,40 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   Widget build(BuildContext context) {
     final filteredResources = _selectedCategory == 'All'
         ? _resources
-        : _resources.where((res) => res['category'] == _selectedCategory).toList();
+        : _resources
+            .where((res) => res['category'] == _selectedCategory)
+            .toList();
 
     return Column(
       children: [
         Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size.fromHeight(45), // Full width button
-          backgroundColor: Colors.teal,
-        ),
-        icon: const Icon(Icons.upload_file, color: Colors.white),
-        label: const Text(
-          'UPLOAD NEW RESOURCE',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddResourceScreen(),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(45),
+              backgroundColor: Colors.teal,
             ),
-          );
+            icon: const Icon(Icons.upload_file, color: Colors.white),
+            label: const Text(
+              'UPLOAD NEW RESOURCE',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddResourceScreen(),
+                ),
+              );
 
-          if (result == true) {
-            _fetchResources(); // Refresh list after upload
-          }
-        },
-      ),
-    ),
+              if (result == true) {
+                _fetchResources();
+              }
+            },
+          ),
+        ),
 
-    // Category Selector Chips (line 3543)
-    
+        // Category Selector Chips
         Container(
           height: 50,
           padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -3126,7 +3140,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                   : RefreshIndicator(
                       onRefresh: _fetchResources,
                       child: filteredResources.isEmpty
-                          ? const Center(child: Text('No resources found in this category.'))
+                          ? const Center(
+                              child: Text('No resources found in this category.'))
                           : ListView.builder(
                               padding: const EdgeInsets.all(12.0),
                               itemCount: filteredResources.length,
@@ -3135,8 +3150,14 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                 final title = res['title'] ?? 'Untitled Resource';
                                 final category = res['category'] ?? 'General';
                                 final fileUrl = res['fileUrl'] ?? '';
-                                final double price = (res['price'] ?? 0).toDouble();
-                                final bool isPaid = price > 0;
+                                double price =
+                                    (res['price'] ?? 50.0).toDouble();
+
+                                // Ensure payment requirement is enforced between KSh 50 and 100
+                                if (price > 0 && price < 50) price = 50.0;
+                                if (price > 100) price = 100.0;
+
+                                final bool isPaid = price >= 50.0;
 
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 10.0),
@@ -3145,9 +3166,13 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   child: ListTile(
-                                    leading: const Icon(Icons.picture_as_pdf, color: Colors.teal, size: 36),
-                                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    subtitle: Text('Category: $category${isPaid ? " • Price: KES ${price.toStringAsFixed(0)}" : " • Free"}'),
+                                    leading: const Icon(Icons.picture_as_pdf,
+                                        color: Colors.teal, size: 36),
+                                    title: Text(title,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    subtitle: Text(
+                                        'Category: $category${isPaid ? " • Price: KES ${price.toStringAsFixed(0)}" : " • Free"}'),
                                     trailing: IconButton(
                                       icon: Icon(
                                         isPaid ? Icons.lock : Icons.download,
@@ -3155,7 +3180,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                       ),
                                       onPressed: () {
                                         if (isPaid) {
-                                          showPaymentModal(context, title, price, () {
+                                          showPaymentModal(context, title, price,
+                                              () {
                                             if (fileUrl.isNotEmpty) {
                                               _downloadOrOpenUrl(fileUrl);
                                             }
