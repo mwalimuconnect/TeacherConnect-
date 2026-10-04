@@ -1846,559 +1846,362 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 }
 
 // ==========================================
-
 // MANAGE SWAP LISTINGS (PAGINATED)
-
 // ==========================================
 class ManageListingsScreen extends StatefulWidget {
-    
-  const ManageListingsScreen({Key? key}) : super(key: key);
+  final String? categoryType;
+
+  const ManageListingsScreen({Key? key, this.categoryType}) : super(key: key);
 
   @override
-
   State<ManageListingsScreen> createState() => _ManageListingsScreenState();
-
 }
 
 class _ManageListingsScreenState extends State<ManageListingsScreen> {
-
   final ScrollController _scrollController = ScrollController();
-
   final List<dynamic> _listings = [];
 
   int _currentPage = 1;
-
   final int _limit = 15;
-
   bool _isLoadingInitial = true;
-
   bool _isFetchingMore = false;
-
   bool _hasMore = true;
 
   @override
-
   void initState() {
-
     super.initState();
-
-    _fetchListings();
-
+    _fetchListings(categoryType: widget.categoryType);
     _scrollController.addListener(_onScroll);
-
   }
 
   @override
-
   void dispose() {
-
     _scrollController.dispose();
-
     super.dispose();
-
   }
 
   void _onScroll() {
-  if (_scrollController.position.pixels >= 
-      _scrollController.position.maxScrollExtent - 200 &&
-      !_isLoadingInitial && 
-      !_isFetchingMore && 
-      _hasMore) {
-    _fetchListings(isLoadMore: true);
-  }
-  }
-        
-Future<void> _fetchListings({bool isLoadMore = false, String? categoryType}) async {
-  if (isLoadMore) {
-    if (!_hasMore || _isFetchingMore) return;
-    setState(() {
-      _isFetchingMore = true;
-    });
-  } else {
-    setState(() {
-      _isLoadingInitial = true;
-      _currentPage = 1;
-      _listings.clear();
-    });
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingInitial &&
+        !_isFetchingMore &&
+        _hasMore) {
+      _fetchListings(isLoadMore: true, categoryType: widget.categoryType);
+    }
   }
 
-  // Determine type query parameter based on active category
-  final String activeType = categoryType ?? _selectedCategory; 
-  final String encodedType = Uri.encodeComponent(activeType);
-
-  final url = Uri.parse(
-    'https://teacher-connect-backend.vercel.app/api/listings?type=$encodedType&page=$_currentPage&limit=$_limit',
-  );
-
-  try {
-    final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-
-      List<dynamic> newItems = [];
-
-      if (decoded is List) {
-        newItems = decoded;
-      } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-        newItems = decoded['data'] as List<dynamic>;
-      }
-
+  Future<void> _fetchListings({bool isLoadMore = false, String? categoryType}) async {
+    if (isLoadMore) {
+      if (!_hasMore || _isFetchingMore) return;
       setState(() {
-        _listings.addAll(newItems);
-        _hasMore = newItems.length == _limit;
-        if (_hasMore) {
-          _currentPage++;
-        }
+        _isFetchingMore = true;
       });
     } else {
-      debugPrint('Failed to load listings. Status Code: ${response.statusCode}');
-    }
-  } catch (e) {
-    debugPrint('Error fetching listings: $e');
-  } finally {
-    if (mounted) {
       setState(() {
-        _isLoadingInitial = false;
-        _isFetchingMore = false;
+        _isLoadingInitial = true;
+        _currentPage = 1;
+        _listings.clear();
       });
     }
-  }
-}
- 
-  Future<void> _deleteListing(String id) async {
+
+    final String activeType = categoryType ?? widget.categoryType ?? '';
+    final String typeQueryParam = activeType.isNotEmpty
+        ? '&type=${Uri.encodeComponent(activeType)}'
+        : '';
 
     final url = Uri.parse(
-
-      'https://teacher-connect-backend.vercel.app/api/admin/listing/$id',
-
+      'https://teacher-connect-backend.vercel.app/api/listings?page=$_currentPage&limit=$_limit$typeQueryParam',
     );
 
     try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
 
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        List<dynamic> newItems = [];
+
+        if (decoded is List) {
+          newItems = decoded;
+        } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          newItems = decoded['data'] as List<dynamic>;
+        }
+
+        setState(() {
+          _listings.addAll(newItems);
+          _hasMore = newItems.length == _limit;
+          if (_hasMore) {
+            _currentPage++;
+          }
+        });
+      } else {
+        debugPrint('Failed to load listings. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching listings: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingInitial = false;
+          _isFetchingMore = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _deleteListing(String id) async {
+    final url = Uri.parse(
+      'https://teacher-connect-backend.vercel.app/api/admin/listing/$id',
+    );
+
+    try {
       final response = await http.delete(url);
 
       if (response.statusCode == 200) {
-
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           const SnackBar(content: Text('Listing deleted successfully')),
-
         );
-
-        _fetchListings();
-
+        _fetchListings(categoryType: widget.categoryType);
       }
-
     } catch (_) {}
-
   }
 
   void _editListing(Map<String, dynamic> item) {
-
-    final nameController = TextEditingController(text: item['teacherName'] ?? '');
-
-    final subjectController = TextEditingController(text: item['subject'] ?? '');
-
-    final currentCountyController = TextEditingController(text: item['currentCounty'] ?? '');
-
+    final nameController = TextEditingController(
+      text: item['teacherName'] ?? item['fullName'] ?? '',
+    );
+    final subjectController = TextEditingController(
+      text: item['subjectCombination'] ?? item['subjects'] ?? item['subject'] ?? '',
+    );
+    final currentCountyController = TextEditingController(
+      text: item['currentCounty'] ?? item['county'] ?? '',
+    );
     final targetCountyController = TextEditingController(
-
-        text: item['targetCounty'] ?? item['desiredCounty'] ?? '');
+      text: item['targetCounty'] ?? item['targetLocation'] ?? item['desiredCounty'] ?? '',
+    );
 
     showModalBottomSheet(
-
       context: context,
-
       isScrollControlled: true,
-
       shape: const RoundedRectangleBorder(
-
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-
       ),
-
       builder: (context) {
-
         return Padding(
-
           padding: EdgeInsets.only(
-
             bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-
             left: 16,
-
             right: 16,
-
             top: 20,
-
           ),
-
           child: Column(
-
             mainAxisSize: MainAxisSize.min,
-
             crossAxisAlignment: CrossAxisAlignment.start,
-
             children: [
-
               const Text(
-
                 'Edit Swap Listing',
-
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-
               ),
-
               const SizedBox(height: 16),
-
               TextField(
-
                 controller: nameController,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Teacher Name',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: subjectController,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Subject(s)',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: currentCountyController,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Current County',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: targetCountyController,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Target County',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 20),
-
               SizedBox(
-
                 width: double.infinity,
-
                 child: ElevatedButton(
-
                   style: ElevatedButton.styleFrom(
-
                     backgroundColor: Colors.teal,
-
                     padding: const EdgeInsets.symmetric(vertical: 12),
-
                   ),
-
                   onPressed: () async {
-
-                    final listingId = item['_id'];
+                    final listingId = item['_id'] ?? item['id'];
 
                     await _updateListingOnServer(
-
                       listingId,
-
                       {
-
                         'teacherName': nameController.text.trim(),
-
                         'fullName': nameController.text.trim(),
-
                         'subject': subjectController.text.trim(),
-
+                        'subjects': subjectController.text.trim(),
                         'subjectCombination': subjectController.text.trim(),
-
                         'currentCounty': currentCountyController.text.trim(),
-
                         'county': currentCountyController.text.trim(),
-
                         'targetCounty': targetCountyController.text.trim(),
-
                       },
-
                     );
 
                     if (mounted) {
-
                       Navigator.pop(context);
-
-                      _fetchListings();
-
+                      _fetchListings(categoryType: widget.categoryType);
                     }
-
                   },
-
                   child: const Text('Save Changes',
-
                       style: TextStyle(color: Colors.white)),
-
                 ),
-
               ),
-
             ],
-
           ),
-
         );
-
       },
-
     );
-
   }
 
   Future<void> _updateListingOnServer(
-     String id, Map<String, dynamic> updateData) async {
-
+      String id, Map<String, dynamic> updateData) async {
     final url = Uri.parse(
-
         'https://teacher-connect-backend.vercel.app/api/admin/listings/$id');
 
     try {
-
       final response = await http.put(
-
         url,
-
         headers: {'Content-Type': 'application/json'},
-
         body: jsonEncode(updateData),
-
       );
 
       if (response.statusCode == 200) {
-
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           const SnackBar(content: Text('Listing updated successfully')),
-
         );
-
-        _fetchListings();
-
+        _fetchListings(categoryType: widget.categoryType);
       } else {
-
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           SnackBar(
-
               content: Text('Failed to update listing (${response.statusCode})')),
-
         );
-
       }
-
     } catch (e) {
-
       debugPrint('Error updating listing: $e');
-
     }
-
   }
 
   @override
-
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
-
         title: const Text('Manage All Swap Listings'),
-
         backgroundColor: Colors.teal,
-
       ),
-
       body: _isLoadingInitial
-
           ? const Center(child: CircularProgressIndicator())
-
           : _listings.isEmpty
-
               ? const Center(child: Text("No swap listings found."))
-
               : ListView.builder(
-
                   controller: _scrollController,
-
                   padding: const EdgeInsets.all(12),
-
                   itemCount: _listings.length + (_isFetchingMore ? 1 : 0),
-
                   itemBuilder: (context, index) {
-
                     if (index == _listings.length) {
-
                       return const Padding(
-
                         padding: EdgeInsets.symmetric(vertical: 16.0),
-
                         child: Center(child: CircularProgressIndicator()),
-
                       );
-
                     }
 
                     final item = _listings[index];
-
                     final listingId = item['_id'] ?? item['id'];
 
+                    final String teacherName =
+                        item['teacherName'] ?? item['fullName'] ?? 'Teacher';
+                    final String subjects = item['subjectCombination'] ??
+                        item['subjects'] ??
+                        item['subject'] ??
+                        'N/A';
+                    final String currentCounty =
+                        item['currentCounty'] ?? item['county'] ?? 'N/A';
+                    final String targetCounty = item['targetCounty'] ??
+                        item['targetLocation'] ??
+                        item['desiredCounty'] ??
+                        'N/A';
+
                     return Card(
-
                       margin: const EdgeInsets.symmetric(
-
                           horizontal: 4, vertical: 6),
-
                       child: ListTile(
-
                         title: Text(
-
-                          "${item['teacherName'] ?? 'Teacher'} - ${item['subject'] ?? 'N/A'}",
-
+                          "$teacherName - $subjects",
                           style: const TextStyle(fontWeight: FontWeight.bold),
-
                         ),
-
                         subtitle: Text(
-
-                            "Current: ${item['currentCounty'] ?? 'N/A'} | Target: ${item['targetCounty'] ?? item['desiredCounty'] ?? 'N/A'}"),
-
+                            "Current: $currentCounty | Target: $targetCounty"),
                         trailing: Row(
-
                           mainAxisSize: MainAxisSize.min,
-
                           children: [
-
                             IconButton(
-
                               icon: const Icon(Icons.edit, color: Colors.blue),
-
                               onPressed: () => _editListing(item),
-
                             ),
-
                             IconButton(
-
                               icon: const Icon(Icons.delete_outline,
-
                                   color: Colors.red),
-
                               onPressed: () {
-
                                 showDialog(
-
                                   context: context,
-
                                   builder: (ctx) => AlertDialog(
-
                                     title: const Text('Delete Listing'),
-
                                     content: const Text(
-
                                         'Are you sure you want to delete this listing permanently?'),
-
                                     actions: [
-
                                       TextButton(
-
                                         onPressed: () => Navigator.pop(ctx),
-
                                         child: const Text('Cancel'),
-
                                       ),
-
                                       TextButton(
-
                                         onPressed: () {
-
                                           Navigator.pop(ctx);
-
                                           _deleteListing(listingId);
-
                                         },
-
-                                        child: const Text('Delete',
-
-                                            style: TextStyle(color: Colors.red)),
-
+                                        child: const Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
                                       ),
-
                                     ],
-
                                   ),
-
                                 );
-
                               },
-
                             ),
-
                           ],
-
                         ),
-
                       ),
-
                     );
-
                   },
-
                 ),
-
     );
-
   }
-
-} 
-
+}
+                                                                                    
 // ==========================================
 
 // PENDING APPROVALS SCREEN (PAGINATED)
