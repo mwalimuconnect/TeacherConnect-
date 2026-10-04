@@ -622,91 +622,91 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<voiFuture<void> _handleLogin() async {
-  // Dismiss keyboard before making request
-  FocusScope.of(context).unfocus();
+  Future<void> _handleLogin() async {
+    // Dismiss soft keyboard
+    FocusScope.of(context).unfocus();
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    final payload = {
-      'phoneNumber': _phoneController.text.trim(),
-      'password': _passwordController.text.trim(),
-    };
+    try {
+      final payload = {
+        'phoneNumber': _phoneController.text.trim(),
+        'password': _passwordController.text.trim(),
+      };
 
-    final response = await http.post(
-      Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      if (!mounted) return;
-
-      // Extract user details safely from response
-      final userMap = data['user'] ?? {};
-      final String userRole = userMap['role'] ?? 'Member Teacher';
-      final String userName = userMap['fullName'] ?? 'Teacher';
-      // FIX 1: Read 'phone' (or fallback to 'phoneNumber')
-      final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login successful!'),
-          backgroundColor: Color(0xFF00897B),
-          duration: Duration(seconds: 2),
-        ),
+      final response = await http.post(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
       );
 
-      // FIX 2: Case-insensitive Admin check
-      final bool isAdmin = userRole.toLowerCase().contains('admin');
+      final data = jsonDecode(response.body);
 
-      if (isAdmin) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AdminDashboardScreen(
-              adminName: userName,
-              adminPhone: userPhone,
-            ),
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+
+        // Extract user payload cleanly
+        final userMap = data['user'] ?? {};
+        final String userRole = userMap['role'] ?? 'Member Teacher';
+        final String userName = userMap['fullName'] ?? 'Teacher';
+        // Read backend 'phone' field, fallback to 'phoneNumber' or input text
+        final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login successful!'),
+            backgroundColor: Color(0xFF00897B),
+            duration: Duration(seconds: 2),
           ),
         );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TeacherPortalScreen(
-              userName: userName,
-              userRole: userRole,
-              userPhone: userPhone,
+
+        // Case-insensitive role verification
+        final bool isAdmin = userRole.toLowerCase().contains('admin');
+
+        if (isAdmin) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AdminDashboardScreen(
+                adminName: userName,
+                adminPhone: userPhone,
+              ),
             ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherPortalScreen(
+                userName: userName,
+                userRole: userRole,
+                userPhone: userPhone,
+              ),
+            ),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Invalid login credentials'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } else {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(data['message'] ?? 'Invalid login credentials'),
+          content: Text('Error connecting to server: $e'),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error connecting to server: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
   }
-  }
-  
+
   void _navigateToRegister() {
     Navigator.pushReplacement(
       context,
@@ -793,7 +793,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Link back to Register wrapped in TextButton
+            // Link back to Register
             TextButton(
               onPressed: _navigateToRegister,
               child: RichText(
@@ -818,8 +818,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-            
-                                                                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                                                                                   
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
