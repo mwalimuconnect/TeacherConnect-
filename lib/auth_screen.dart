@@ -39,7 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _toggleAuthMode() {
-    _formKey.currentState?.reset(); // Clears all validation errors when toggling mode
+    _formKey.currentState?.reset(); // Clears validation errors when toggling mode
     setState(() {
       _isLogin = !_isLogin;
     });
@@ -47,6 +47,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Dismiss software keyboard
+    FocusScope.of(context).unfocus();
 
     setState(() => _isLoading = true);
 
@@ -86,10 +89,49 @@ class _AuthScreenState extends State<AuthScreen> {
           SnackBar(
             content: Text(data['message'] ?? (_isLogin ? 'Login successful!' : 'Registration successful!')),
             backgroundColor: const Color(0xFF00897B),
+            duration: const Duration(seconds: 2),
           ),
         );
 
-        // TODO: Add navigation to AdminDashboardScreen or TeacherPortalScreen here
+        // If registering, switch UI to Login tab so user can sign in immediately
+        if (!_isLogin) {
+          setState(() {
+            _isLogin = true;
+          });
+          return;
+        }
+
+        // ================= NAVIGATION LOGIC FOR LOGIN =================
+        final userMap = data['user'] ?? {};
+        final String userRole = userMap['role'] ?? _selectedRole;
+        final String userName = userMap['fullName'] ?? _fullNameController.text.trim();
+        final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
+
+        // Case-insensitive check for Admin role
+        final bool isAdmin = userRole.toLowerCase().contains('admin');
+
+        if (isAdmin) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AdminDashboardScreen(
+                adminName: userName,
+                adminPhone: userPhone,
+              ),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherPortalScreen(
+                userName: userName,
+                userRole: userRole,
+                userPhone: userPhone,
+              ),
+            ),
+          );
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -143,7 +185,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                 // ================= REGISTRATION SPECIFIC FIELDS =================
                 if (!_isLogin) ...[
-                  // Full Name (with ValueKey)
+                  // Full Name
                   TextFormField(
                     key: const ValueKey('fullNameField'),
                     controller: _fullNameController,
@@ -161,7 +203,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // ID / Passport Number (with ValueKey)
+                  // ID / Passport Number
                   TextFormField(
                     key: const ValueKey('idNumberField'),
                     controller: _idNumberController,
@@ -207,7 +249,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // TSC Number Field (with ValueKey)
+                  // TSC Number Field
                   TextFormField(
                     key: const ValueKey('tscNumberField'),
                     controller: _tscNumberController,
@@ -229,7 +271,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Current School Name Field (with ValueKey)
+                  // Current School Name Field
                   TextFormField(
                     key: const ValueKey('schoolNameField'),
                     controller: _schoolNameController,
@@ -253,7 +295,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ],
 
                 // ================= SHARED FIELDS =================
-                // Phone Number Field (with ValueKey)
+                // Phone Number Field
                 TextFormField(
                   key: const ValueKey('phoneNumberField'),
                   controller: _phoneController,
@@ -272,7 +314,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Password Field (with ValueKey)
+                // Password Field
                 TextFormField(
                   key: const ValueKey('passwordField'),
                   controller: _passwordController,
