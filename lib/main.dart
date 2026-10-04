@@ -1899,101 +1899,73 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   }
 
   void _onScroll() {
-
-    if (_scrollController.position.pixels >=
-
-            _scrollController.position.maxScrollExtent - 200 &&
-
-        !_isFetchingMore &&
-
-        _hasMore) {
-
-      _fetchListings(isLoadMore: true);
-
-    }
-
+  if (_scrollController.position.pixels >= 
+      _scrollController.position.maxScrollExtent - 200 &&
+      !_isLoadingInitial && 
+      !_isFetchingMore && 
+      _hasMore) {
+    _fetchListings(isLoadMore: true);
+  }
+  }
+        
+Future<void> _fetchListings({bool isLoadMore = false, String? categoryType}) async {
+  if (isLoadMore) {
+    if (!_hasMore || _isFetchingMore) return;
+    setState(() {
+      _isFetchingMore = true;
+    });
+  } else {
+    setState(() {
+      _isLoadingInitial = true;
+      _currentPage = 1;
+      _listings.clear();
+    });
   }
 
-  Future<void> _fetchListings({bool isLoadMore = false}) async {
+  // Determine type query parameter based on active category
+  final String activeType = categoryType ?? _selectedCategory; 
+  final String encodedType = Uri.encodeComponent(activeType);
 
-    if (isLoadMore) {
+  final url = Uri.parse(
+    'https://teacher-connect-backend.vercel.app/api/listings?type=$encodedType&page=$_currentPage&limit=$_limit',
+  );
 
-      setState(() => _isFetchingMore = true);
+  try {
+    final response = await http.get(url).timeout(const Duration(seconds: 10));
 
-    } else {
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      List<dynamic> newItems = [];
+
+      if (decoded is List) {
+        newItems = decoded;
+      } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+        newItems = decoded['data'] as List<dynamic>;
+      }
 
       setState(() {
-
-        _isLoadingInitial = true;
-
-        _currentPage = 1;
-
-        _listings.clear();
-
-      });
-
-    }
-
-    final url = Uri.parse(
-
-      'https://teacher-connect-backend.vercel.app/api/listings?page=$_currentPage&limit=$_limit',
-
-    );
-
-    try {
-
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-
-        final decoded = jsonDecode(response.body);
-
-        List<dynamic> newItems = [];
-
-        if (decoded is List) {
-
-          newItems = decoded;
-
-        } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-
-          newItems = decoded['data'] as List<dynamic>;
-
+        _listings.addAll(newItems);
+        _hasMore = newItems.length == _limit;
+        if (_hasMore) {
+          _currentPage++;
         }
-
-        setState(() {
-
-          _listings.addAll(newItems);
-
-          _hasMore = newItems.length == _limit;
-
-          if (_hasMore) _currentPage++;
-
-        });
-
-      }
-
-    } catch (e) {
-
-      debugPrint('Error fetching listings: $e');
-
-    } finally {
-
-      if (mounted) {
-
-        setState(() {
-
-          _isLoadingInitial = false;
-
-          _isFetchingMore = false;
-
-        });
-
-      }
-
+      });
+    } else {
+      debugPrint('Failed to load listings. Status Code: ${response.statusCode}');
     }
-
+  } catch (e) {
+    debugPrint('Error fetching listings: $e');
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoadingInitial = false;
+        _isFetchingMore = false;
+      });
+    }
   }
-
+}
+ 
   Future<void> _deleteListing(String id) async {
 
     final url = Uri.parse(
