@@ -2907,13 +2907,42 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   }
 
   Future<void> _downloadOrOpenUrl(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    if (url.trim().isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid resource link.')),
+        );
+      }
+      return;
+    }
+
+    final Uri uri = Uri.parse(url.trim());
+
+    try {
+      // 1. Primary Attempt: Launch in external browser/PDF viewer
+      bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      // 2. Fallback Attempt: Platform default view
+      if (!launched) {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+      }
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not launch $url')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Url Launcher Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening link: $e')),
         );
       }
     }
@@ -3153,7 +3182,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                 double price =
                                     (res['price'] ?? 50.0).toDouble();
 
-                                // Ensure payment requirement is enforced between KSh 50 and 100
+                                // Enforce payment requirement between KSh 50 and 100
                                 if (price > 0 && price < 50) price = 50.0;
                                 if (price > 100) price = 100.0;
 
@@ -3202,8 +3231,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       ],
     );
   }
-}
-
+}     
+                                                              
 // ==========================================
 // 1. FILE UPLOAD SERVICE CLASS
 // ==========================================
