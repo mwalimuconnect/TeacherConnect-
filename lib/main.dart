@@ -2907,51 +2907,49 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   }
 
   Future<void> _downloadOrOpenUrl(String rawUrl) async {
-    if (rawUrl.trim().isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid resource link.')),
-        );
-      }
-      return;
-    }
-
-    // Force Cloudinary attachment header so DOCX/PDF files download cleanly
-    String formattedUrl = rawUrl.trim();
-    if (formattedUrl.contains('/upload/') && !formattedUrl.contains('/fl_attachment/')) {
-      formattedUrl = formattedUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
-    }
-
-    final Uri uri = Uri.parse(formattedUrl);
-
-    try {
-      // 1. Primary Attempt: Launch in external browser/file handler
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
+  if (rawUrl.trim().isEmpty) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid resource link.')),
       );
-
-      // 2. Fallback Attempt: Platform default view
-      if (!launched) {
-        launched = await launchUrl(
-          uri,
-          mode: LaunchMode.platformDefault,
-        );
-      }
-
-      if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $formattedUrl')),
-        );
-      }
-    } catch (e) {
-      debugPrint('Url Launcher Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening link: $e')),
-        );
-      }
     }
+    return;
+  }
+
+  String formattedUrl = rawUrl.trim();
+
+  // If Cloudinary URL points to raw documents (.docx, .pdf, .xlsx), 
+  // ensure it uses the direct raw link without broken transformation flags
+  final Uri uri = Uri.parse(formattedUrl);
+
+  try {
+    // 1. Primary Attempt: Launch in external browser/file handler
+    bool launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    // 2. Fallback Attempt: Platform default view
+    if (!launched) {
+      launched = await launchUrl(
+        uri,
+        mode: LaunchMode.platformDefault,
+      );
+    }
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not launch $formattedUrl')),
+      );
+    }
+  } catch (e) {
+    debugPrint('Url Launcher Error: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening link: $e')),
+      );
+    }
+  }
   }
 
   void showPaymentModal(
