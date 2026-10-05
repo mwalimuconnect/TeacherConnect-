@@ -1081,20 +1081,41 @@ bool get isAdmin => widget.userRole.
   }
 
   Future<void> _handleLogout() async {
+  final bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      );
+    },
+  );
 
-    final prefs = await SharedPreferences.getInstance();
+  // If the user tapped 'Cancel' or dismissed the dialog, stop execution
+  if (confirm != true) return;
 
-    await prefs.clear();
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    Navigator.pushReplacement(
-
-      context,
-
-      MaterialPageRoute(builder: (_) => const MemberRegistrationScreen())
-    );
-
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => const MemberRegistrationScreen()),
+  );
   }
 
   @override
