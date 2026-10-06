@@ -3924,6 +3924,14 @@ class _ManageBomVacanciesScreenState extends State<ManageBomVacanciesScreen> {
 // 4. FREE POSTING MODAL
 // ==========================================
 
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+// ==========================================
+// 4. FREE POSTING MODAL
+// ==========================================
+
 class DynamicPostListingModal extends StatefulWidget {
   final String userName;
   final String userPhone;
@@ -4202,14 +4210,14 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       'Mvita',
       'Nyali'
     ],
-    'Murang'a': [
+    "Murang'a": [
       'Gatanga',
       'Kandara',
       'Kangema',
       'Kigumo',
       'Kiharu',
       'Mathioya',
-      'Murang'a South'
+      "Murang'a South"
     ],
     'Nairobi': [
       'Dagoretti',
@@ -4217,7 +4225,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       'Kamukunji',
       'Kasarani',
       'Kibra',
-      'Lang'ata',
+      "Lang'ata",
       'Makadara',
       'Mathare',
       'NJiru',
@@ -4307,7 +4315,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       'Tharaka North',
       'Tharaka South',
       'Chuka',
-      'Igambang'ombe',
+      "Igambang'ombe",
       'Maara'
     ],
     'Trans Nzoia': [
@@ -4422,37 +4430,24 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
         Uri.parse('https://teacher-connect-backend.vercel.app/api/listings'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          // Categories & Types explicitly set for backend formatListing parser
           'type': selectedType,
           'category': selectedType,
           'listingCategory': selectedType,
-
-          // Name variations
           'teacherName': _nameController.text.trim(),
           'fullName': _nameController.text.trim(),
           'name': _nameController.text.trim(),
-
-          // Subject variations
           'subject': selectedSubject,
           'subjects': selectedSubject,
           'subjectCombination': selectedSubject,
-
-          // Location details
           'currentCounty': '${_selectedCounty ?? ''} (${_selectedSubCounty ?? ''})',
           'county': _selectedCounty ?? '',
           'subCounty': _selectedSubCounty ?? '',
-
-          // School & TSC details
           'schoolName': _schoolController.text.trim(),
           'currentSchool': _schoolController.text.trim(),
           'tscNumber': _tscController.text.trim(),
-
-          // Destination details
           'targetCounty': targetCountyText,
           'desiredCounty': targetCountyText,
           'targetSubCounty': _selectedTargetSubCounty ?? '',
-
-          // Extra details
           'salary': _salaryController.text.trim(),
           'contactPhone': effectivePhone,
           'phone': effectivePhone,
@@ -4687,7 +4682,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
                     : (String? newValue) {
                         setState(() {
                           _selectedTargetSubCounty = newValue;
-                               });
+                        });
                       },
               ),
             ],
@@ -4735,6 +4730,4 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       ),
     );
   }
-}
-
-            
+} 
