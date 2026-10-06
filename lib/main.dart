@@ -1888,6 +1888,8 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   bool _isFetchingMore = false;
   bool _hasMore = true;
 
+  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
+
   @override
   void initState() {
     super.initState();
@@ -1926,12 +1928,14 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     }
 
     final String activeType = categoryType ?? widget.categoryType ?? '';
-    final String typeQueryParam = activeType.isNotEmpty
-        ? '&type=${Uri.encodeComponent(activeType)}'
+    
+    // FIX 1: Changed &type= to &category= to match express req.query.category
+    final String categoryQueryParam = activeType.isNotEmpty
+        ? '&category=${Uri.encodeComponent(activeType)}'
         : '';
 
     final url = Uri.parse(
-      'https://teacher-connect-backend.vercel.app/api/listings?page=$_currentPage&limit=$_limit$typeQueryParam',
+      '$_baseUrl/api/listings?page=$_currentPage&limit=$_limit$categoryQueryParam',
     );
 
     try {
@@ -1944,13 +1948,15 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
         if (decoded is List) {
           newItems = decoded;
+        } else if (decoded is Map<String, dynamic> && decoded.containsKey('listings')) {
+          newItems = decoded['listings'] as List<dynamic>;
         } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
           newItems = decoded['data'] as List<dynamic>;
         }
 
         setState(() {
           _listings.addAll(newItems);
-          _hasMore = newItems.length == _limit;
+          _hasMore = newItems.length >= _limit;
           if (_hasMore) {
             _currentPage++;
           }
@@ -1971,32 +1977,38 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   }
 
   Future<void> _deleteListing(String id) async {
-    final url = Uri.parse(
-      'https://teacher-connect-backend.vercel.app/api/admin/listing/$id',
-    );
+    // FIX 2: Standardized endpoint to /api/admin/listings/$id
+    final url = Uri.parse('$_baseUrl/api/admin/listings/$id');
 
     try {
       final response = await http.delete(url);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listing deleted successfully')),
         );
         _fetchListings(categoryType: widget.categoryType);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete listing (${response.statusCode})')),
+        );
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error deleting listing: $e');
+    }
   }
 
   void _editListing(Map<String, dynamic> item) {
     final nameController = TextEditingController(
-      text: item['teacherName'] ?? item['fullName'] ?? '',
+      text: item['fullName'] ?? item['teacherName'] ?? item['userName'] ?? '',
     );
     final subjectController = TextEditingController(
       text: item['subjectCombination'] ?? item['subjects'] ?? item['subject'] ?? '',
     );
     final currentCountyController = TextEditingController(
-      text: item['currentCounty'] ?? item['county'] ?? '',
+      text: item['county'] ?? item['currentCounty'] ?? '',
     );
     final targetCountyController = TextEditingController(
       text: item['targetCounty'] ?? item['targetLocation'] ?? item['desiredCounty'] ?? '',
@@ -2067,15 +2079,19 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                   onPressed: () async {
                     final listingId = item['_id'] ?? item['id'];
 
+                    if (listingId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Invalid listing ID')),
+                      );
+                      return;
+                    }
+
                     await _updateListingOnServer(
-                      listingId,
+                      listingId.toString(),
                       {
-                        'teacherName': nameController.text.trim(),
                         'fullName': nameController.text.trim(),
-                        'subject': subjectController.text.trim(),
-                        'subjects': subjectController.text.trim(),
+                        'teacherName': nameController.text.trim(),
                         'subjectCombination': subjectController.text.trim(),
-                        'currentCounty': currentCountyController.text.trim(),
                         'county': currentCountyController.text.trim(),
                         'targetCounty': targetCountyController.text.trim(),
                       },
@@ -2086,8 +2102,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                       _fetchListings(categoryType: widget.categoryType);
                     }
                   },
-                  child: const Text('Save Changes',
-                      style: TextStyle(color: Colors.white)),
+                  child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],
@@ -2099,8 +2114,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
   Future<void> _updateListingOnServer(
       String id, Map<String, dynamic> updateData) async {
-    final url = Uri.parse(
-        'https://teacher-connect-backend.vercel.app/api/admin/listings/$id');
+    final url = Uri.parse('$_baseUrl/api/admin/listings/$id');
 
     try {
       final response = await http.put(
@@ -2138,91 +2152,94 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _listings.isEmpty
               ? const Center(child: Text("No swap listings found."))
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _listings.length + (_isFetchingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _listings.length) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
+              : RefreshIndicator(
+                  onRefresh: () => _fetchListings(categoryType: widget.categoryType),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _listings.length + (_isFetchingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _listings.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
 
-                    final item = _listings[index];
-                    final listingId = item['_id'] ?? item['id'];
+                      final item = _listings[index];
+                      final listingId = (item['_id'] ?? item['id'])?.toString() ?? '';
 
-                    final String teacherName =
-                        item['teacherName'] ?? item['fullName'] ?? 'Teacher';
-                    final String subjects = item['subjectCombination'] ??
-                        item['subjects'] ??
-                        item['subject'] ??
-                        'N/A';
-                    final String currentCounty =
-                        item['currentCounty'] ?? item['county'] ?? 'N/A';
-                    final String targetCounty = item['targetCounty'] ??
-                        item['targetLocation'] ??
-                        item['desiredCounty'] ??
-                        'N/A';
+                      final String teacherName =
+                          item['fullName'] ?? item['teacherName'] ?? item['userName'] ?? 'Teacher';
+                      final String subjects = item['subjectCombination'] ??
+                          item['subjects'] ??
+                          item['subject'] ??
+                          'N/A';
+                      final String currentCounty =
+                          item['county'] ?? item['currentCounty'] ?? 'N/A';
+                      final String targetCounty = item['targetCounty'] ??
+                          item['targetLocation'] ??
+                          item['desiredCounty'] ??
+                          'N/A';
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 6),
-                      child: ListTile(
-                        title: Text(
-                          "$teacherName - $subjects",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                            "Current: $currentCounty | Target: $targetCounty"),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _editListing(item),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Colors.red),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Delete Listing'),
-                                    content: const Text(
-                                        'Are you sure you want to delete this listing permanently?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(ctx),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(ctx);
-                                          _deleteListing(listingId);
-                                        },
-                                        child: const Text(
-                                          'Delete',
-                                          style: TextStyle(color: Colors.red),
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 6),
+                        child: ListTile(
+                          title: Text(
+                            "$teacherName - $subjects",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                              "Current: $currentCounty | Target: $targetCounty"),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _editListing(item),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.red),
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Listing'),
+                                      content: const Text(
+                                          'Are you sure you want to delete this listing permanently?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: const Text('Cancel'),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            _deleteListing(listingId);
+                                          },
+                                          child: const Text(
+                                            'Delete',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
     );
   }
 }
-                                                                                    
+                                                                                                     
 // ==========================================
 
 // PENDING APPROVALS SCREEN (PAGINATED)
