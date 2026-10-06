@@ -2305,230 +2305,129 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 }
                                                                                                          
 // ==========================================
-// PENDING APPROVALS SCREEN (PAGINATED & DETAILED)
+// PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
+
 class PendingApprovalsScreen extends StatefulWidget {
-  const PendingApprovalsScreen({Key? key}) : super(key: key);
+  const PendingApprovalsScreen({super.key});
 
   @override
   State<PendingApprovalsScreen> createState() => _PendingApprovalsScreenState();
 }
 
-class _PendingApprovalsScreenState extends State<PendingApprovalsScreen> {
-  final ScrollController _scrollController = ScrollController();
-  final List<dynamic> _pendingItems = [];
+class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _isLoading = false;
 
-  int _currentPage = 1;
-  final int _limit = 15;
-  bool _isLoadingInitial = true;
-  bool _isFetchingMore = false;
-  bool _hasMore = true;
-
-  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
+  List<dynamic> _pendingSwaps = [];
+  List<dynamic> _pendingBomSeekers = [];
+  List<dynamic> _pendingBomVacancies = [];
+  List<dynamic> _pendingMembers = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchPendingItems();
-    _scrollController.addListener(_onScroll);
+    _tabController = TabController(length: 4, vsync: this);
+    _fetchAllPendingApprovals();
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isFetchingMore &&
-        _hasMore) {
-      _fetchPendingItems(isLoadMore: true);
-    }
-  }
-
-  Future<void> _fetchPendingItems({bool isLoadMore = false}) async {
-    if (isLoadMore) {
-      setState(() => _isFetchingMore = true);
-    } else {
-      setState(() {
-        _isLoadingInitial = true;
-        _currentPage = 1;
-        _pendingItems.clear();
-      });
-    }
+  Future<void> _fetchAllPendingApprovals() async {
+    setState(() => _isLoading = true);
 
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/admin/pending-listings?page=$_currentPage&limit=$_limit'),
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/pending-approvals'),
       );
 
       if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        List<dynamic> newItems = [];
-
-        if (decoded is List) {
-          newItems = decoded;
-        } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-          newItems = decoded['data'] as List<dynamic>;
-        }
+        final data = jsonDecode(response.body);
 
         setState(() {
-          _pendingItems.addAll(newItems);
-          _hasMore = newItems.length == _limit;
-          if (_hasMore) _currentPage++;
+          _pendingSwaps = data['swaps'] ?? [];
+          _pendingBomSeekers = data['bomSeekers'] ?? [];
+          _pendingBomVacancies = data['bomVacancies'] ?? [];
+          _pendingMembers = data['members'] ?? [];
         });
       }
     } catch (e) {
-      debugPrint('Error fetching pending listings: $e');
+      debugPrint('Error fetching pending approvals: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingInitial = false;
-          _isFetchingMore = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _updateStatus(String id, String status) async {
+  Future<void> _handleApprovalAction(String id, String type, bool isApprove) async {
+    final action = isApprove ? 'approve' : 'reject';
     try {
-      final endpoint = status == 'approved'
-          ? '$_baseUrl/api/admin/approve-user/$id'
-          : '$_baseUrl/api/admin/reject-user/$id';
-
-      final response = await http.put(
-        Uri.parse(endpoint),
+      final response = await http.post(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/$action'),
         headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id': id, 'type': type}),
       );
 
-      if (response.statusCode == 200 && mounted) {
+      if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Member account mark as $status'),
-            backgroundColor: status == 'approved' ? Colors.green : Colors.red,
+            content: Text(
+              '${isApprove ? "Approved" : "Rejected"} successfully.',
+            ),
+            backgroundColor: isApprove ? Colors.green : Colors.red,
           ),
         );
-        _fetchPendingItems();
+        _fetchAllPendingApprovals();
       }
     } catch (e) {
-      debugPrint('Error updating user status: $e');
+      debugPrint('Error executing $action: $e');
     }
   }
 
-  void _showMemberDetailModal(Map<String, dynamic> item) {
-    final id = item['_id'] ?? item['id'] ?? '';
-    final fullName = item['fullName'] ?? item['teacherName'] ?? 'N/A';
-    final phone = item['phone'] ?? item['phoneNumber'] ?? 'N/A';
-    final tscNumber = item['tscNumber'] ?? item['tsc'] ?? 'N/A';
-    final nationalId = item['nationalId'] ?? item['idNumber'] ?? 'N/A';
-    final school = item['currentSchool'] ?? item['school'] ?? 'N/A';
-    final role = item['role'] ?? 'Member Teacher';
-    final status = item['status'] ?? 'pending';
+  Widget _buildTableTab({
+    required List<dynamic> items,
+    required List<String> headers,
+    required DataTableSource source,
+  }) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Applicant Member Details',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const Divider(height: 24),
-              _buildDetailRow(Icons.person, 'Full Name', fullName),
-              _buildDetailRow(Icons.phone, 'Phone Number', phone),
-              _buildDetailRow(Icons.badge, 'TSC Number', tscNumber),
-              _buildDetailRow(Icons.credit_card, 'National ID', nationalId),
-              _buildDetailRow(Icons.school, 'Current School', school),
-              _buildDetailRow(Icons.work, 'Account Role', role),
-              _buildDetailRow(Icons.info_outline, 'Current Status', status.toUpperCase()),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      label: const Text('Reject'),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _updateStatus(id, 'rejected');
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      icon: const Icon(Icons.check_circle, color: Colors.white),
-                      label: const Text('Approve', style: TextStyle(color: Colors.white)),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _updateStatus(id, 'approved');
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+    if (items.isEmpty) {
+      return const Center(
+        child: Text(
+          'No pending approvals in this category.',
+          style: TextStyle(fontSize: 15, color: Colors.grey),
+        ),
+      );
+    }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Colors.teal),
-          const SizedBox(width: 12),
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+    return RefreshIndicator(
+      onRefresh: _fetchAllPendingApprovals,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(12.0),
+        child: SizedBox(
+          width: double.infinity,
+          child: PaginatedDataTable(
+            rowsPerPage: PaginatedDataTable.defaultRowsPerPage,
+            showCheckboxColumn: false,
+            columnSpacing: 16,
+            horizontalMargin: 12,
+            columns: headers
+                .map((h) => DataColumn(
+                      label: Text(
+                        h,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ))
+                .toList(),
+            source: source,
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -2539,68 +2438,166 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen> {
       appBar: AppBar(
         title: const Text('Pending Approvals'),
         backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: _fetchAllPendingApprovals,
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          indicatorColor: Colors.amber,
+          tabs: [
+            Tab(text: 'TSC Swaps (${_pendingSwaps.length})'),
+            Tab(text: 'BOM Job Seekers (${_pendingBomSeekers.length})'),
+            Tab(text: 'BOM Vacancies (${_pendingBomVacancies.length})'),
+            Tab(text: 'New Members (${_pendingMembers.length})'),
+          ],
+        ),
       ),
-      body: _isLoadingInitial
-          ? const Center(child: CircularProgressIndicator())
-          : _pendingItems.isEmpty
-              ? const Center(child: Text('No pending approvals found'))
-              : ListView.builder(
-                  controller: _scrollController,
-                  itemCount: _pendingItems.length + (_isFetchingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _pendingItems.length) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // 1. SEEKING SWAP TABLE (4 COLUMNS)
+          _buildTableTab(
+            items: _pendingSwaps,
+            headers: const ['Applicant', 'Subjects', 'Counties', 'Actions'],
+            source: _PendingApprovalTableSource(
+              items: _pendingSwaps,
+              type: 'swap',
+              onAction: _handleApprovalAction,
+            ),
+          ),
 
-                    final item = _pendingItems[index];
-                    final name = item['fullName'] ?? item['teacherName'] ?? 'Pending Member';
-                    final phone = item['phone'] ?? item['phoneNumber'] ?? 'N/A';
-                    final tsc = item['tscNumber'] ?? item['tsc'] ?? 'N/A';
-                    final id = item['_id'] ?? item['id'] ?? '';
+          // 2. SEEKING BOM JOBS TABLE (4 COLUMNS)
+          _buildTableTab(
+            items: _pendingBomSeekers,
+            headers: const ['Teacher', 'Subjects', 'Target Location', 'Actions'],
+            source: _PendingApprovalTableSource(
+              items: _pendingBomSeekers,
+              type: 'bom_seeker',
+              onAction: _handleApprovalAction,
+            ),
+          ),
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text('Phone: $phone | TSC: $tsc'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.check_circle, color: Colors.green),
-                              onPressed: () => _updateStatus(id, 'approved'),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.cancel, color: Colors.red),
-                              onPressed: () => _updateStatus(id, 'rejected'),
-                            ),
-                          ],
-                        ),
-                        onTap: () => _showMemberDetailModal(item),
-                      ),
-                    );
-                  },
-                ),
+          // 3. AVAILABLE BOM JOBS TABLE (4 COLUMNS)
+          _buildTableTab(
+            items: _pendingBomVacancies,
+            headers: const ['School Name', 'Subject Needed', 'County', 'Actions'],
+            source: _PendingApprovalTableSource(
+              items: _pendingBomVacancies,
+              type: 'bom_vacancy',
+              onAction: _handleApprovalAction,
+            ),
+          ),
+
+          // 4. NEW MEMBER REGISTRATIONS TABLE (4 COLUMNS)
+          _buildTableTab(
+            items: _pendingMembers,
+            headers: const ['Full Name', 'Phone Number', 'TSC / ID Number', 'Actions'],
+            source: _PendingApprovalTableSource(
+              items: _pendingMembers,
+              type: 'member',
+              onAction: _handleApprovalAction,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
+// ==========================================
+// 4-COLUMN PAGINATED DATA TABLE SOURCE
+// ==========================================
+
+class _PendingApprovalTableSource extends DataTableSource {
+  final List<dynamic> items;
+  final String type;
+  final Function(String id, String type, bool isApprove) onAction;
+
+  _PendingApprovalTableSource({
+    required this.items,
+    required this.type,
+    required this.onAction,
+  });
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= items.length) return null;
+
+    final item = items[index];
+    final String id = item['_id'] ?? item['id'] ?? '';
+
+    String col1 = 'N/A';
+    String col2 = 'N/A';
+    String col3 = 'N/A';
+
+    switch (type) {
+      case 'swap':
+        col1 = item['fullName'] ?? item['name'] ?? 'N/A';
+        col2 = '${item['subject1'] ?? ''} / ${item['subject2'] ?? ''}';
+        col3 = '${item['county'] ?? ''} -> ${item['targetCounty'] ?? ''}';
+        break;
+
+      case 'bom_seeker':
+        col1 = item['fullName'] ?? item['name'] ?? 'N/A';
+        col2 = '${item['subject1'] ?? ''} / ${item['subject2'] ?? ''}';
+        col3 = item['county'] ?? item['targetCounty'] ?? 'N/A';
+        break;
+
+      case 'bom_vacancy':
+        col1 = item['schoolName'] ?? item['title'] ?? 'N/A';
+        col2 = item['subject'] ?? item['subject1'] ?? 'N/A';
+        col3 = item['county'] ?? 'N/A';
+        break;
+
+      case 'member':
+        col1 = item['fullName'] ?? item['name'] ?? 'N/A';
+        col2 = item['phoneNumber'] ?? item['phone'] ?? 'N/A';
+        col3 = 'TSC: ${item['tscNumber'] ?? 'N/A'} | ID: ${item['idNumber'] ?? 'N/A'}';
+        break;
+    }
+
+    return DataRow.byIndex(
+      index: index,
+      cells: [
+        DataCell(Text(col1, style: const TextStyle(fontWeight: FontWeight.w600))),
+        DataCell(Text(col2)),
+        DataCell(Text(col3)),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.check_circle, color: Colors.green),
+                tooltip: 'Approve',
+                onPressed: () => onAction(id, type, true),
+              ),
+              IconButton(
+                icon: const Icon(Icons.cancel, color: Colors.red),
+                tooltip: 'Reject',
+                onPressed: () => onAction(id, type, false),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => items.length;
+
+  @override
+  int get selectedRowCount => 0;
+}
+                                                
 // ==========================================
 // PAYMENT HISTORY SCREEN (PAGINATED)
 // ==========================================
