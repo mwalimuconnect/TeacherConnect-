@@ -1497,6 +1497,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'totalListings': 0,
     'pendingApprovals': 0,
     'paymentsReceived': 0,
+    'totalMembers': 0,
   };
 
   @override
@@ -1519,6 +1520,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           _stats['totalListings'] = data['totalListings'] ?? 0;
           _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
           _stats['paymentsReceived'] = data['paymentsReceived'] ?? 0;
+          _stats['totalMembers'] = data['totalMembers'] ?? 0;
         });
       }
     } catch (e) {
@@ -1653,6 +1655,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- ADMIN PROFILE CARD ---
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16.0),
@@ -1699,6 +1702,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+
+              // --- SYSTEM OVERVIEW ---
               const Text(
                 'System Overview',
                 style: TextStyle(
@@ -1757,6 +1762,64 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
+
+                // LIGHT BLUE TOTAL MEMBERS TILE
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TotalMembersScreen(),
+                      ),
+                    ).then((_) => _fetchDashboardStats());
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Colors.lightBlue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.lightBlue.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAlignment.start,
+                          children: [
+                            Text(
+                              'Total Members',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.lightBlue.shade900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_stats['totalMembers']}',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.lightBlue.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Icon(
+                          Icons.people_alt,
+                          size: 32,
+                          color: Colors.lightBlue.shade700,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 Row(
                   children: [
                     Expanded(
@@ -1783,6 +1846,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ],
               const SizedBox(height: 24),
+
+              // --- ADMIN ACTIONS ---
               const Text(
                 'Admin Actions',
                 style: TextStyle(
@@ -1858,7 +1923,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 },
               ),
 
-              // 5. Pending Approvals
+              // 5. Total Registered Members
+              ListTile(
+                leading: const Icon(Icons.group, color: Colors.teal),
+                title: const Text('Total Registered Members'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TotalMembersScreen(),
+                    ),
+                  ).then((_) => _fetchDashboardStats());
+                },
+              ),
+
+              // 6. Pending Approvals
               ListTile(
                 leading: const Icon(Icons.hourglass_top, color: Colors.teal),
                 title: const Text('Pending Approvals'),
@@ -1879,7 +1959,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-                                                                                            
+
 // ==========================================
 // MANAGE ALL LISTINGS (PAGINATED)
 // ==========================================
