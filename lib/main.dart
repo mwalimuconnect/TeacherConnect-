@@ -2958,8 +2958,8 @@ class _ManageJobSeekersScreenState extends State<ManageJobSeekersScreen> {
 // ==========================================
 
 class TotalMembersScreen extends StatefulWidget {
-  const TotalMembersScreen({Key? key}) : super(Key: key);
-
+  const TotalMembersScreen({Key? key}) : super(key: key);
+  
   @override
   State<TotalMembersScreen> createState() => _TotalMembersScreenState();
 }
