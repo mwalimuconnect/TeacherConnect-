@@ -2909,6 +2909,215 @@ class _ManageJobSeekersScreenState extends State<ManageJobSeekersScreen> {
   }
 }
 
+// ==========================================
+// TOTAL MEMBERS SCREEN (PAGINATED DATATABLE)
+// ==========================================
+
+class TotalMembersScreen extends StatefulWidget {
+  const TotalMembersScreen({Key? key}) : super(key: key);
+
+  @override
+  State<TotalMembersScreen> createState() => _TotalMembersScreenState();
+}
+
+class _TotalMembersScreenState extends State<TotalMembersScreen> {
+  bool _isLoading = false;
+  List<dynamic> _members = [];
+  int _rowsPerPage = PaginatedDataTable.defaultRowsPerPage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMembers();
+  }
+
+  Future<void> _fetchMembers() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _members = data is List ? data : (data['members'] ?? []);
+        });
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load members (${response.statusCode})')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching total members: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Network error while loading members.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final memberDataSource = _MemberDataTableSource(_members);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Total Members (${_members.length})'),
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Members',
+            onPressed: _fetchMembers,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _members.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No registered members found.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchMembers,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: PaginatedDataTable(
+                        header: const Text(
+                          'Registered Members Directory',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        rowsPerPage: _rowsPerPage,
+                        availableRowsPerPage: const [10, 20, 50],
+                        onRowsPerPageChanged: (int? value) {
+                          if (value != null) {
+                            setState(() {
+                              _rowsPerPage = value;
+                            });
+                          }
+                        },
+                        showCheckboxColumn: false,
+                        columnSpacing: 20,
+                        horizontalMargin: 12,
+                        columns: const [
+                          DataColumn(
+                            label: Text(
+                              '#',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Name',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Phone Number',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'TSC Number',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'ID Number',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Joined Date',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                        source: memberDataSource,
+                      ),
+                    ),
+                  ),
+                ),
+    );
+  }
+}
+
+// ==========================================
+// PAGINATED DATA SOURCE FOR MEMBERS
+// ==========================================
+
+class _MemberDataTableSource extends DataTableSource {
+  final List<dynamic> _members;
+
+  _MemberDataTableSource(this._members);
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= _members.length) return null;
+
+    final member = _members[index];
+    final name = member['fullName'] ?? member['name'] ?? 'N/A';
+    final phone = member['phoneNumber'] ?? member['phone'] ?? 'N/A';
+    final tsc = member['tscNumber'] ?? member['tsc'] ?? 'N/A';
+    final idNum = member['idNumber'] ?? member['_id'] ?? 'N/A';
+    final createdAt = member['createdAt'] != null
+        ? member['createdAt'].toString().split('T')[0]
+        : 'N/A';
+
+    return DataRow.byIndex(
+      index: index,
+      color: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (index.isEven) {
+            return Colors.teal.shade50.withOpacity(0.3);
+          }
+          return null;
+        },
+      ),
+      cells: [
+        DataCell(Text('${index + 1}')),
+        DataCell(
+          Text(
+            name,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        DataCell(Text(phone)),
+        DataCell(Text(tsc)),
+        DataCell(Text(idNum)),
+        DataCell(Text(createdAt)),
+      ],
+    );
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => _members.length;
+
+  @override
+  int get selectedRowCount => 0;
+}
+
 // ============================================================================
 // TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS)
 // ============================================================================
