@@ -3919,1557 +3919,822 @@ class _ManageBomVacanciesScreenState extends State<ManageBomVacanciesScreen> {
   }
 
 }
-
+                                                     
 // ==========================================
-
 // 4. FREE POSTING MODAL
-
 // ==========================================
 
 class DynamicPostListingModal extends StatefulWidget {
   final String userName;
-
   final String userPhone;
-    
-    const DynamicPostListingModal({
 
+  const DynamicPostListingModal({
     Key? key,
-
     required this.userName,
-
     required this.userPhone,
-
   }) : super(key: key);
 
   @override
-
   State<DynamicPostListingModal> createState() =>
-
       _DynamicPostListingModalState();
-
 }
 
 class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
-
   String selectedType = 'TSC Swap';
-
   String selectedSubject = 'English / Literature';
-
   bool isSubmitting = false;
 
   String? _selectedCounty;
-
   String? _selectedSubCounty;
-
   String? _selectedTargetCounty;
-
   String? _selectedTargetSubCounty;
 
   late TextEditingController _nameController;
-
   late TextEditingController _schoolController;
-
   late TextEditingController _tscController;
-
   late TextEditingController _phoneController;
-
   late TextEditingController _salaryController;
 
   final Map<String, List<String>> _countySubCountyData = {
-
     'Baringo': [
-
       'Baringo Central',
-
       'Baringo North',
-
       'Baringo South',
-
       'Eldama Ravine',
-
       'Mogotio',
-
       'Tiaty'
-
     ],
-
     'Bomet': [
-
       'Bomet Central',
-
       'Bomet East',
-
       'Chepalungu',
-
       'Konoin',
-
       'Sotik'
-
     ],
-
     'Bungoma': [
-
       'Bungoma Central',
-
       'Bungoma East',
-
       'Bungoma North',
-
       'Bungoma South',
-
       'Bungoma West',
-
       'Cheptais',
-
       'Kimilili',
-
       'Mount Elgon',
-
       'Sirisia',
-
       'Tongaren'
-
     ],
-
     'Busia': [
-
       'Bunyala',
-
       'Busia',
-
       'Butula',
-
       'Nambale',
-
       'Samia',
-
       'Teso North',
-
       'Teso South'
-
     ],
-
     'Elgeyo Marakwet': [
-
       'Keiyo North',
-
       'Keiyo South',
-
       'Marakwet East',
-
       'Marakwet West'
-
     ],
-
     'Embu': [
-
       'Embu East',
-
       'Embu North',
-
       'Embu West',
-
       'Mbeere North',
-
       'Mbeere South'
-
     ],
-
     'Garissa': [
-
       'Balambala',
-
       'Dadaab',
-
       'Fafi',
-
       'Garissa',
-
       'Hulugho',
-
       'Ijara',
-
       'Lagdera'
-
     ],
-
     'Homa Bay': [
-
       'Homa Bay',
-
       'Kabondo Kasipul',
-
       'Karachuonyo',
-
       'Kasipul',
-
       'Mbita',
-
       'Ndhiwa',
-
       'Rangwe',
-
       'Suba'
-
     ],
-
     'Isiolo': [
-
       'Garbatulla',
-
       'Isiolo',
-
       'Merti'
-
     ],
-
     'Kajiado': [
-
       'Isinya',
-
       'Kajiado Central',
-
       'Kajiado North',
-
       'Kajiado West',
-
       'Loitokitok',
-
       'Mashuuru'
-
     ],
-
     'Kakamega': [
-
       'Butere',
-
       'Kakamega Central',
-
       'Kakamega East',
-
       'Kakamega North',
-
       'Kakamega South',
-
       'Khwisero',
-
       'Likuyani',
-
       'Lugari',
-
       'Matungu',
-
       'Mumias East',
-
       'Mumias West',
-
       'Navakholo'
-
     ],
-
     'Kericho': [
-
       'Belgut',
-
       'Bureau',
-
       'Kericho East',
-
       'Kipkelion East',
-
       'Kipkelion West',
-
       'Soin/Sigowet'
-
     ],
-
     'Kiambu': [
-
       'Githunguri',
-
       'Juja',
-
       'Kabete',
-
       'Kiambaa',
-
       'Kiambu',
-
       'Kikuyu',
-
       'Lari',
-
       'Limuru',
-
       'Ruiru',
-
       'Thika East',
-
       'Thika West'
-
     ],
-
     'Kilifi': [
-
       'Ganze',
-
       'Kaloleni',
-
       'Kilifi North',
-
       'Kilifi South',
-
       'Magarini',
-
       'Malindi',
-
       'Rabai'
-
     ],
-
     'Kirinyaga': [
-
       'Kirinyaga Central',
-
       'Kirinyaga East',
-
       'Kirinyaga West',
-
       'Mwea East',
-
       'Mwea West'
-
     ],
-
     'Kisii': [
-
       'Gucha',
-
       'Gucha South',
-
       'Kenyenya',
-
       'Kisii Central',
-
       'Kisii South',
-
       'Kitutu Central',
-
       'Marani',
-
       'Masaba South',
-
       'Nyamache',
-
       'Sameta'
-
     ],
-
     'Kisumu': [
-
       'Kadibo',
-
       'Kisumu Central',
-
       'Kisumu East',
-
       'Kisumu West',
-
       'Muhoroni',
-
       'Nyando',
-
       'Nyakach'
-
     ],
-
     'Kitui': [
-
       'Ikutha',
-
       'Katulani',
-
       'Kitui Central',
-
       'Kitui Rural',
-
       'Kitui West',
-
       'Kyuso',
-
       'Lower Yatta',
-
       'Mwingi Central',
-
       'Mwingi East',
-
       'Mwingi West',
-
       'Nzambani'
-
     ],
-
     'Kwale': [
-
       'Kinango',
-
       'Lunga Lunga',
-
       'Matuga',
-
       'Msambweni'
-
     ],
-
     'Laikipia': [
-
       'Laikipia Central',
-
       'Laikipia East',
-
       'Laikipia North',
-
       'Laikipia West',
-
       'Nyahururu'
-
     ],
-
     'Lamu': [
-
       'Lamu East',
-
       'Lamu West'
-
     ],
-
     'Machakos': [
-
       'Athi River',
-
       'Kalama',
-
       'Kangundo',
-
       'Kathiani',
-
       'Machakos',
-
       'Masinga',
-
       'Matungulu',
-
       'Mwala',
-
       'Yatta'
-
     ],
-
     'Makueni': [
-
       'Kilungu',
-
       'Makueni',
-
       'Kaiti',
-
       'Kibwezi West',
-
       'Kibwezi East',
-
       'Mukaa'
-
     ],
-
     'Mandera': [
-
       'Banissa',
-
       'Kutulo',
-
       'Lafey',
-
       'Mandera Central',
-
       'Mandera East',
-
       'Mandera North',
-
       'Mandera West'
-
     ],
-
     'Marsabit': [
-
       'Laisamis',
-
       'Marsabit Central',
-
       'Moyale',
-
       'North Horr'
-
     ],
-
     'Meru': [
-
       'Imenti Central',
-
       'Imenti North',
-
       'Imenti South',
-
       'Tigania East',
-
       'Tigania West',
-
       'Igembe Central',
-
       'Igembe North',
-
       'Igembe South',
-
       'Buuri'
-
     ],
-
     'Migori': [
-
       'Awendo',
-
       'Kuria East',
-
       'Kuria West',
-
       'Nyatike',
-
       'Rongo',
-
       'Suna East',
-
       'Suna West',
-
       'Uriri'
-
     ],
-
     'Mombasa': [
-
       'Changamwe',
-
       'Jomvu',
-
       'Kisauni',
-
       'Likoni',
-
       'Mvita',
-
       'Nyali'
-
     ],
-
     'Murang\'a': [
-
       'Gatanga',
-
       'Kandara',
-
       'Kangema',
-
       'Kigumo',
-
       'Kiharu',
-
       'Mathioya',
-
       'Murang\'a South'
-
     ],
-
     'Nairobi': [
-
       'Dagoretti',
-
       'Embakasi',
-
       'Kamukunji',
-
       'Kasarani',
-
       'Kibra',
-
       'Lang\'ata',
-
       'Makadara',
-
       'Mathare',
-
       'NJiru',
-
       'Starehe',
-
       'Westlands'
-
     ],
-
     'Nakuru': [
-
       'Gilgil',
-
       'Kuresoi North',
-
       'Kuresoi South',
-
       'Molo',
-
       'Naivasha',
-
       'Nakuru East',
-
       'Nakuru North',
-
       'Nakuru West',
-
       'Njoro',
-
       'Rongai',
-
       'Subukia'
-
     ],
-
     'Nandi': [
-
       'Chesumei',
-
       'Nandi Central',
-
       'Nandi East',
-
       'Nandi North',
-
       'Nandi South',
-
       'Tinderet'
-
     ],
-
     'Narok': [
-
       'Narok East',
-
       'Narok North',
-
       'Narok South',
-
       'Narok West',
-
       'Trans Mara East',
-
       'Trans Mara West'
-
     ],
-
     'Nyamira': [
-
       'Borabu',
-
       'Manga',
-
       'Masaba North',
-
       'Nyamira North',
-
       'Nyamira South'
-
     ],
-
     'Nyandarua': [
-
       'Kinangop',
-
       'Ndaragwa',
-
       'Ol Kalou',
-
       'Ol Joro Orok',
-
       'Nipini'
-
     ],
-
     'Nyeri': [
-
       'Kieni East',
-
       'Kieni West',
-
       'Mathira East',
-
       'Mathira West',
-
       'Mukurweini',
-
       'Nyeri Central',
-
       'Nyeri South',
-
       'Tetu'
-
     ],
-
     'Samburu': [
-
       'Samburu East',
-
       'Samburu North',
-
       'Samburu West'
-
     ],
-
     'Siaya': [
-
       'Alego Usonga',
-
       'Bondo',
-
       'Gem',
-
       'Rarieda',
-
       'Ugenya',
-
       'Ugunja'
-
     ],
-
     'Taita Taveta': [
-
       'Mwatate',
-
       'Taveta',
-
       'Taita',
-
       'Voi'
-
     ],
-
     'Tana River': [
-
       'Bura',
-
       'Garsen',
-
       'Tana Delta',
-
       'Tana North',
-
       'Tana River'
-
     ],
-
     'Tharaka Nithi': [
-
       'Tharaka North',
-
       'Tharaka South',
-
       'Chuka',
-
       'Igambang\'ombe',
-
       'Maara'
-
     ],
-
     'Trans Nzoia': [
-
       'Endebess',
-
       'Kiminini',
-
       'Kwanza',
-
       'Saboti',
-
       'Cherangany'
-
     ],
-
     'Turkana': [
-
       'Turkana Central',
-
       'Turkana East',
-
       'Turkana North',
-
       'Turkana South',
-
       'Turkana West',
-
       'Loima'
-
     ],
-
     'Uasin Gishu': [
-
       'Ainabkoi',
-
       'Kapseret',
-
       'Kesses',
-
       'Moiben',
-
       'Soy',
-
       'Turbo'
-
     ],
-
     'Vihiga': [
-
       'Emuhaya',
-
       'Hamisi',
-
       'Luanda',
-
       'Sabatia',
-
       'Vihiga'
-
     ],
-
     'Wajir': [
-
       'Buna',
-
       'Eldas',
-
       'Habaswein',
-
       'Tarbaj',
-
       'Wajir East',
-
       'Wajir North',
-
       'Wajir South',
-
       'Wajir West'
-
     ],
-
     'West Pokot': [
-
       'Kipkomai',
-
       'Pokot Central',
-
       'Pokot North',
-
       'Pokot South',
-
       'West Pokot'
-
     ],
-
   };
-   
-      @override
 
+  @override
   void initState() {
-
     super.initState();
-
     _nameController = TextEditingController(text: widget.userName);
-
     _schoolController = TextEditingController();
-
     _tscController = TextEditingController();
-
     _phoneController = TextEditingController(text: widget.userPhone);
-
     _salaryController = TextEditingController();
-
   }
 
   @override
-
   void dispose() {
-
     _nameController.dispose();
-
     _schoolController.dispose();
-
     _tscController.dispose();
-
     _phoneController.dispose();
-
     _salaryController.dispose();
-
     super.dispose();
-
   }
 
   Future<void> _handleSubmit() async {
-
     if (_nameController.text.trim().isEmpty ||
-
         _selectedCounty == null ||
-
         _selectedSubCounty == null) {
-
       ScaffoldMessenger.of(context).showSnackBar(
-
         const SnackBar(
-
           content: Text('Please fill in all required fields (Name, County, Sub-County).'),
-
           backgroundColor: Colors.orange,
-
         ),
-
       );
-
       return;
-
     }
 
     if (selectedType == 'TSC Swap') {
-
       if (_phoneController.text.trim().isEmpty ||
-
           _tscController.text.trim().isEmpty ||
-
           _selectedTargetCounty == null) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           const SnackBar(
-
             content: Text('Please fill in Phone, TSC Number, and Target County for TSC Swap.'),
-
             backgroundColor: Colors.orange,
-
           ),
-
         );
-
         return;
-
       }
-
     }
 
     setState(() => isSubmitting = true);
 
     String targetCountyText = _selectedTargetCounty ?? '';
-
     if (_selectedTargetSubCounty != null && _selectedTargetSubCounty!.isNotEmpty) {
-
       targetCountyText += ' (${_selectedTargetSubCounty})';
-
     }
 
     final effectivePhone = _phoneController.text.trim().isNotEmpty 
-
         ? _phoneController.text.trim() 
-
         : widget.userPhone;
 
     try {
-
       final response = await http.post(
-
         Uri.parse('https://teacher-connect-backend.vercel.app/api/listings'),
-
         headers: {'Content-Type': 'application/json'},
-
         body: jsonEncode({
+          // Categories & Types explicitly set for backend formatListing parser
+          'type': selectedType,
+          'category': selectedType,
+          'listingCategory': selectedType,
 
+          // Name variations
           'teacherName': _nameController.text.trim(),
-
+          'fullName': _nameController.text.trim(),
           'name': _nameController.text.trim(),
 
+          // Subject variations
           'subject': selectedSubject,
-
           'subjects': selectedSubject,
+          'subjectCombination': selectedSubject,
 
-          'category': selectedType,
-
+          // Location details
           'currentCounty': '${_selectedCounty ?? ''} (${_selectedSubCounty ?? ''})',
-
           'county': _selectedCounty ?? '',
-
           'subCounty': _selectedSubCounty ?? '',
 
+          // School & TSC details
           'schoolName': _schoolController.text.trim(),
-
+          'currentSchool': _schoolController.text.trim(),
           'tscNumber': _tscController.text.trim(),
 
+          // Destination details
           'targetCounty': targetCountyText,
-
           'desiredCounty': targetCountyText,
+          'targetSubCounty': _selectedTargetSubCounty ?? '',
 
+          // Extra details
           'salary': _salaryController.text.trim(),
-
           'contactPhone': effectivePhone,
-
           'phone': effectivePhone,
-
+          'phoneNumber': effectivePhone,
+          'status': 'approved',
         }),
-
       );
 
       if (!mounted) return;
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           const SnackBar(
-
             content: Text('Listing posted successfully!'),
-
             backgroundColor: Colors.green,
-
           ),
-
         );
-
-        Navigator.pop(context);
-
+        Navigator.pop(context, true);
       } else {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           SnackBar(
-
             content: Text('Failed: ${response.statusCode} - ${response.body}'),
-
             backgroundColor: Colors.red,
-
           ),
-
         );
-
       }
-
     } catch (e) {
-
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-
         SnackBar(
-
           content: Text('Connection Error: $e'),
-
           backgroundColor: Colors.red,
-
         ),
-
       );
-
     } finally {
-
       if (mounted) setState(() => isSubmitting = false);
-
     }
-
   }
 
   @override
-
   Widget build(BuildContext context) {
-
     return Padding(
-
       padding: EdgeInsets.only(
-
         left: 20,
-
         right: 20,
-
         top: 20,
-
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-
       ),
-
       child: SingleChildScrollView(
-
         child: Column(
-
           mainAxisSize: MainAxisSize.min,
-
           crossAxisAlignment: CrossAxisAlignment.start,
-
           children: [
-
             const Text(
-
               'Post New Listing (Free)',
-
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
-
               value: selectedType,
-
               decoration: const InputDecoration(
-
                 labelText: 'Listing Category',
-
                 border: OutlineInputBorder(),
-
               ),
-
               items: ['TSC Swap', 'BOM Vacancy', 'Seeking BOM Job'].map((type) {
-
                 return DropdownMenuItem(value: type, child: Text(type));
-
               }).toList(),
-
               onChanged: (val) {
-
                 if (val != null) {
-
                   setState(() => selectedType = val);
-
                 }
-
               },
-
             ),
-
             const SizedBox(height: 12),
-
             TextField(
-
               controller: _nameController,
-
               decoration: const InputDecoration(
-
                 labelText: 'Full Name',
-
                 border: OutlineInputBorder(),
-
               ),
-
             ),
-
             const SizedBox(height: 12),
-
             DropdownButtonFormField<String>(
-
               value: selectedSubject,
-
               decoration: const InputDecoration(
-
                 labelText: 'Subject Combination',
-
                 border: OutlineInputBorder(),
-
               ),
-
               items: [
-
                 'English / Literature',
-
                 'Mathematics / Chemistry',
-
                 'Mathematics / Biology',
-
                 'Mathematics / Physics',
-
                 'Kiswahili / History',
-
                 'Kiswahili / CRE',
-
                 'Kiswahili / Geography',
-
                 'Biology / Chemistry',
-
                 'Agriculture / Biology',
-
                 'History / CRE',
-
                 'Geography / Business',
-
                 'Geography / CRE',
-
                 'Computer / Any',
-
                 'HomeScience / Any',
-
               ].map((sub) {
-
                 return DropdownMenuItem(value: sub, child: Text(sub));
-
               }).toList(),
-
               onChanged: (val) {
-
                 if (val != null) {
-
                   setState(() => selectedSubject = val);
-
                 }
-
               },
-
             ),
-
             const SizedBox(height: 12),
-
             DropdownButtonFormField<String>(
-
               decoration: const InputDecoration(
-
                 labelText: 'County',
-
                 border: OutlineInputBorder(),
-
               ),
-
               value: _selectedCounty,
-
               hint: const Text('Select County'),
-
               items: _countySubCountyData.keys.map((String county) {
-
                 return DropdownMenuItem<String>(
-
                   value: county,
-
                   child: Text(county),
-
                 );
-
               }).toList(),
-
               onChanged: (String? newValue) {
-
                 setState(() {
-
                   _selectedCounty = newValue;
-
                   _selectedSubCounty = null;
-
                 });
-
               },
-
             ),
-
             const SizedBox(height: 12),
-
             DropdownButtonFormField<String>(
-
               decoration: const InputDecoration(
-
                 labelText: 'Sub-County',
-
                 border: OutlineInputBorder(),
-
               ),
-
               value: _selectedSubCounty,
-
               hint: Text(_selectedCounty == null
-
                   ? 'Select County First'
-
                   : 'Select Sub-County'),
-
               disabledHint: const Text('Select County First'),
-
               items: (_selectedCounty == null
-
                       ? <String>[]
-
                       : _countySubCountyData[_selectedCounty] ?? [])
-
                   .map((String subCounty) {
-
                 return DropdownMenuItem<String>(
-
                   value: subCounty,
-
                   child: Text(subCounty),
-
                 );
-
               }).toList(),
-
               onChanged: _selectedCounty == null
-
                   ? null
-
                   : (String? newValue) {
-
                       setState(() {
-
                         _selectedSubCounty = newValue;
-
                       });
-
                     },
-
             ),
-
             if (selectedType == 'TSC Swap') ...[
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: _phoneController,
-
                 keyboardType: TextInputType.phone,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Phone Number',
-
                   border: OutlineInputBorder(),
-
                   prefixIcon: Icon(Icons.phone),
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: _schoolController,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Current School Name',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: _tscController,
-
                 keyboardType: TextInputType.number,
-
                 decoration: const InputDecoration(
-
                   labelText: 'TSC Number',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               DropdownButtonFormField<String>(
-
                 decoration: const InputDecoration(
-
                   labelText: 'Target County (Desired Destination)',
-
                   border: OutlineInputBorder(),
-
                   prefixIcon: Icon(Icons.map),
-
                 ),
-
                 value: _selectedTargetCounty,
-
                 hint: const Text('Select Target County'),
-
                 items: _countySubCountyData.keys.map((String county) {
-
                   return DropdownMenuItem<String>(
-
                     value: county,
-
                     child: Text(county),
-
                   );
-
                 }).toList(),
-
                 onChanged: (String? newValue) {
-
                   setState(() {
-
                     _selectedTargetCounty = newValue;
-
                     _selectedTargetSubCounty = null;
-
                   });
-
                 },
-
               ),
-
               const SizedBox(height: 12),
-
               DropdownButtonFormField<String>(
-
                 decoration: const InputDecoration(
-
                   labelText: 'Target Sub-County (Optional/Any)',
-
                   border: OutlineInputBorder(),
-
                   prefixIcon: Icon(Icons.location_city),
-
                 ),
-
                 value: _selectedTargetSubCounty,
-
                 hint: const Text('Select Target Sub-County'),
-
                 items: _selectedTargetCounty == null
-
                     ? []
-
                     : (_countySubCountyData[_selectedTargetCounty] ?? [])
-
                         .map((String subCounty) {
-
                         return DropdownMenuItem<String>(
-
                           value: subCounty,
-
                           child: Text(subCounty),
-
                         );
-
                       }).toList(),
-
                 onChanged: _selectedTargetCounty == null
-
                     ? null
-
                     : (String? newValue) {
-
                         setState(() {
-
                           _selectedTargetSubCounty = newValue;
-
-                        });
-
+                               });
                       },
-
               ),
-
             ],
-
             if (selectedType == 'BOM Vacancy') ...[
-
               const SizedBox(height: 12),
-
               TextField(
-               controller: _schoolController,
-
+                controller: _schoolController,
                 decoration: const InputDecoration(
-
                   labelText: 'School Name',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: _salaryController,
-
                 keyboardType: TextInputType.number,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Monthly Salary (KSh)',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
             ],
-
             const SizedBox(height: 20),
-
             SizedBox(
-
               width: double.infinity,
-
               height: 48,
-
               child: ElevatedButton(
-
                 style: ElevatedButton.styleFrom(
-
                   backgroundColor: const Color(0xFF009688),
-
                   shape: RoundedRectangleBorder(
-
                     borderRadius: BorderRadius.circular(24),
-
                   ),
-
                 ),
-
                 onPressed: isSubmitting ? null : _handleSubmit,
-
                 child: isSubmitting
-
                     ? const CircularProgressIndicator(color: Colors.white)
-
                     : const Text(
-
                         'Submit Listing (Free)',
-
                         style: TextStyle(fontSize: 16, color: Colors.white),
-
                       ),
-
               ),
-
             ),
-
           ],
-
         ),
-
       ),
-
     );
-
   }
-
 }
-  
-         
+
+            
