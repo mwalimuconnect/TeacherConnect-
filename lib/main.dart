@@ -4202,14 +4202,14 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       'Mvita',
       'Nyali'
     ],
-    'Murang\'a': [
+    'Murang'a': [
       'Gatanga',
       'Kandara',
       'Kangema',
       'Kigumo',
       'Kiharu',
       'Mathioya',
-      'Murang\'a South'
+      'Murang'a South'
     ],
     'Nairobi': [
       'Dagoretti',
@@ -4217,7 +4217,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       'Kamukunji',
       'Kasarani',
       'Kibra',
-      'Lang\'ata',
+      'Lang'ata',
       'Makadara',
       'Mathare',
       'NJiru',
@@ -4307,7 +4307,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       'Tharaka North',
       'Tharaka South',
       'Chuka',
-      'Igambang\'ombe',
+      'Igambang'ombe',
       'Maara'
     ],
     'Trans Nzoia': [
