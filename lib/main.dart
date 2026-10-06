@@ -1821,7 +1821,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.list_alt, color: Colors.teal),
-                title: const Text('View All Swap Listings'),
+                title: const Text('Manage All Listings'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.push(
@@ -1840,7 +1840,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ManageBomVacanciesScreen(),
+                      builder: (context) => const ManageListingsScreen(
+                        categoryType: 'BOM Vacancy',
+                      ),
                     ),
                   ).then((_) => _fetchDashboardStats());
                 },
@@ -1853,7 +1855,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ManageJobSeekersScreen(),
+                      builder: (context) => const ManageListingsScreen(
+                        categoryType: 'Seeking BOM Job',
+                      ),
                     ),
                   ).then((_) => _fetchDashboardStats());
                 },
@@ -1865,7 +1869,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-
+                            
 // ==========================================
 // MANAGE ALL LISTINGS (PAGINATED)
 // ==========================================
