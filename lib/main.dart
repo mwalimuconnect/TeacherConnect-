@@ -2556,11 +2556,9 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen> {
     );
   }
 }
-                                                    '
+
 // ==========================================
-
 // PAYMENT HISTORY SCREEN (PAGINATED)
-
 // ==========================================
 
 class PaymentHistoryScreen extends StatefulWidget {
@@ -3919,14 +3917,6 @@ class _ManageBomVacanciesScreenState extends State<ManageBomVacanciesScreen> {
   }
 
 }
-                                                     
-// ==========================================
-// 4. FREE POSTING MODAL
-// ==========================================
-
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 // ==========================================
 // 4. FREE POSTING MODAL
