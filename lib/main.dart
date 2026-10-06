@@ -2261,292 +2261,302 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 }
                                                                                                          
 // ==========================================
-
-// PENDING APPROVALS SCREEN (PAGINATED)
-
+// PENDING APPROVALS SCREEN (PAGINATED & DETAILED)
 // ==========================================
 class PendingApprovalsScreen extends StatefulWidget {
-    
-    const PendingApprovalsScreen({Key? key}) : super(key: key);
-    
-   @override
+  const PendingApprovalsScreen({Key? key}) : super(key: key);
 
+  @override
   State<PendingApprovalsScreen> createState() => _PendingApprovalsScreenState();
-
 }
 
 class _PendingApprovalsScreenState extends State<PendingApprovalsScreen> {
-
   final ScrollController _scrollController = ScrollController();
-
   final List<dynamic> _pendingItems = [];
 
   int _currentPage = 1;
-
   final int _limit = 15;
-
   bool _isLoadingInitial = true;
-
   bool _isFetchingMore = false;
-
   bool _hasMore = true;
 
+  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
+
   @override
-
   void initState() {
-
     super.initState();
-
     _fetchPendingItems();
-
     _scrollController.addListener(_onScroll);
-
   }
 
   @override
-
   void dispose() {
-
     _scrollController.dispose();
-
     super.dispose();
-
   }
 
   void _onScroll() {
-
     if (_scrollController.position.pixels >=
-
             _scrollController.position.maxScrollExtent - 200 &&
-
         !_isFetchingMore &&
-
         _hasMore) {
-
       _fetchPendingItems(isLoadMore: true);
-
     }
-
   }
 
   Future<void> _fetchPendingItems({bool isLoadMore = false}) async {
-
     if (isLoadMore) {
-
       setState(() => _isFetchingMore = true);
-
     } else {
-
       setState(() {
-
         _isLoadingInitial = true;
-
         _currentPage = 1;
-
         _pendingItems.clear();
-
       });
-
     }
 
     try {
-
       final response = await http.get(
-
-        Uri.parse(
-
-            'https://teacher-connect-backend.vercel.app/api/admin/pending-listings?page=$_currentPage&limit=$_limit'),
-
+        Uri.parse('$_baseUrl/api/admin/pending-listings?page=$_currentPage&limit=$_limit'),
       );
 
       if (response.statusCode == 200) {
-
         final decoded = jsonDecode(response.body);
-
         List<dynamic> newItems = [];
 
         if (decoded is List) {
-
           newItems = decoded;
-
         } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-
           newItems = decoded['data'] as List<dynamic>;
-
         }
 
         setState(() {
-
           _pendingItems.addAll(newItems);
-
           _hasMore = newItems.length == _limit;
-
           if (_hasMore) _currentPage++;
-
         });
-
       }
-
     } catch (e) {
-
       debugPrint('Error fetching pending listings: $e');
-
     } finally {
-
       if (mounted) {
-
         setState(() {
-
           _isLoadingInitial = false;
-
           _isFetchingMore = false;
-
         });
-
       }
-
     }
-
   }
 
   Future<void> _updateStatus(String id, String status) async {
-
     try {
+      final endpoint = status == 'approved'
+          ? '$_baseUrl/api/admin/approve-user/$id'
+          : '$_baseUrl/api/admin/reject-user/$id';
 
-      final response = await http.patch(
-
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/approve-listing/$id'),
-
+      final response = await http.put(
+        Uri.parse(endpoint),
         headers: {'Content-Type': 'application/json'},
-
-        body: jsonEncode({'status': status}),
-
       );
 
       if (response.statusCode == 200 && mounted) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
-          SnackBar(content: Text('Item marked as $status')),
-
+          SnackBar(
+            content: Text('Member account mark as $status'),
+            backgroundColor: status == 'approved' ? Colors.green : Colors.red,
+          ),
         );
-
         _fetchPendingItems();
-
       }
-
     } catch (e) {
-
-      debugPrint('Error updating status: $e');
-
+      debugPrint('Error updating user status: $e');
     }
+  }
 
+  void _showMemberDetailModal(Map<String, dynamic> item) {
+    final id = item['_id'] ?? item['id'] ?? '';
+    final fullName = item['fullName'] ?? item['teacherName'] ?? 'N/A';
+    final phone = item['phone'] ?? item['phoneNumber'] ?? 'N/A';
+    final tscNumber = item['tscNumber'] ?? item['tsc'] ?? 'N/A';
+    final nationalId = item['nationalId'] ?? item['idNumber'] ?? 'N/A';
+    final school = item['currentSchool'] ?? item['school'] ?? 'N/A';
+    final role = item['role'] ?? 'Member Teacher';
+    final status = item['status'] ?? 'pending';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Applicant Member Details',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Divider(height: 24),
+              _buildDetailRow(Icons.person, 'Full Name', fullName),
+              _buildDetailRow(Icons.phone, 'Phone Number', phone),
+              _buildDetailRow(Icons.badge, 'TSC Number', tscNumber),
+              _buildDetailRow(Icons.credit_card, 'National ID', nationalId),
+              _buildDetailRow(Icons.school, 'Current School', school),
+              _buildDetailRow(Icons.work, 'Account Role', role),
+              _buildDetailRow(Icons.info_outline, 'Current Status', status.toUpperCase()),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.cancel, color: Colors.red),
+                      label: const Text('Reject'),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _updateStatus(id, 'rejected');
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.check_circle, color: Colors.white),
+                      label: const Text('Approve', style: TextStyle(color: Colors.white)),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _updateStatus(id, 'approved');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.teal),
+          const SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
-
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      appBar: AppBar(title: const Text('Pending Approvals')),
-
+      appBar: AppBar(
+        title: const Text('Pending Approvals'),
+        backgroundColor: Colors.teal,
+      ),
       body: _isLoadingInitial
-
           ? const Center(child: CircularProgressIndicator())
-
           : _pendingItems.isEmpty
-
               ? const Center(child: Text('No pending approvals found'))
-
               : ListView.builder(
-
                   controller: _scrollController,
-
                   itemCount: _pendingItems.length + (_isFetchingMore ? 1 : 0),
-
                   itemBuilder: (context, index) {
-
                     if (index == _pendingItems.length) {
-
                       return const Padding(
-
                         padding: EdgeInsets.symmetric(vertical: 16.0),
-
                         child: Center(child: CircularProgressIndicator()),
-
                       );
-
                     }
 
                     final item = _pendingItems[index];
+                    final name = item['fullName'] ?? item['teacherName'] ?? 'Pending Member';
+                    final phone = item['phone'] ?? item['phoneNumber'] ?? 'N/A';
+                    final tsc = item['tscNumber'] ?? item['tsc'] ?? 'N/A';
+                    final id = item['_id'] ?? item['id'] ?? '';
 
                     return Card(
-
                       margin: const EdgeInsets.symmetric(
-
-                          horizontal: 12, vertical: 6),
-
-                      child: ListTile(
-
-                        title: Text(item['title'] ??
-
-                            item['schoolName'] ??
-
-                            'Listing Request'),
-
-                        subtitle: Text(
-
-                            'Type: ${item['type'] ?? 'Swap'} | Code: ${item['tscNumber'] ?? 'N/A'}'),
-
-                        trailing: Row(
-
-                          mainAxisSize: MainAxisSize.min,
-
-                          children: [
-
-                            IconButton(
-
-                              icon: const Icon(Icons.check_circle,
-
-                                  color: Colors.green),
-
-                              onPressed: () =>
-
-                                  _updateStatus(item['_id'], 'approved'),
-
-                            ),
-
-                            IconButton(
-
-                              icon: const Icon(Icons.cancel,
-
-                                  color: Colors.red),
-
-                              onPressed: () =>
-
-                                  _updateStatus(item['_id'], 'rejected'),
-
-                            ),
-
-                          ],
-
-                        ),
-
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('Phone: $phone | TSC: $tsc'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.check_circle, color: Colors.green),
+                              onPressed: () => _updateStatus(id, 'approved'),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.cancel, color: Colors.red),
+                              onPressed: () => _updateStatus(id, 'rejected'),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _showMemberDetailModal(item),
+                      ),
                     );
-
                   },
-
                 ),
-
     );
-
   }
-
 }
-
+                                                    '
 // ==========================================
 
 // PAYMENT HISTORY SCREEN (PAGINATED)
