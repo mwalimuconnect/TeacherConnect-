@@ -1867,7 +1867,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 }
 
 // ==========================================
-// MANAGE SWAP LISTINGS (PAGINATED)
+// MANAGE ALL LISTINGS (PAGINATED)
 // ==========================================
 class ManageListingsScreen extends StatefulWidget {
   final String? categoryType;
@@ -1928,8 +1928,6 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     }
 
     final String activeType = categoryType ?? widget.categoryType ?? '';
-    
-    // FIX 1: Changed &type= to &category= to match express req.query.category
     final String categoryQueryParam = activeType.isNotEmpty
         ? '&category=${Uri.encodeComponent(activeType)}'
         : '';
@@ -1948,8 +1946,6 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
         if (decoded is List) {
           newItems = decoded;
-        } else if (decoded is Map<String, dynamic> && decoded.containsKey('listings')) {
-          newItems = decoded['listings'] as List<dynamic>;
         } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
           newItems = decoded['data'] as List<dynamic>;
         }
@@ -1977,8 +1973,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   }
 
   Future<void> _deleteListing(String id) async {
-    // FIX 2: Standardized endpoint to /api/admin/listings/$id
-    final url = Uri.parse('$_baseUrl/api/admin/listings/$id');
+    final url = Uri.parse('$_baseUrl/api/listings/$id');
 
     try {
       final response = await http.delete(url);
@@ -1992,7 +1987,9 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete listing (${response.statusCode})')),
+          SnackBar(
+            content: Text('Failed to delete listing (${response.statusCode})'),
+          ),
         );
       }
     } catch (e) {
@@ -2033,7 +2030,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Edit Swap Listing',
+                'Edit Listing',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
@@ -2077,9 +2074,9 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: () async {
-                    final listingId = item['_id'] ?? item['id'];
+                    final listingId = (item['_id'] ?? item['id'])?.toString();
 
-                    if (listingId == null) {
+                    if (listingId == null || listingId.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Invalid listing ID')),
                       );
@@ -2087,12 +2084,13 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                     }
 
                     await _updateListingOnServer(
-                      listingId.toString(),
+                      listingId,
                       {
                         'fullName': nameController.text.trim(),
                         'teacherName': nameController.text.trim(),
                         'subjectCombination': subjectController.text.trim(),
                         'county': currentCountyController.text.trim(),
+                        'currentCounty': currentCountyController.text.trim(),
                         'targetCounty': targetCountyController.text.trim(),
                       },
                     );
@@ -2102,7 +2100,8 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                       _fetchListings(categoryType: widget.categoryType);
                     }
                   },
-                  child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+                  child: const Text('Save Changes',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],
@@ -2114,7 +2113,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
   Future<void> _updateListingOnServer(
       String id, Map<String, dynamic> updateData) async {
-    final url = Uri.parse('$_baseUrl/api/admin/listings/$id');
+    final url = Uri.parse('$_baseUrl/api/listings/$id');
 
     try {
       final response = await http.put(
@@ -2143,15 +2142,20 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String activeCategory = widget.categoryType ?? '';
+    final String titleText = activeCategory.isNotEmpty
+        ? 'Manage $activeCategory Listings'
+        : 'Manage All Listings';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage All Swap Listings'),
+        title: Text(titleText),
         backgroundColor: Colors.teal,
       ),
       body: _isLoadingInitial
           ? const Center(child: CircularProgressIndicator())
           : _listings.isEmpty
-              ? const Center(child: Text("No swap listings found."))
+              ? const Center(child: Text("No listings found."))
               : RefreshIndicator(
                   onRefresh: () => _fetchListings(categoryType: widget.categoryType),
                   child: ListView.builder(
@@ -2169,8 +2173,10 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                       final item = _listings[index];
                       final listingId = (item['_id'] ?? item['id'])?.toString() ?? '';
 
-                      final String teacherName =
-                          item['fullName'] ?? item['teacherName'] ?? item['userName'] ?? 'Teacher';
+                      final String teacherName = item['fullName'] ??
+                          item['teacherName'] ??
+                          item['userName'] ??
+                          'Teacher';
                       final String subjects = item['subjectCombination'] ??
                           item['subjects'] ??
                           item['subject'] ??
@@ -2239,7 +2245,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     );
   }
 }
-                                                                                                     
+                                                                                                         
 // ==========================================
 
 // PENDING APPROVALS SCREEN (PAGINATED)
