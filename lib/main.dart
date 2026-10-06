@@ -1788,7 +1788,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Column(
-                          crossAxisAlignment: CrossAlignment.start,
+crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Total Members',
