@@ -2994,7 +2994,7 @@ class _ManageJobSeekersScreenState extends State<ManageJobSeekersScreen> {
 // ==========================================
 
 class TotalMembersScreen extends StatefulWidget {
-  const TotalMembersScreen({Key? key}) : super(key: key);
+  const TotalMembersScreen({Key? key}) : super(Key: key);
 
   @override
   State<TotalMembersScreen> createState() => _TotalMembersScreenState();
@@ -3157,7 +3157,14 @@ class _MemberDataTableSource extends DataTableSource {
     final name = member['fullName'] ?? member['name'] ?? 'N/A';
     final phone = member['phoneNumber'] ?? member['phone'] ?? 'N/A';
     final tsc = member['tscNumber'] ?? member['tsc'] ?? 'N/A';
-    final idNum = member['idNumber'] ?? member['_id'] ?? 'N/A';
+
+    // Resolves actual user ID card fields and ignores Mongo '_id'
+    final idNum = member['idNumber'] ??
+        member['nationalId'] ??
+        member['idNo'] ??
+        member['id'] ??
+        'N/A';
+
     final createdAt = member['createdAt'] != null
         ? member['createdAt'].toString().split('T')[0]
         : 'N/A';
@@ -3197,7 +3204,7 @@ class _MemberDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-
+                                                                             
 // ============================================================================
 // TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS)
 // ============================================================================
