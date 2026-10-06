@@ -1791,34 +1791,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              ListTile(
-                leading: const Icon(Icons.payment, color: Colors.teal),
-                title: const Text('Payment History'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PaymentHistoryScreen(
-                        userPhoneNumber: widget.adminPhone,
-                      ),
-                    ),
-                  ).then((_) => _fetchDashboardStats());
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.hourglass_top, color: Colors.teal),
-                title: const Text('Pending Approvals'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PendingApprovalsScreen(),
-                    ),
-                  ).then((_) => _fetchDashboardStats());
-                },
-              ),
+              
+              // 1. Manage All Listings
               ListTile(
                 leading: const Icon(Icons.list_alt, color: Colors.teal),
                 title: const Text('Manage All Listings'),
@@ -1832,9 +1806,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ).then((_) => _fetchDashboardStats());
                 },
               ),
+
+              // 2. TSC Swaps
+              ListTile(
+                leading: const Icon(Icons.swap_horiz, color: Colors.teal),
+                title: const Text('TSC Swaps'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ManageListingsScreen(
+                        categoryType: 'TSC Swap',
+                      ),
+                    ),
+                  ).then((_) => _fetchDashboardStats());
+                },
+              ),
+
+              // 3. BOM Vacancies
               ListTile(
                 leading: const Icon(Icons.business_center, color: Colors.teal),
-                title: const Text('BOM School Vacancies'),
+                title: const Text('BOM Vacancies'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.push(
@@ -1847,6 +1840,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ).then((_) => _fetchDashboardStats());
                 },
               ),
+
+              // 4. BOM Job Seekers
               ListTile(
                 leading: const Icon(Icons.people_outline, color: Colors.teal),
                 title: const Text('BOM Job Seekers'),
@@ -1862,6 +1857,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ).then((_) => _fetchDashboardStats());
                 },
               ),
+
+              // 5. Pending Approvals
+              ListTile(
+                leading: const Icon(Icons.hourglass_top, color: Colors.teal),
+                title: const Text('Pending Approvals'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PendingApprovalsScreen(),
+                    ),
+                  ).then((_) => _fetchDashboardStats());
+                },
+              ),
             ],
           ),
         ),
@@ -1869,7 +1879,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-                            
+                                                                                            
 // ==========================================
 // MANAGE ALL LISTINGS (PAGINATED)
 // ==========================================
