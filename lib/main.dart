@@ -1574,31 +1574,50 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color color) {
-    return Card(
-      color: color.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Ink(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: color.withOpacity(0.9),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Icon(icon, color: color, size: 22),
+              ],
             ),
-            const SizedBox(height: 8),
             Text(
               value,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: color,
+                color: color.withOpacity(0.9),
               ),
             ),
           ],
@@ -1607,9 +1626,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.teal),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w500),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      onTap: onTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         backgroundColor: Colors.teal,
@@ -1656,52 +1692,52 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // --- ADMIN PROFILE CARD ---
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.teal,
-                      child: Icon(
-                        Icons.admin_panel_settings,
-                        size: 32,
-                        color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.teal.shade100,
+                        child: const Icon(
+                          Icons.admin_panel_settings,
+                          size: 32,
+                          color: Colors.teal,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.adminName.isNotEmpty
-                              ? widget.adminName
-                              : 'System Admin',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.adminName.isNotEmpty
+                                ? widget.adminName
+                                : 'Samuel Oino',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Role: Administrator',
-                          style: TextStyle(
-                            color: Colors.teal,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Role: Administrator',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // --- SYSTEM OVERVIEW ---
               const Text(
@@ -1719,132 +1755,75 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     child: CircularProgressIndicator(),
                   ),
                 )
-              else ...[
-                Row(
+              else
+                GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.5,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ManageListingsScreen(),
-                            ),
-                          ).then((_) => _fetchDashboardStats());
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: _buildStatCard(
-                          'Total Listings',
-                          '${_stats['totalListings']}',
-                          Colors.blue,
-                        ),
-                      ),
+                    _buildStatCard(
+                      title: 'Total Listings',
+                      value: '${_stats['totalListings']}',
+                      icon: Icons.list_alt,
+                      color: Colors.blue,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ManageListingsScreen(),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PendingApprovalsScreen(),
+                    _buildStatCard(
+                      title: 'Total Members',
+                      value: '${_stats['totalMembers']}',
+                      icon: Icons.people,
+                      color: Colors.teal,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TotalMembersScreen(),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
+                    ),
+                    _buildStatCard(
+                      title: 'Payments Received',
+                      value: 'KSh ${_stats['paymentsReceived']}',
+                      icon: Icons.payments,
+                      color: Colors.green,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PaymentHistoryScreen(
+                              userPhoneNumber: widget.adminPhone,
                             ),
-                          ).then((_) => _fetchDashboardStats());
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: _buildStatCard(
-                          'Pending Approvals',
-                          '${_stats['pendingApprovals']}',
-                          Colors.orange,
-                        ),
-                      ),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
+                    ),
+                    _buildStatCard(
+                      title: 'Pending Approvals',
+                      value: '${_stats['pendingApprovals']}',
+                      icon: Icons.pending_actions,
+                      color: Colors.orange,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PendingApprovalsScreen(),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-
-                // LIGHT BLUE TOTAL MEMBERS TILE
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const TotalMembersScreen(),
-                      ),
-                    ).then((_) => _fetchDashboardStats());
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.lightBlue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.lightBlue.shade200,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Members',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.lightBlue.shade900,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_stats['totalMembers']}',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.lightBlue.shade800,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Icon(
-                          Icons.people_alt,
-                          size: 32,
-                          color: Colors.lightBlue.shade700,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PaymentHistoryScreen(
-                                userPhoneNumber: widget.adminPhone,
-                              ),
-                            ),
-                          ).then((_) => _fetchDashboardStats());
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: _buildStatCard(
-                          'Payments Received',
-                          'KSh ${_stats['paymentsReceived']}',
-                          Colors.green,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
               const SizedBox(height: 24),
 
               // --- ADMIN ACTIONS ---
@@ -1856,101 +1835,86 @@ crossAxisAlignment: CrossAxisAlignment.start,
                 ),
               ),
               const SizedBox(height: 12),
-              
-              // 1. Manage All Listings
-              ListTile(
-                leading: const Icon(Icons.list_alt, color: Colors.teal),
-                title: const Text('Manage All Listings'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ManageListingsScreen(),
-                    ),
-                  ).then((_) => _fetchDashboardStats());
-                },
-              ),
 
-              // 2. TSC Swaps
-              ListTile(
-                leading: const Icon(Icons.swap_horiz, color: Colors.teal),
-                title: const Text('TSC Swaps'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ManageListingsScreen(
-                        categoryType: 'TSC Swap',
-                      ),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildActionTile(
+                      icon: Icons.dashboard,
+                      title: 'Manage All Listings',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ManageListingsScreen(),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
-                  ).then((_) => _fetchDashboardStats());
-                },
-              ),
-
-              // 3. BOM Vacancies
-              ListTile(
-                leading: const Icon(Icons.business_center, color: Colors.teal),
-                title: const Text('BOM Vacancies'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ManageListingsScreen(
-                        categoryType: 'BOM Vacancy',
-                      ),
+                    const Divider(height: 1),
+                    _buildActionTile(
+                      icon: Icons.swap_horiz,
+                      title: 'TSC Swaps',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ManageListingsScreen(
+                              categoryType: 'TSC Swap',
+                            ),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
-                  ).then((_) => _fetchDashboardStats());
-                },
-              ),
-
-              // 4. BOM Job Seekers
-              ListTile(
-                leading: const Icon(Icons.people_outline, color: Colors.teal),
-                title: const Text('BOM Job Seekers'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ManageListingsScreen(
-                        categoryType: 'Seeking BOM Job',
-                      ),
+                    const Divider(height: 1),
+                    _buildActionTile(
+                      icon: Icons.work,
+                      title: 'BOM Vacancies',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ManageListingsScreen(
+                              categoryType: 'BOM Vacancy',
+                            ),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
-                  ).then((_) => _fetchDashboardStats());
-                },
-              ),
-
-              // 5. Total Registered Members
-              ListTile(
-                leading: const Icon(Icons.group, color: Colors.teal),
-                title: const Text('Total Registered Members'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TotalMembersScreen(),
+                    const Divider(height: 1),
+                    _buildActionTile(
+                      icon: Icons.person_search,
+                      title: 'BOM Job Seekers',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ManageListingsScreen(
+                              categoryType: 'Seeking BOM Job',
+                            ),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
-                  ).then((_) => _fetchDashboardStats());
-                },
-              ),
-
-              // 6. Pending Approvals
-              ListTile(
-                leading: const Icon(Icons.hourglass_top, color: Colors.teal),
-                title: const Text('Pending Approvals'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PendingApprovalsScreen(),
+                    const Divider(height: 1),
+                    _buildActionTile(
+                      icon: Icons.how_to_reg,
+                      title: 'Pending Approvals',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PendingApprovalsScreen(),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
-                  ).then((_) => _fetchDashboardStats());
-                },
+                  ],
+                ),
               ),
             ],
           ),
@@ -1959,7 +1923,7 @@ crossAxisAlignment: CrossAxisAlignment.start,
     );
   }
 }
-
+                  
 // ==========================================
 // MANAGE ALL LISTINGS (PAGINATED)
 // ==========================================
