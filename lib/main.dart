@@ -986,7 +986,7 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: _navigateToRegister,
               child: RichText(
                 text: const TextSpan(
-                  style: TextStyle(fontSize: 15, color: Colors.black87),
+                style: TextStyle(fontSize: 15, color: Colors.black87),
                   children: [
                     TextSpan(text: "Don't have an account? "),
                     TextSpan(
@@ -1026,26 +1026,7 @@ class TeacherPortalScreen extends StatefulWidget {
   State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
 }
 
-class _TeacherPortalScreenState extends State<TeacherPortalScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        setState(() {}); // Rebuild to update headers based on active tab index
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   bool get isAdmin => widget.userRole.toLowerCase().contains('admin');
 
   bool isListingUnlocked(ListingModel listing) {
@@ -1144,7 +1125,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> with SingleTi
       }
     } catch (e) {
       if (!context.mounted) return false;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error connecting to server: $e'),
@@ -1193,6 +1173,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> with SingleTi
       },
     );
 
+    // If the user tapped 'Cancel' or dismissed the dialog, stop execution
     if (confirm != true) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -1206,277 +1187,187 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> with SingleTi
     );
   }
 
-  void _showDetailsDialog(ListingModel listing) {
-    final bool isSeekingBom = _tabController.index == 2;
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Teacher Portal'),
+          actions: [
+            if (isAdmin)
+              IconButton(
+                icon: const Icon(Icons.admin_panel_settings),
+                tooltip: 'Admin Dashboard',
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminDashboardScreen(
+                        adminName: widget.userName,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _handleLogout,
+            ),
+          ],
+          bottom: const TabBar(
+            indicatorColor: Colors.white,
+            tabs: [
+              Tab(text: 'TSC Swaps'),
+              Tab(text: 'BOM Jobs'),
+              Tab(text: 'Seeking BOM'),
+              Tab(text: 'Teacher Resources'),
+            ],
+          ),
+        ),
+        body: Column(
+          children: [
+            Container(
+              color: Colors.teal.shade50,
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.teal,
+                    child: Text(
+                      widget.userName.isNotEmpty ? widget.userName[0] : 'T',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.userName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text('Role: ${widget.userRole}'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  ListView(
+                    children: [
+                      _buildListingCard(sampleListing1),
+                    ],
+                  ),
+                  ListView(
+                    children: [
+                      _buildListingCard(sampleListing2),
+                    ],
+                  ),
+                  ListView(
+                    children: [
+                      _buildListingCard(sampleListing3),
+                    ],
+                  ),
+                  const TeacherResourcesTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showPostDialog(context),
+          backgroundColor: Colors.teal,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+      ),
+    );
+  }
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(listing.teacherName),
-        content: Column(
+  Widget _buildListingCard(ListingModel listing) {
+    final bool hasPaid = isListingUnlocked(listing);
+
+    return Card(
+      margin: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Full Details Unlocked!',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
-            ),
-            const SizedBox(height: 12),
-            if (isSeekingBom && listing.tscNumber != null && listing.tscNumber!.isNotEmpty) ...[
-              Text('TSC Number: ${listing.tscNumber}'),
-              const SizedBox(height: 4),
-            ],
-            Text('Contact Phone: ${listing.contactPhone.isNotEmpty ? listing.contactPhone : "N/A"}'),
-            const SizedBox(height: 4),
-            Text('Subjects: ${listing.subject}'),
-            const SizedBox(height: 4),
-            Text('Current Location: ${listing.currentCounty}'),
-            const SizedBox(height: 4),
-            Text('Target Location: ${listing.targetCounty}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildListingsTable(List<ListingModel> listings) {
-    if (listings.isEmpty) {
-      return const Center(child: Text('No listings available.'));
-    }
-
-    final bool isBomJobs = _tabController.index == 1;
-    final bool isSeekingBom = _tabController.index == 2;
-
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
-          columns: [
-            const DataColumn(
-              label: Text('Subject Combination', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            DataColumn(
-              label: Text(
-                isBomJobs ? 'School Name' : 'Teacher Name', // Swaps to School Name for BOM Jobs
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            if (isSeekingBom)
-              const DataColumn(
-                label: Text('TSC Number', style: TextStyle(fontWeight: FontWeight.bold)), // Added for Seeking BOM
-              ),
-            DataColumn(
-              label: Text(
-                isSeekingBom ? 'Availability' : 'Current Location',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const DataColumn(
-              label: Text('Target / Info', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const DataColumn(
-              label: Text('Phone Number', style: TextStyle(fontWeight: FontWeight.bold)), // Added Phone Number column
-            ),
-            const DataColumn(
-              label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-          rows: listings.map((listing) {
-            final bool hasPaid = isListingUnlocked(listing);
-
-            return DataRow(
-              cells: [
-                // 1. Subject Combination Tag
-                DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.teal.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      listing.subject.isNotEmpty ? listing.subject : 'N/A',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.teal.shade900,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 2. Teacher Name / School Name Cell
-                DataCell(
-                  Text(
-                    listing.teacherName.isNotEmpty ? listing.teacherName : (isBomJobs ? 'BOM Hiring School' : 'Teacher'),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-
-                // 3. TSC Number Cell (Only for Seeking BOM Tab)
-                if (isSeekingBom)
-                  DataCell(
-                    Text(
-                      listing.tscNumber != null && listing.tscNumber!.isNotEmpty
-                          ? listing.tscNumber!
-                          : 'N/A',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-
-                // 4. Current Location / Availability
-                DataCell(Text(listing.currentCounty.isNotEmpty ? listing.currentCounty : 'N/A')),
-
-                // 5. Target / Info
-                DataCell(Text(listing.targetCounty.isNotEmpty ? listing.targetCounty : 'N/A')),
-
-                // 6. Phone Number Cell (Masked if unpaid)
-                DataCell(
-                  Text(
-                    hasPaid
-                        ? (listing.contactPhone.isNotEmpty ? listing.contactPhone : widget.userPhone)
-                        : (listing.contactPhone.length >= 4
-                            ? '${listing.contactPhone.substring(0, 4)}****'
-                            : '07******'),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: hasPaid ? Colors.teal.shade900 : Colors.grey.shade700,
-                    ),
-                  ),
-                ),
-
-                // 7. Action Cell
-                DataCell(
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF009688),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    ),
-                    icon: Icon(
-                      hasPaid ? Icons.visibility : Icons.lock,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      hasPaid ? 'View Full Details' : 'Pay KSh 100 to View',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                    onPressed: () {
-                      if (hasPaid) {
-                        _showDetailsDialog(listing);
-                      } else {
-                        _showPaymentModal(context, listing);
-                      }
-                    },
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Teacher Portal'),
-        backgroundColor: Colors.teal,
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings),
-              tooltip: 'Admin Dashboard',
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AdminDashboardScreen(
-                      adminName: widget.userName,
-                    ),
-                  ),
-                );
-              },
-            ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _handleLogout,
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'TSC Swaps'),
-            Tab(text: 'BOM Jobs'),
-            Tab(text: 'Seeking BOM'),
-            Tab(text: 'Teacher Resources'),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.teal.shade50,
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
+            Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: Colors.teal,
+                const Icon(Icons.work_outline, color: Color(0xFF009688)),
+                const SizedBox(width: 8),
+                Expanded(
                   child: Text(
-                    widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                    style: const TextStyle(color: Colors.white),
+                    "${listing.teacherName} (${listing.subject})",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.userName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text('Role: ${widget.userRole}'),
-                  ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text("Location: ${listing.currentCounty}"),
+            const SizedBox(height: 4),
+            Text("Target / Info: ${listing.targetCounty}"),
+            const Divider(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF009688),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
-              ],
+                icon: Icon(
+                  hasPaid ? Icons.visibility : Icons.lock,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  hasPaid ? 'View Full Details' : 'Pay KSh 100 to View',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onPressed: () {
+                  if (hasPaid) {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: Text(listing.teacherName),
+                        content: Text(
+                          'Full Details Unlocked!\nContact: ${listing.contactPhone.isNotEmpty ? listing.contactPhone : "0712345678"}\n\nSubjects: ${listing.subject}\nFrom: ${listing.currentCounty}\nTo: ${listing.targetCounty}',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Close'),
+                          )
+                        ],
+                      ),
+                    );
+                  } else {
+                    _showPaymentModal(context, listing);
+                  }
+                },
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildListingsTable([sampleListing1]),
-                _buildListingsTable([sampleListing2]),
-                _buildListingsTable([sampleListing3]),
-                const TeacherResourcesTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showPostDialog(context),
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.add, color: Colors.white),
+          ],
+        ),
       ),
     );
   }
-}
-                                                     
+}        
+                                                                   
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
@@ -3370,7 +3261,7 @@ class _MemberDataTableSource extends DataTableSource {
 }
                                                                              
 // ============================================================================
-// TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS + TABLE FORMAT)
+// TEACHER RESOURCES TAB (TABULATED WITH DYNAMIC PRICE & REQUIREMENTS)
 // ============================================================================
 
 class TeacherResourcesTab extends StatefulWidget {
@@ -3670,7 +3561,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
           ),
         ),
 
-        // Main Resource Table View
+        // Main Resource DataTable View
         Expanded(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -3701,43 +3592,28 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                               child: SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: DataTable(
-                                  headingRowColor: WidgetStateProperty.all(
-                                    Colors.teal.shade50,
-                                  ),
+                                  headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
                                   columns: const [
                                     DataColumn(
-                                      label: Text(
-                                        'Title',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
+                                      label: Text('Title', style: TextStyle(fontWeight: FontWeight.bold)),
                                     ),
                                     DataColumn(
-                                      label: Text(
-                                        'Category',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
+                                      label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold)),
                                     ),
                                     DataColumn(
-                                      label: Text(
-                                        'Price',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
+                                      label: Text('Price', style: TextStyle(fontWeight: FontWeight.bold)),
                                     ),
                                     DataColumn(
-                                      label: Text(
-                                        'Action',
-                                        style: TextStyle(fontWeight: FontWeight.bold),
-                                      ),
+                                      label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold)),
                                     ),
                                   ],
                                   rows: filteredResources.map((res) {
                                     final title = res['title'] ?? 'Untitled Resource';
                                     final category = res['category'] ?? 'General';
                                     final fileUrl = res['fileUrl'] ?? '';
-                                    double price =
-                                        (res['price'] ?? 50.0).toDouble();
+                                    double price = (res['price'] ?? 50.0).toDouble();
 
-                                    // Enforce payment requirement between KSh 50 and 100
+                                    // Price boundary check
                                     if (price > 0 && price < 50) price = 50.0;
                                     if (price > 100) price = 100.0;
 
@@ -3745,54 +3621,61 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 
                                     return DataRow(
                                       cells: [
+                                        // Title
                                         DataCell(
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
+                                          Text(
+                                            title,
+                                            style: const TextStyle(fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                        // Category
+                                        DataCell(Text(category)),
+                                        // Price + Pay to Download requirement
+                                        DataCell(
+                                          Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              const Icon(Icons.picture_as_pdf,
-                                                  color: Colors.teal, size: 20),
-                                              const SizedBox(width: 8),
-                                              ConstrainedBox(
-                                                constraints: const BoxConstraints(
-                                                  maxWidth: 200,
-                                                ),
-                                                child: Text(
-                                                  title,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                              Text(
+                                                isPaid
+                                                    ? 'KES ${price.toStringAsFixed(0)}'
+                                                    : 'Free',
+                                                style: TextStyle(
+                                                  color: isPaid ? Colors.teal.shade900 : Colors.green.shade700,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
                                               ),
+                                              if (isPaid)
+                                                const Text(
+                                                  'Pay to Download',
+                                                  style: TextStyle(
+                                                    color: Colors.redAccent,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                         ),
-                                        DataCell(Text(category)),
+                                        // Action Button
                                         DataCell(
-                                          Text(
-                                            isPaid
-                                                ? 'KES ${price.toStringAsFixed(0)}'
-                                                : 'Free',
-                                            style: TextStyle(
-                                              color: isPaid
-                                                  ? Colors.orange.shade800
-                                                  : Colors.green.shade700,
-                                              fontWeight: FontWeight.bold,
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: isPaid ? const Color(0xFF009688) : Colors.green,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                             ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          IconButton(
                                             icon: Icon(
-                                              isPaid ? Icons.lock : Icons.download,
-                                              color: isPaid
-                                                  ? Colors.orange
-                                                  : Colors.teal,
+                                              isPaid ? Icons.lock_open : Icons.download,
+                                              size: 16,
+                                              color: Colors.white,
+                                            ),
+                                            label: Text(
+                                              isPaid ? 'Pay KES ${price.toStringAsFixed(0)}' : 'Download',
+                                              style: const TextStyle(color: Colors.white, fontSize: 12),
                                             ),
                                             onPressed: () {
                                               if (isPaid) {
-                                                showPaymentModal(
-                                                    context, title, price, () {
+                                                showPaymentModal(context, title, price, () {
                                                   if (fileUrl.isNotEmpty) {
                                                     _downloadOrOpenUrl(fileUrl);
                                                   }
