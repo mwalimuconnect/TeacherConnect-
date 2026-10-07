@@ -3212,11 +3212,14 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }                                                                           
 
- // ============================================================================
-// TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS + MPESA VERIFICATION)
 // ============================================================================
+// TEACHER RESOURCES TAB (WITH ADMIN BYPASS FOR PAYWALL)
+// ============================================================================
+
 class TeacherResourcesTab extends StatefulWidget {
-  const TeacherResourcesTab({Key? key}) : super(key: key);
+  final String? userRole; // Pass user role (e.g. 'Administrator', 'admin', 'teacher')
+
+  const TeacherResourcesTab({Key? key, this.userRole}) : super(key: key);
 
   @override
   State<TeacherResourcesTab> createState() => _TeacherResourcesTabState();
@@ -3315,71 +3318,11 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-  // Polls backend every 3 seconds to check if M-Pesa PIN was entered successfully
-  Future<bool> _pollPaymentStatus(
-      BuildContext parentContext, String checkoutRequestId) async {
-    int attempts = 0;
-    const maxAttempts = 12; // 12 attempts * 3 seconds = 36 seconds timeout
-
-    showDialog(
-      context: parentContext,
-      barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
-              Expanded(
-                child: Text(
-                  "Verifying M-Pesa payment...\nPlease enter your PIN when prompted.",
-                  style: TextStyle(fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    while (attempts < maxAttempts) {
-      await Future.delayed(const Duration(seconds: 3));
-      attempts++;
-
-      try {
-        final response = await http.post(
-          Uri.parse(
-              'https://teacher-connect-backend.vercel.app/api/mpesa/query-status'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'checkoutRequestId': checkoutRequestId}),
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          if (data['success'] == true) {
-            if (Navigator.canPop(parentContext)) {
-              Navigator.pop(parentContext); // Close waiting dialog
-            }
-            return true;
-          }
-        }
-      } catch (e) {
-        debugPrint('Polling error: $e');
-      }
-    }
-
-    if (Navigator.canPop(parentContext)) {
-      Navigator.pop(parentContext); // Close waiting dialog on timeout
-    }
-    return false;
-  }
-
   void showPaymentModal(
     BuildContext parentContext,
     String resourceTitle,
     double price,
-    String fileUrl,
+    VoidCallback onPaymentSuccess,
   ) {
     TextEditingController phoneController = TextEditingController(text: "254");
 
@@ -3420,15 +3363,13 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                           String formattedPhone =
                               rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
                           if (formattedPhone.startsWith('0')) {
-                            formattedPhone =
-                                '254${formattedPhone.substring(1)}';
+                            formattedPhone = '254${formattedPhone.substring(1)}';
                           }
 
                           if (formattedPhone.length != 12) {
                             ScaffoldMessenger.of(parentContext).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                    "Enter a valid phone number (e.g., 254712345678)"),
+                                content: Text("Enter a valid phone number (e.g., 254712345678)"),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -3439,8 +3380,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 
                           try {
                             final response = await http.post(
-                              Uri.parse(
-                                  'https://teacher-connect-backend.vercel.app/api/mpesa/stkpush'),
+                              Uri.parse('https://teacher-connect-backend.vercel.app/api/mpesa/stkpush'),
                               headers: {'Content-Type': 'application/json'},
                               body: jsonEncode({
                                 'phone': formattedPhone,
@@ -3455,56 +3395,20 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                             if (response.statusCode == 200) {
                               final data = jsonDecode(response.body);
                               if (data['success'] == true) {
-                                String? checkoutRequestId =
-                                    data['checkoutRequestId'] ??
-                                        data['data']?['CheckoutRequestID'];
-
                                 if (Navigator.canPop(dialogContext)) {
-                                  Navigator.pop(
-                                      dialogContext); // Close input modal
+                                  Navigator.pop(dialogContext);
                                 }
-
-                                ScaffoldMessenger.of(parentContext)
-                                    .showSnackBar(
+                                ScaffoldMessenger.of(parentContext).showSnackBar(
                                   const SnackBar(
-                                    content: Text(
-                                        "STK Push sent! Please enter your PIN on your phone."),
+                                    content: Text("STK Push sent! Please check your phone to enter your M-Pesa PIN."),
                                     backgroundColor: Colors.green,
                                   ),
                                 );
-
-                                if (checkoutRequestId != null) {
-                                  // Verify payment completion BEFORE unlocking download
-                                  bool isPaid = await _pollPaymentStatus(
-                                      parentContext, checkoutRequestId);
-
-                                  if (isPaid) {
-                                    ScaffoldMessenger.of(parentContext)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            "Payment confirmed! Downloading file..."),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                    _downloadOrOpenUrl(fileUrl);
-                                  } else {
-                                    ScaffoldMessenger.of(parentContext)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            "Payment was not completed or timed out."),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
-                                }
+                                onPaymentSuccess();
                               } else {
-                                ScaffoldMessenger.of(parentContext)
-                                    .showSnackBar(
+                                ScaffoldMessenger.of(parentContext).showSnackBar(
                                   SnackBar(
-                                    content: Text(data['error'] ??
-                                        "Failed to initiate M-Pesa payment."),
+                                    content: Text(data['error'] ?? "Failed to initiate M-Pesa payment."),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
@@ -3512,8 +3416,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                             } else {
                               ScaffoldMessenger.of(parentContext).showSnackBar(
                                 const SnackBar(
-                                  content: Text(
-                                      "Server error. Please try again later."),
+                                  content: Text("Server error. Please try again later."),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -3549,6 +3452,10 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 
   @override
   Widget build(BuildContext context) {
+    // Check whether current user has Admin privileges
+    final String currentRole = widget.userRole?.toLowerCase() ?? '';
+    final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
+
     final filteredResources = _selectedCategory == 'All'
         ? _resources
         : _resources
@@ -3567,8 +3474,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
             icon: const Icon(Icons.upload_file, color: Colors.white),
             label: const Text(
               'UPLOAD NEW RESOURCE',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             onPressed: () async {
               final result = await Navigator.push(
@@ -3644,18 +3550,19 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                               itemCount: filteredResources.length,
                               itemBuilder: (context, index) {
                                 final res = filteredResources[index];
-                                final title =
-                                    res['title'] ?? 'Untitled Resource';
+                                final title = res['title'] ?? 'Untitled Resource';
                                 final category = res['category'] ?? 'General';
                                 final fileUrl = res['fileUrl'] ?? '';
                                 double price =
                                     (res['price'] ?? 50.0).toDouble();
 
-                                // Enforce payment requirement between KSh 50 and 100
                                 if (price > 0 && price < 50) price = 50.0;
                                 if (price > 100) price = 100.0;
 
-                                final bool isPaid = price >= 50.0;
+                                final bool isPaidResource = price >= 50.0;
+
+                                // 📍 ADMIN BYPASS CHECK: Direct download if free OR if user is Admin
+                                final bool canDownloadDirectly = isAdmin || !isPaidResource;
 
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 10.0),
@@ -3670,25 +3577,42 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold)),
                                     subtitle: Text(
-                                        'Category: $category${isPaid ? " • Price: KES ${price.toStringAsFixed(0)}" : " • Free"}'),
-                                    trailing: IconButton(
+                                        'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : " • Free"}${isAdmin ? " (Admin Free Access)" : ""}'),
+                                    trailing: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: canDownloadDirectly
+                                            ? Colors.teal
+                                            : Colors.teal.shade700,
+                                        elevation: 1,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 6),
+                                      ),
                                       icon: Icon(
-                                        isPaid ? Icons.lock : Icons.download,
-                                        color:
-                                            isPaid ? Colors.orange : Colors.teal,
+                                        canDownloadDirectly
+                                            ? Icons.download
+                                            : Icons.lock_outline,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      label: Text(
+                                        canDownloadDirectly
+                                            ? 'Download'
+                                            : 'Pay KES ${price.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                            color: Colors.white, fontSize: 12),
                                       ),
                                       onPressed: () {
-                                        if (isPaid) {
-                                          showPaymentModal(
-                                            context,
-                                            title,
-                                            price,
-                                            fileUrl,
-                                          );
-                                        } else {
+                                        if (canDownloadDirectly) {
                                           if (fileUrl.isNotEmpty) {
                                             _downloadOrOpenUrl(fileUrl);
                                           }
+                                        } else {
+                                          showPaymentModal(
+                                              context, title, price, () {
+                                            if (fileUrl.isNotEmpty) {
+                                              _downloadOrOpenUrl(fileUrl);
+                                            }
+                                          });
                                         }
                                       },
                                     ),
@@ -3702,7 +3626,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 }
-                                                                                                                                                                                               
+                                                                                                                                                                                                                            
 // ==========================================
 // 2. RESOURCE FORM UI & API LOGIC
 // ==========================================
