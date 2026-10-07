@@ -3215,13 +3215,6 @@ class _MemberDataTableSource extends DataTableSource {
  // ============================================================================
 // TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS + MPESA VERIFICATION)
 // ============================================================================
-
-import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
-
 class TeacherResourcesTab extends StatefulWidget {
   const TeacherResourcesTab({Key? key}) : super(key: key);
 
