@@ -1601,7 +1601,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard({
+    Widget _buildStatCard({
     required String title,
     required String value,
     required IconData icon,
@@ -1614,9 +1614,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Ink(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1631,7 +1631,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: color.withValues(alpha: 0.9),
+                      color: color.withOpacity(0.9),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1644,14 +1644,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: color.withValues(alpha: 0.9),
+                color: color.withOpacity(0.9),
               ),
             ),
           ],
         ),
       ),
     );
-  }
+    }
 
   Widget _buildActionTile({
     required IconData icon,
