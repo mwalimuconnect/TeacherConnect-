@@ -823,655 +823,397 @@ class _LoginScreenState extends State<LoginScreen> {
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
 class TeacherPortalScreen extends StatefulWidget {
-
   final String userName;
-
   final String userRole;
-
   final String userPhone;
-    
-    const TeacherPortalScreen({
 
+  const TeacherPortalScreen({
     Key? key,
-
     required this.userName,
-
     required this.userRole,
-
     required this.userPhone,
-
   }) : super(key: key);
 
   @override
-
   State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
-
 }
 
 class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
-
-bool get isAdmin => widget.userRole.
-    toLowerCase().contains('admin');
+  bool get isAdmin => widget.userRole.toLowerCase().contains('admin');
 
   bool isListingUnlocked(ListingModel listing) {
-
     return listing.isPaid || isAdmin;
-
   }
 
-  void _showPaymentModal(BuildContext 
-      context, ListingModel listing) {
-
+  void _showPaymentModal(BuildContext context, ListingModel listing) {
     final TextEditingController phoneController =
-
         TextEditingController(text: widget.userPhone);
 
     showModalBottomSheet(
-
       context: context,
-
       isScrollControlled: true,
-
       builder: (context) {
-
         return Padding(
-
           padding: EdgeInsets.only(
-
             bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-
             top: 16,
-
             left: 16,
-
             right: 16,
-
           ),
-
           child: Column(
-
             mainAxisSize: MainAxisSize.min,
-
             children: [
-
               Text(
-
                 'Unlock Contact Details',
-
                 style: Theme.of(context).textTheme.titleLarge,
-
               ),
-
               const SizedBox(height: 8),
-
               const Text('Enter M-Pesa phone number to pay KSh 100:'),
-
               const SizedBox(height: 12),
-
               TextField(
-
                 controller: phoneController,
-
                 keyboardType: TextInputType.phone,
-
                 decoration: const InputDecoration(
-
                   labelText: 'Phone Number (e.g. 0712345678)',
-
                   border: OutlineInputBorder(),
-
                 ),
-
               ),
-
               const SizedBox(height: 16),
-
               ElevatedButton(
-
                 style: ElevatedButton.styleFrom(
-
                   backgroundColor: const Color(0xFF009688),
-
                 ),
-
                 onPressed: () {
-
                   Navigator.pop(context);
-
                   _triggerMpesaPayment(
-
                     context,
-
                     amount: 100,
-
                     phone: phoneController.text.trim(),
-
                   );
-
                 },
-
                 child: const Text('Pay via M-Pesa STK Push',
-
                     style: TextStyle(color: Colors.white)),
-
               ),
-
             ],
-
           ),
-
         );
-
       },
-
     );
-
   }
 
   Future<bool> _triggerMpesaPayment(
-
     BuildContext context, {
-
     required double amount,
-
     required String phone,
-
   }) async {
-
     try {
-
       final response = await http.post(
-
         Uri.parse('https://teacher-connect-backend.vercel.app/api/stkpush'),
-
         headers: {'Content-Type': 'application/json'},
-
         body: jsonEncode({
-
           'phoneNumber': phone,
-
           'amount': amount,
-
         }),
-
       );
 
       if (!context.mounted) return false;
 
       if (response.statusCode == 200) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
-         const SnackBar(
-
+          const SnackBar(
             content: Text('M-Pesa prompt sent! Check your phone to enter PIN.'),
-
             backgroundColor: Colors.green,
-
           ),
-
         );
-
         return true;
-
       } else {
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           SnackBar(
-
             content: Text('Payment Request Failed: ${response.body}'),
-
             backgroundColor: Colors.red,
-
           ),
-
         );
-
         return false;
-
       }
-
     } catch (e) {
-
       if (!context.mounted) return false;
 
       ScaffoldMessenger.of(context).showSnackBar(
-
         SnackBar(
-
           content: Text('Error connecting to server: $e'),
-
           backgroundColor: Colors.red,
-
         ),
-
       );
-
       return false;
-
     }
-
   }
 
   void _showPostDialog(BuildContext context) {
-
     showModalBottomSheet(
-
       context: context,
-
       isScrollControlled: true,
-
       shape: const RoundedRectangleBorder(
-
-        borderRadius:BorderRadius.vertical(top: Radius.circular(24)),
-
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-
       builder: (context) => DynamicPostListingModal(
-
         userName: widget.userName,
-
         userPhone: widget.userPhone,
-
       ),
-
     );
-
   }
 
   Future<void> _handleLogout() async {
-  final bool? confirm = await showDialog<bool>(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Confirm Logout'),
-        content: const Text('Are you sure you want to log out?'),
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const MemberRegistrationScreen()),
+    );
+  }
+
+  void _showDetailsDialog(ListingModel listing) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(listing.teacherName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Full Details Unlocked!',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+            ),
+            const SizedBox(height: 12),
+            Text('Contact Phone: ${listing.contactPhone.isNotEmpty ? listing.contactPhone : "N/A"}'),
+            const SizedBox(height: 4),
+            Text('Subjects: ${listing.subject}'),
+            const SizedBox(height: 4),
+            Text('Current Location: ${listing.currentCounty}'),
+            const SizedBox(height: 4),
+            Text('Target Location: ${listing.targetCounty}'),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
-      );
-    },
-  );
+      ),
+    );
+  }
 
-  // If the user tapped 'Cancel' or dismissed the dialog, stop execution
-  if (confirm != true) return;
+  Widget _buildListingsTable(List<ListingModel> listings) {
+    if (listings.isEmpty) {
+      return const Center(child: Text('No listings available.'));
+    }
 
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.clear();
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+          columns: const [
+            DataColumn(
+              label: Text('Subject Combination', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            DataColumn(
+              label: Text('Teacher Name', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            DataColumn(
+              label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            DataColumn(
+              label: Text('Target / Info', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            DataColumn(
+              label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+          rows: listings.map((listing) {
+            final bool hasPaid = isListingUnlocked(listing);
 
-  if (!mounted) return;
-
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (_) => const MemberRegistrationScreen()),
-  );
+            return DataRow(
+              cells: [
+                DataCell(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      listing.subject.isNotEmpty ? listing.subject : 'N/A',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal.shade900,
+                      ),
+                    ),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    listing.teacherName.isNotEmpty ? listing.teacherName : 'Teacher',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                DataCell(Text(listing.currentCounty.isNotEmpty ? listing.currentCounty : 'N/A')),
+                DataCell(Text(listing.targetCounty.isNotEmpty ? listing.targetCounty : 'N/A')),
+                DataCell(
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF009688),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    icon: Icon(
+                      hasPaid ? Icons.visibility : Icons.lock,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                    label: Text(
+                      hasPaid ? 'View Full Details' : 'Pay KSh 100 to View',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                    onPressed: () {
+                      if (hasPaid) {
+                        _showDetailsDialog(listing);
+                      } else {
+                        _showPaymentModal(context, listing);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   @override
-
   Widget build(BuildContext context) {
-
     return DefaultTabController(
-
       length: 4,
-
       child: Scaffold(
-
         appBar: AppBar(
-
           title: const Text('Teacher Portal'),
-
-          actions: [
-
-            if (isAdmin)
-
-              IconButton(
-
-                icon: const Icon(Icons.admin_panel_settings),
-
-                tooltip: 'Admin Dashboard',
-
-                onPressed: () {
-
-                  Navigator.pushReplacement(
-
-                    context,
-
-                    MaterialPageRoute(
-
-                      builder: (_) => AdminDashboardScreen(
-
-                        adminName: widget.userName,
-
-                      ),
-
-                    ),
-
-                  );
-
-                },
-
-              ),
-
-            IconButton(
-
-              icon: const Icon(Icons.logout),
-
-              onPressed: _handleLogout,
-
-            ),
-
-          ],
-
-          bottom: const TabBar(
-
-            indicatorColor: Colors.white,
-
-            tabs: [
-
-              Tab(text: 'TSC Swaps'),
-
-              Tab(text: 'BOM Jobs'),
-
-              Tab(text: 'Seeking BOM'),
-                
-              Tab(text: 'Teacher Resources'),
-
-            ],
-
-          ),
-
-        ),
-
-        body: Column(
-
-          children: [
-
-            Container(
-
-              color: Colors.teal.shade50,
-
-              padding: const EdgeInsets.all(16.0),
-
-              child: Row(
-
-                children: [
-
-                  CircleAvatar(
-
-                    backgroundColor: Colors.teal,
-
-                    child: Text(
-
-                      widget.userName.isNotEmpty ? widget.userName[0] : 'T',
-
-                      style: const TextStyle(color: Colors.white),
-
-                    ),
-
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Column(
-
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: [
-
-                      Text(
-
-                        widget.userName,
-
-                        style: const TextStyle(
-
-                          fontWeight: FontWeight.bold,
-
-                          fontSize: 16,
-
-                        ),
-
-                      ),
-
-                      Text('Role: ${widget.userRole}'),
-
-                    ],
-
-                  ),
-
-                ],
-
-              ),
-
-            ),
-
-            Expanded(
-
-              child: TabBarView(
-
-                children: [
-
-                  ListView(
-
-                    children: [
-
-                      _buildListingCard(sampleListing1),
-
-                    ],
-
-                  ),
-
-                  ListView(
-
-                    children: [
-
-                      _buildListingCard(sampleListing2),
-
-                    ],
-
-                  ),
-
-                  ListView(
-
-                    children: [
-
-                      _buildListingCard(sampleListing3),
-
-                    ],
-
-                  ),
-const TeacherResourcesTab(),
-                ],
-
-              ),
-
-            ),
-
-          ],
-
-        ),
-
-        floatingActionButton: FloatingActionButton(
-
-          onPressed: () => _showPostDialog(context),
-
           backgroundColor: Colors.teal,
-
-          child: const Icon(Icons.add, color: Colors.white),
-
-        ),
-
-      ),
-
-    );
-
-  }
-
-  Widget _buildListingCard(ListingModel listing) {
-
-final bool hasPaid = isListingUnlocked(listing);
-
-    return Card(
-
-      margin: const EdgeInsets.all(16),
-
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-
-      elevation: 2,
-
-      child: Padding(
-
-        padding: const EdgeInsets.all(16.0),
-
-        child: Column(
-
-          mainAxisSize: MainAxisSize.min,
-
-          crossAxisAlignment: CrossAxisAlignment.start,
-
-          children: [
-
-            Row(
-
-              children: [
-
-                const Icon(Icons.work_outline, color: Color(0xFF009688)),
-
-                const SizedBox(width: 8),
-
-                Expanded(
-
-                  child: Text(
-
-                    "${listing.teacherName} (${listing.subject})",
-
-                    style: const TextStyle(
-
-                      fontWeight: FontWeight.bold,
-
-                    ),
-
-                  ),
-
-                ),
-
-              ],
-
-            ),
-
-            const SizedBox(height: 8),
-
-            Text("Location: ${listing.currentCounty}"),
-
-            const SizedBox(height: 4),
-
-            Text("Target / Info: ${listing.targetCounty}"),
-
-            const Divider(height: 24),
-
-            SizedBox(
-
-              width: double.infinity,
-
-              child: ElevatedButton.icon(
-
-                style: ElevatedButton.styleFrom(
-
-                  backgroundColor: const Color(0xFF009688),
-
-                  shape: RoundedRectangleBorder(
-
-                    borderRadius: BorderRadius.circular(20),
-
-                  ),
-
-                ),
-
-                icon: Icon(
-
-                  hasPaid ? Icons.visibility : Icons.lock,
-
-                  color: Colors.white,
-
-                ),
-
-                label: Text(
-
-                  hasPaid ? 'View Full Details' : 'Pay KSh 100 to View',
-
-                  style: const TextStyle(color: Colors.white),
-
-                ),
-
+          actions: [
+            if (isAdmin)
+              IconButton(
+                icon: const Icon(Icons.admin_panel_settings),
+                tooltip: 'Admin Dashboard',
                 onPressed: () {
-
-                  if (hasPaid) {
-
-                    showDialog(
-
-                      context: context,
-
-                      builder: (_) => AlertDialog(
-
-                        title: Text(listing.teacherName),
-
-                        content: Text(
-
-                          'Full Details Unlocked!\nContact: ${listing.contactPhone.isNotEmpty ? listing.contactPhone : "0712345678"}\n\nSubjects: ${listing.subject}\nFrom: ${listing.currentCounty}\nTo: ${listing.targetCounty}',
-
-                        ),
-
-                        actions: [
-
-                          TextButton(
-
-                            onPressed: () => Navigator.pop(context),
-
-                            child: const Text('Close'),
-
-                          )
-
-                        ],
-
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminDashboardScreen(
+                        adminName: widget.userName,
                       ),
-
-                    );
-
-                  } else {
-
-                    _showPaymentModal(context, listing);
-
-                  }
-
+                    ),
+                  );
                 },
-
               ),
-
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _handleLogout,
             ),
-
           ],
-
+          bottom: const TabBar(
+            indicatorColor: Colors.white,
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'TSC Swaps'),
+              Tab(text: 'BOM Jobs'),
+              Tab(text: 'Seeking BOM'),
+              Tab(text: 'Teacher Resources'),
+            ],
+          ),
         ),
-
+        body: Column(
+          children: [
+            Container(
+              color: Colors.teal.shade50,
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.teal,
+                    child: Text(
+                      widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.userName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text('Role: ${widget.userRole}'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildListingsTable([sampleListing1]),
+                  _buildListingsTable([sampleListing2]),
+                  _buildListingsTable([sampleListing3]),
+                  const TeacherResourcesTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showPostDialog(context),
+          backgroundColor: Colors.teal,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
-
     );
-
   }
-
 }
-
+                      
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
