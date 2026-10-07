@@ -121,148 +121,208 @@ class MyApp extends StatelessWidget {
 }
 
 // ==========================================
-
 // DATA MODELS
-
 // ==========================================
 
 class ListingModel {
-
   final String? id;
-
   final String teacherName;
-    
   final String subject;
-
   final String currentCounty;
-
   final String targetCounty;
-
   final String contactPhone;
-
   final String? email;
-
+  final String? tscNumber;
+  final String category;
   final bool isPaid;
 
   ListingModel({
-
     this.id,
-
     required this.teacherName,
-
     required this.subject,
-
     required this.currentCounty,
-
     required this.targetCounty,
-
     required this.contactPhone,
-
     this.email,
-
+    this.tscNumber,
+    this.category = 'TSC Swap',
     this.isPaid = false,
-
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
-
     return ListingModel(
-
       id: json['_id'] as String?,
-
-      teacherName: json['fullName'] as String? ?? json['teacherName'] as String? ?? '',
-
-      subject: json['subjectCombination'] as String? ?? json['subject'] as String? ?? json['subjects'] as String? ?? '',
-
-      currentCounty: json['county'] as String? ?? json['currentCounty'] as String? ?? '',
-
-      targetCounty: json['targetCounty'] as String? ?? json['desiredCounty'] as String? ?? '',
-
-      contactPhone: json['phone'] as String? ?? json['contactPhone'] as String? ?? '',
-
+      teacherName: json['fullName'] as String? ??
+          json['teacherName'] as String? ??
+          json['userName'] as String? ??
+          '',
+      subject: json['subjectCombination'] as String? ??
+          json['subject'] as String? ??
+          json['subjects'] as String? ??
+          '',
+      currentCounty: json['county'] as String? ??
+          json['currentCounty'] as String? ??
+          json['currentLocation'] as String? ??
+          '',
+      targetCounty: json['targetCounty'] as String? ??
+          json['desiredCounty'] as String? ??
+          json['targetLocation'] as String? ??
+          '',
+      contactPhone: json['phone'] as String? ??
+          json['contactPhone'] as String? ??
+          json['phoneNumber'] as String? ??
+          '',
       email: json['email'] as String?,
-
+      tscNumber: json['tscNumber'] as String? ??
+          json['tscNo'] as String? ??
+          json['tsc'] as String? ??
+          (json['user'] != null ? json['user']['tscNumber'] as String? : null),
+      category: json['type'] as String? ??
+          json['category'] as String? ??
+          'TSC Swap',
       isPaid: json['isPaid'] as bool? ?? false,
-
     );
-
   }
 
   Map<String, dynamic> toJson() {
-
     return {
-
+      if (id != null) '_id': id,
       'fullName': teacherName,
-
       'subjectCombination': subject,
-
       'county': currentCounty,
-
       'targetCounty': targetCounty,
-
       'phone': contactPhone,
-
       if (email != null) 'email': email,
-
+      if (tscNumber != null) 'tscNumber': tscNumber,
+      'category': category,
       'isPaid': isPaid,
-
     };
-
   }
 
+  // Static definition for DataTable headers
+  static List<DataColumn> get tableColumns => const [
+        DataColumn(
+          label: Text(
+            'Subject Combination',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        DataColumn(
+          label: Text(
+            'Teacher Name',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        DataColumn(
+          label: Text(
+            'Current Location',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        DataColumn(
+          label: Text(
+            'Target / Info',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        DataColumn(
+          label: Text(
+            'TSC No.',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        DataColumn(
+          label: Text(
+            'Action',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ];
+
+  // Generates a tabulated DataRow for rendering in a DataTable
+  DataRow toTableRow({
+    required BuildContext context,
+    required bool isUnlocked,
+    required VoidCallback onActionPressed,
+  }) {
+    return DataRow(
+      cells: [
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              subject.isNotEmpty ? subject : 'N/A',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        DataCell(Text(teacherName.isNotEmpty ? teacherName : 'N/A')),
+        DataCell(Text(currentCounty.isNotEmpty ? currentCounty : 'N/A')),
+        DataCell(Text(targetCounty.isNotEmpty ? targetCounty : 'N/A')),
+        DataCell(
+          Text(
+            (tscNumber != null && tscNumber!.isNotEmpty) ? tscNumber! : 'N/A',
+          ),
+        ),
+        DataCell(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF009688),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+            onPressed: onActionPressed,
+            child: Text(
+              isUnlocked ? 'View' : 'Pay KSh 100',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
+// ==========================================
+// SAMPLE DATA
+// ==========================================
+
 final sampleListing1 = ListingModel(
-
   id: '1',
-
   teacherName: 'Swap Candidate',
-
   subject: 'English / Literature',
-
   currentCounty: 'Kisii County (Kenyenya)',
-
   targetCounty: 'Nyamira County (Manga, Borabu)',
-
   contactPhone: '0712345678',
-
+  tscNumber: '123456',
+  category: 'TSC Swap',
   isPaid: false,
-
 );
 
 final sampleListing2 = ListingModel(
-
   id: '2',
-
   teacherName: 'BOM School Vacancy',
-
   subject: 'English / Literature',
-
   currentCounty: 'Kisii',
-
   targetCounty: 'Salary: KSh 18,000 / month',
-
   contactPhone: '0712345678',
-
+  category: 'BOM Jobs',
   isPaid: false,
 );
 
 final sampleListing3 = ListingModel(
-
   id: '3',
-
   teacherName: 'Available Teacher (TSC Compliant)',
-
   subject: 'English / Literature',
-
   currentCounty: 'Available Immediately',
-
   targetCounty: 'Experience: 2 Years',
-
   contactPhone: '0712345678',
-
+  tscNumber: '654321',
+  category: 'Seeking BOM',
   isPaid: false,
-
 );
 
 // =========================================================
