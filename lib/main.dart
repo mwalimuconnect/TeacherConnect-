@@ -1492,6 +1492,7 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isLoading = false;
+  String? _errorMessage;
 
   final Map<String, dynamic> _stats = {
     'totalListings': 0,
@@ -1507,26 +1508,52 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _fetchDashboardStats() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
       final response = await http.get(
         Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/stats'),
-      );
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          _stats['totalListings'] = data['totalListings'] ?? 0;
-          _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
-          _stats['paymentsReceived'] = data['paymentsReceived'] ?? 0;
-          _stats['totalMembers'] = data['totalMembers'] ?? 0;
-        });
+        if (mounted) {
+          setState(() {
+            _stats['totalListings'] = data['totalListings'] ?? 0;
+            _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
+            _stats['paymentsReceived'] = data['paymentsReceived'] ?? 0;
+            _stats['totalMembers'] = data['totalMembers'] ?? 0;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Failed to load stats (${response.statusCode})';
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching admin stats: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Network error. Please try again.';
+        });
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -1587,9 +1614,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Ink(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1604,7 +1631,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: color.withOpacity(0.9),
+                      color: color.withValues(alpha: 0.9),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1617,7 +1644,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: color.withOpacity(0.9),
+                color: color.withValues(alpha: 0.9),
               ),
             ),
           ],
@@ -1644,11 +1671,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String displayName =
+        widget.adminName.isNotEmpty ? widget.adminName : 'Samuel Oino';
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         backgroundColor: Colors.teal,
+        elevation: 0,
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1665,7 +1696,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => TeacherPortalScreen(
-                      userName: widget.adminName,
+                      userName: displayName,
                       userRole: 'Administrator',
                       userPhone: widget.adminPhone,
                     ),
@@ -1711,27 +1742,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.adminName.isNotEmpty
-                                ? widget.adminName
-                                : 'Samuel Oino',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Role: Administrator',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.adminPhone.isNotEmpty
+                                  ? 'Role: Administrator • ${widget.adminPhone}'
+                                  : 'Role: Administrator',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1740,19 +1775,57 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 24),
 
               // --- SYSTEM OVERVIEW ---
-              const Text(
-                'System Overview',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'System Overview',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20, color: Colors.teal),
+                    onPressed: _fetchDashboardStats,
+                    tooltip: 'Refresh Stats',
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+
               if (_isLoading)
                 const Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
+                    padding: EdgeInsets.symmetric(vertical: 24.0),
                     child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_errorMessage != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(color: Colors.red.shade800),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        onPressed: _fetchDashboardStats,
+                        icon: const Icon(Icons.refresh, size: 16, color: Colors.white),
+                        label: const Text('Retry', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
                   ),
                 )
               else
@@ -1923,7 +1996,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-                  
+                                                  
 // ==========================================
 // MANAGE ALL LISTINGS (PAGINATED)
 // ==========================================
