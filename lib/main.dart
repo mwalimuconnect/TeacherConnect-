@@ -1995,7 +1995,15 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Teacher / Poster Name',
+                  labelText: 'Teacher / School / Poster Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: tscController,
+                decoration: const InputDecoration(
+                  labelText: 'TSC Number',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -2050,20 +2058,20 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                     }
 
                     await _updateListingOnServer(
-                        listingId,
-                        {
-                          'fullName': nameController.text.trim(),
-                          'teacherName': nameController.text.trim(),
-                          'tscNumber': tscController.text.trim(),
-                          'tscNo': tscController.text.trim(),
-                          'phone': phoneController.text.trim(),
-                          'phoneNumber': phoneController.text.trim(),
-                          'subjectCombination': subjectController.text.trim(),
-                          'county': currentCountyController.text.trim(),
-                          'currentCounty': currentCountyController.text.trim(),
-                          'targetCounty': targetCountyController.text.trim(),
-                        },
-                      );
+                      listingId,
+                      {
+                        'fullName': nameController.text.trim(),
+                        'teacherName': nameController.text.trim(),
+                        'tscNumber': tscController.text.trim(),
+                        'tscNo': tscController.text.trim(),
+                        'phone': phoneController.text.trim(),
+                        'phoneNumber': phoneController.text.trim(),
+                        'subjectCombination': subjectController.text.trim(),
+                        'county': currentCountyController.text.trim(),
+                        'currentCounty': currentCountyController.text.trim(),
+                        'targetCounty': targetCountyController.text.trim(),
+                      },
+                    );
 
                     if (mounted) {
                       Navigator.pop(context);
@@ -2158,6 +2166,9 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
         ? 'Manage $activeCategory Listings'
         : 'Manage All Listings';
 
+    final bool isBomJobs = activeCategory.toLowerCase().contains('job') ||
+        activeCategory.toLowerCase().contains('vacancy');
+
     return Scaffold(
       appBar: AppBar(
         title: Text(titleText),
@@ -2179,34 +2190,33 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                         children: [
                           DataTable(
                             headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
-                            columns: const [
+                            columns: [
                               DataColumn(
-                                label: Text('Teacher / Poster',
-                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                                label: Text(
+                                  isBomJobs ? 'School Name' : 'Teacher / Poster', // Swaps header dynamically
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
                               ),
-                              DataColumn(
-                                label: Text('Contact Phone',
-                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              const DataColumn(
+                                label: Text('TSC Number', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
-                              DataColumn(
-                                label: Text('Subjects',
-                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              const DataColumn(
+                                label: Text('Contact Phone', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
-                              DataColumn(
-                                label: Text('Category / Type',
-                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              const DataColumn(
+                                label: Text('Subjects', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
-                              DataColumn(
-                                label: Text('Current Location',
-                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              const DataColumn(
+                                label: Text('Category / Type', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
-                              DataColumn(
-                                label: Text('Target Location',
-                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              const DataColumn(
+                                label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
-                              DataColumn(
-                                label: Text('Actions',
-                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              const DataColumn(
+                                label: Text('Target Location', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              const DataColumn(
+                                label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
                             ],
                             rows: _listings.map((item) {
@@ -2216,6 +2226,11 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                                   item['teacherName'] ??
                                   item['userName'] ??
                                   'Teacher';
+                              final String tscNumber = item['tscNumber'] ??
+                                  item['tscNo'] ??
+                                  item['tsc'] ??
+                                  (item['user'] != null ? item['user']['tscNumber'] : null) ??
+                                  'N/A';
                               final String phone = item['phone'] ??
                                   item['phoneNumber'] ??
                                   item['contactNumber'] ??
@@ -2239,6 +2254,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                                 cells: [
                                   DataCell(Text(teacherName,
                                       style: const TextStyle(fontWeight: FontWeight.w600))),
+                                  DataCell(Text(tscNumber)),
                                   DataCell(Text(phone)),
                                   DataCell(Text(subjects)),
                                   DataCell(_buildCategoryBadge(category)),
@@ -2301,8 +2317,8 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                 ),
     );
   }
-}          
-                                                                                                                                  
+}
+                                                                                                                                                                               
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
