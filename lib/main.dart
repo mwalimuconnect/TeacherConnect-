@@ -1996,9 +1996,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-                                                  
+
 // ==========================================
-// MANAGE ALL LISTINGS (PAGINATED)
+// MANAGE ALL LISTINGS (PAGINATED & TABULAR)
 // ==========================================
 class ManageListingsScreen extends StatefulWidget {
   final String? categoryType;
@@ -2132,6 +2132,9 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     final nameController = TextEditingController(
       text: item['fullName'] ?? item['teacherName'] ?? item['userName'] ?? '',
     );
+    final phoneController = TextEditingController(
+      text: item['phone'] ?? item['phoneNumber'] ?? item['contactNumber'] ?? '',
+    );
     final subjectController = TextEditingController(
       text: item['subjectCombination'] ?? item['subjects'] ?? item['subject'] ?? '',
     );
@@ -2168,7 +2171,15 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Teacher Name',
+                  labelText: 'Teacher / Poster Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Contact Phone',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -2219,6 +2230,8 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                       {
                         'fullName': nameController.text.trim(),
                         'teacherName': nameController.text.trim(),
+                        'phone': phoneController.text.trim(),
+                        'phoneNumber': phoneController.text.trim(),
                         'subjectCombination': subjectController.text.trim(),
                         'county': currentCountyController.text.trim(),
                         'currentCounty': currentCountyController.text.trim(),
@@ -2271,6 +2284,47 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     }
   }
 
+  Widget _buildCategoryBadge(String category) {
+    Color bgColor;
+    Color textColor;
+    String label = category;
+
+    if (category.toLowerCase().contains('swap')) {
+      bgColor = Colors.blue.shade100;
+      textColor = Colors.blue.shade900;
+      label = 'TSC Swap';
+    } else if (category.toLowerCase().contains('seeker') ||
+        category.toLowerCase().contains('seeking')) {
+      bgColor = Colors.orange.shade100;
+      textColor = Colors.orange.shade900;
+      label = 'Seeking BOM Job';
+    } else if (category.toLowerCase().contains('vacancy') ||
+        category.toLowerCase().contains('job')) {
+      bgColor = Colors.green.shade100;
+      textColor = Colors.green.shade900;
+      label = 'BOM Vacancy';
+    } else {
+      bgColor = Colors.grey.shade200;
+      textColor = Colors.grey.shade800;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final String activeCategory = widget.categoryType ?? '';
@@ -2289,94 +2343,140 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
               ? const Center(child: Text("No listings found."))
               : RefreshIndicator(
                   onRefresh: () => _fetchListings(categoryType: widget.categoryType),
-                  child: ListView.builder(
+                  child: SingleChildScrollView(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _listings.length + (_isFetchingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _listings.length) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-
-                      final item = _listings[index];
-                      final listingId = (item['_id'] ?? item['id'])?.toString() ?? '';
-
-                      final String teacherName = item['fullName'] ??
-                          item['teacherName'] ??
-                          item['userName'] ??
-                          'Teacher';
-                      final String subjects = item['subjectCombination'] ??
-                          item['subjects'] ??
-                          item['subject'] ??
-                          'N/A';
-                      final String currentCounty =
-                          item['county'] ?? item['currentCounty'] ?? 'N/A';
-                      final String targetCounty = item['targetCounty'] ??
-                          item['targetLocation'] ??
-                          item['desiredCounty'] ??
-                          'N/A';
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 6),
-                        child: ListTile(
-                          title: Text(
-                            "$teacherName - $subjects",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                              "Current: $currentCounty | Target: $targetCounty"),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _editListing(item),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DataTable(
+                            headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+                            columns: const [
+                              DataColumn(
+                                label: Text('Teacher / Poster',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline,
-                                    color: Colors.red),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      title: const Text('Delete Listing'),
-                                      content: const Text(
-                                          'Are you sure you want to delete this listing permanently?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('Cancel'),
+                              DataColumn(
+                                label: Text('Contact Phone',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              DataColumn(
+                                label: Text('Subjects',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              DataColumn(
+                                label: Text('Category / Type',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              DataColumn(
+                                label: Text('Current Location',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              DataColumn(
+                                label: Text('Target Location',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              DataColumn(
+                                label: Text('Actions',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                            rows: _listings.map((item) {
+                              final String listingId =
+                                  (item['_id'] ?? item['id'])?.toString() ?? '';
+                              final String teacherName = item['fullName'] ??
+                                  item['teacherName'] ??
+                                  item['userName'] ??
+                                  'Teacher';
+                              final String phone = item['phone'] ??
+                                  item['phoneNumber'] ??
+                                  item['contactNumber'] ??
+                                  'N/A';
+                              final String subjects = item['subjectCombination'] ??
+                                  item['subjects'] ??
+                                  item['subject'] ??
+                                  'N/A';
+                              final String category = item['type'] ??
+                                  item['category'] ??
+                                  'TSC Swap';
+                              final String currentCounty = item['county'] ??
+                                  item['currentCounty'] ??
+                                  'N/A';
+                              final String targetCounty = item['targetCounty'] ??
+                                  item['targetLocation'] ??
+                                  item['desiredCounty'] ??
+                                  'N/A';
+
+                              return DataRow(
+                                cells: [
+                                  DataCell(Text(teacherName,
+                                      style: const TextStyle(fontWeight: FontWeight.w600))),
+                                  DataCell(Text(phone)),
+                                  DataCell(Text(subjects)),
+                                  DataCell(_buildCategoryBadge(category)),
+                                  DataCell(Text(currentCounty)),
+                                  DataCell(Text(targetCounty)),
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit, color: Colors.blue),
+                                          onPressed: () => _editListing(item),
                                         ),
-                                        TextButton(
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline,
+                                              color: Colors.red),
                                           onPressed: () {
-                                            Navigator.pop(ctx);
-                                            _deleteListing(listingId);
+                                            showDialog(
+                                              context: context,
+                                              builder: (ctx) => AlertDialog(
+                                                title: const Text('Delete Listing'),
+                                                content: const Text(
+                                                    'Are you sure you want to delete this listing permanently?'),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(ctx),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      Navigator.pop(ctx);
+                                                      _deleteListing(listingId);
+                                                    },
+                                                    child: const Text(
+                                                      'Delete',
+                                                      style: TextStyle(color: Colors.red),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
                                           },
-                                          child: const Text(
-                                            'Delete',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
                                         ),
                                       ],
                                     ),
-                                  );
-                                },
-                              ),
-                            ],
+                                  ),
+                                ],
+                              );
+                            }).toList(),
                           ),
-                        ),
-                      );
-                    },
+                          if (_isFetchingMore)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
     );
   }
-}
-                                                                                                         
+}          
+                                                                                                                                  
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
