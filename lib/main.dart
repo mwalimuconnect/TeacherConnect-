@@ -121,167 +121,295 @@ class MyApp extends StatelessWidget {
 }
 
 // ==========================================
-// DATA MODELS
+// 1. DATA MODELS
 // ==========================================
 
 class ListingModel {
   final String? id;
   final String teacherName;
+  final String schoolName;
   final String subject;
   final String currentCounty;
   final String targetCounty;
   final String contactPhone;
-  final String? email;
   final String? tscNumber;
-  final String category;
+  final String salary;
+  final bool isTscCompliant;
+  final String category; // 'TSC Swap', 'BOM Jobs', 'Seeking BOM'
   final bool isPaid;
 
   ListingModel({
     this.id,
-    required this.teacherName,
+    this.teacherName = '',
+    this.schoolName = '',
     required this.subject,
     required this.currentCounty,
-    required this.targetCounty,
+    this.targetCounty = '',
     required this.contactPhone,
-    this.email,
     this.tscNumber,
-    this.category = 'TSC Swap',
+    this.salary = '',
+    this.isTscCompliant = false,
+    required this.category,
     this.isPaid = false,
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
     return ListingModel(
       id: json['_id'] as String?,
-      teacherName: json['fullName'] as String? ??
-          json['teacherName'] as String? ??
-          json['userName'] as String? ??
-          '',
-      subject: json['subjectCombination'] as String? ??
-          json['subject'] as String? ??
-          json['subjects'] as String? ??
-          '',
-      currentCounty: json['county'] as String? ??
-          json['currentCounty'] as String? ??
-          json['currentLocation'] as String? ??
-          '',
-      targetCounty: json['targetCounty'] as String? ??
-          json['desiredCounty'] as String? ??
-          json['targetLocation'] as String? ??
-          '',
-      contactPhone: json['phone'] as String? ??
-          json['contactPhone'] as String? ??
-          json['phoneNumber'] as String? ??
-          '',
-      email: json['email'] as String?,
-      tscNumber: json['tscNumber'] as String? ??
-          json['tscNo'] as String? ??
-          json['tsc'] as String? ??
-          (json['user'] != null ? json['user']['tscNumber'] as String? : null),
-      category: json['type'] as String? ??
-          json['category'] as String? ??
-          'TSC Swap',
+      teacherName: json['teacherName'] as String? ?? json['fullName'] as String? ?? '',
+      schoolName: json['schoolName'] as String? ?? '',
+      subject: json['subjectCombination'] as String? ?? json['subject'] as String? ?? '',
+      currentCounty: json['currentLocation'] as String? ?? json['county'] as String? ?? '',
+      targetCounty: json['targetCounty'] as String? ?? json['desiredCounty'] as String? ?? '',
+      contactPhone: json['phone'] as String? ?? json['contactPhone'] as String? ?? '',
+      tscNumber: json['tscNumber'] as String? ?? json['tscNo'] as String?,
+      salary: json['salary'] as String? ?? '',
+      isTscCompliant: json['isTscCompliant'] as bool? ?? false,
+      category: json['category'] as String? ?? 'TSC Swap',
       isPaid: json['isPaid'] as bool? ?? false,
     );
   }
+}
 
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) '_id': id,
-      'fullName': teacherName,
-      'subjectCombination': subject,
-      'county': currentCounty,
-      'targetCounty': targetCounty,
-      'phone': contactPhone,
-      if (email != null) 'email': email,
-      if (tscNumber != null) 'tscNumber': tscNumber,
-      'category': category,
-      'isPaid': isPaid,
-    };
+class ResourceModel {
+  final String id;
+  final String title;
+  final String category;
+  final double price; // 0.0 for free
+
+  ResourceModel({
+    required this.id,
+    required this.title,
+    required this.category,
+    required this.price,
+  });
+}
+
+// ==========================================
+// 2. TABULATED VIEW BUILDERS
+// ==========================================
+
+class TeacherPortalTables {
+
+  // --- REQ 1: TSC SWAPS TABLE ---
+  static Widget buildTscSwapsTable({
+    required List<ListingModel> listings,
+    required Function(ListingModel) isUnlocked,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    return _buildScrollableTable(
+      columns: const [
+        DataColumn(label: Text('Subject Combination', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Target Location', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+      ],
+      rows: listings.map((listing) {
+        final bool unlocked = isUnlocked(listing);
+        return DataRow(cells: [
+          DataCell(_buildSubjectChip(listing.subject)),
+          DataCell(Text(listing.currentCounty)),
+          DataCell(Text(listing.targetCounty)),
+          DataCell(_buildActionButton(
+            unlocked: unlocked,
+            onPressed: () => _handleListingAction(listing, unlocked, onPayPressed),
+          )),
+        ]);
+      }).toList(),
+    );
   }
 
-  // Static definition for DataTable headers
-  static List<DataColumn> get tableColumns => const [
-        DataColumn(
-          label: Text(
-            'Subject Combination',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        DataColumn(
-          label: Text(
-            'Teacher Name',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        DataColumn(
-          label: Text(
-            'Current Location',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        DataColumn(
-          label: Text(
-            'Target / Info',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        DataColumn(
-          label: Text(
-            'TSC No.',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        DataColumn(
-          label: Text(
-            'Action',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ];
-
-  // Generates a tabulated DataRow for rendering in a DataTable
-  DataRow toTableRow({
-    required BuildContext context,
-    required bool isUnlocked,
-    required VoidCallback onActionPressed,
+  // --- REQ 2: BOM JOBS TABLE ---
+  static Widget buildBomJobsTable({
+    required List<ListingModel> listings,
+    required Function(ListingModel) isUnlocked,
+    required Function(BuildContext, ListingModel) onPayPressed,
   }) {
-    return DataRow(
-      cells: [
-        DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.teal.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              subject.isNotEmpty ? subject : 'N/A',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        DataCell(Text(teacherName.isNotEmpty ? teacherName : 'N/A')),
-        DataCell(Text(currentCounty.isNotEmpty ? currentCounty : 'N/A')),
-        DataCell(Text(targetCounty.isNotEmpty ? targetCounty : 'N/A')),
-        DataCell(
-          Text(
-            (tscNumber != null && tscNumber!.isNotEmpty) ? tscNumber! : 'N/A',
-          ),
-        ),
-        DataCell(
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF009688),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            ),
-            onPressed: onActionPressed,
-            child: Text(
-              isUnlocked ? 'View' : 'Pay KSh 100',
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
-          ),
-        ),
+    return _buildScrollableTable(
+      columns: const [
+        DataColumn(label: Text('Subject Combination', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Salary', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
       ],
+      rows: listings.map((listing) {
+        final bool unlocked = isUnlocked(listing);
+        return DataRow(cells: [
+          DataCell(_buildSubjectChip(listing.subject)),
+          DataCell(Text(listing.currentCounty)),
+          DataCell(Text(listing.salary.isNotEmpty ? listing.salary : 'N/A')),
+          DataCell(_buildActionButton(
+            unlocked: unlocked,
+            onPressed: () => _handleListingAction(listing, unlocked, onPayPressed),
+          )),
+        ]);
+      }).toList(),
+    );
+  }
+
+  // --- REQ 3: SEEKING BOM TABLE ---
+  static Widget buildSeekingBomTable({
+    required List<ListingModel> listings,
+    required Function(ListingModel) isUnlocked,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    return _buildScrollableTable(
+      columns: const [
+        DataColumn(label: Text('Subject Combination', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+      ],
+      rows: listings.map((listing) {
+        final bool unlocked = isUnlocked(listing);
+        return DataRow(cells: [
+          DataCell(_buildSubjectChip(listing.subject)),
+          DataCell(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                listing.isTscCompliant ? 'TSC Compliant' : 'Non-TSC',
+                style: TextStyle(
+                  color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          DataCell(_buildActionButton(
+            unlocked: unlocked,
+            onPressed: () => _handleListingAction(listing, unlocked, onPayPressed),
+          )),
+        ]);
+      }).toList(),
+    );
+  }
+
+  // --- REQ 4: TEACHER RESOURCES TABLE WITH PRICES ---
+  static Widget buildResourcesTable({
+    required List<ResourceModel> resources,
+    required Function(BuildContext, ResourceModel) onBuyResource,
+  }) {
+    return _buildScrollableTable(
+      columns: const [
+        DataColumn(label: Text('Title', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Price', style: TextStyle(fontWeight: FontWeight.bold))),
+        DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+      ],
+      rows: resources.map((res) {
+        final bool isFree = res.price <= 0;
+        return DataRow(cells: [
+          DataCell(Text(res.title)),
+          DataCell(Text(res.category)),
+          DataCell(Text(
+            isFree ? 'Free' : 'KSh ${res.price.toStringAsFixed(0)}',
+            style: TextStyle(
+              color: isFree ? Colors.green : Colors.teal,
+              fontWeight: FontWeight.bold,
+            ),
+          )),
+          DataCell(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isFree ? Colors.green : const Color(0xFF009688),
+              ),
+              onPressed: () => onBuyResource(context, res),
+              child: Text(
+                isFree ? 'Download' : 'Buy Now',
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          ),
+        ]);
+      }).toList(),
+    );
+  }
+
+  // Helper widget to scroll table horizontally & vertically
+  static Widget _buildScrollableTable({
+    required List<DataColumn> columns,
+    required List<DataRow> rows,
+  }) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+          columns: columns,
+          rows: rows,
+        ),
+      ),
+    );
+  }
+
+  // Chip formatting for Subject Combination
+  static Widget _buildSubjectChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+
+  // Unified Pay/View button
+  static Widget _buildActionButton({
+    required bool unlocked,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF009688),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      ),
+      onPressed: onPressed,
+      child: Text(
+        unlocked ? 'View Details' : 'Pay KSh 100',
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+      ),
+    );
+  }
+
+  // Dialog showing unlocked info after payment
+  static void _handleListingAction(
+    ListingModel listing,
+    bool unlocked,
+    Function(BuildContext, ListingModel) onPayPressed,
+  ) {
+    if (!unlocked) {
+      onPayPressed(context, listing);
+      return;
+    }
+
+    // Display sensitive paid data upon unlock
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${listing.category} Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (listing.teacherName.isNotEmpty) Text('Teacher Name: ${listing.teacherName}'),
+            if (listing.schoolName.isNotEmpty) Text('School Name: ${listing.schoolName}'),
+            if (listing.tscNumber != null) Text('TSC Number: ${listing.tscNumber}'),
+            Text('Phone Number: ${listing.contactPhone}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 }
