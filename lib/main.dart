@@ -2132,6 +2132,13 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     final nameController = TextEditingController(
       text: item['fullName'] ?? item['teacherName'] ?? item['userName'] ?? '',
     );
+    final tscController = TextEditingController(
+      text: item['tscNumber'] ??
+          item['tscNo'] ??
+          item['tsc'] ??
+          (item['user'] != null ? item['user']['tscNumber'] : '') ??
+          '',
+    );
     final phoneController = TextEditingController(
       text: item['phone'] ?? item['phoneNumber'] ?? item['contactNumber'] ?? '',
     );
@@ -2226,18 +2233,20 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                     }
 
                     await _updateListingOnServer(
-                      listingId,
-                      {
-                        'fullName': nameController.text.trim(),
-                        'teacherName': nameController.text.trim(),
-                        'phone': phoneController.text.trim(),
-                        'phoneNumber': phoneController.text.trim(),
-                        'subjectCombination': subjectController.text.trim(),
-                        'county': currentCountyController.text.trim(),
-                        'currentCounty': currentCountyController.text.trim(),
-                        'targetCounty': targetCountyController.text.trim(),
-                      },
-                    );
+                        listingId,
+                        {
+                          'fullName': nameController.text.trim(),
+                          'teacherName': nameController.text.trim(),
+                          'tscNumber': tscController.text.trim(),
+                          'tscNo': tscController.text.trim(),
+                          'phone': phoneController.text.trim(),
+                          'phoneNumber': phoneController.text.trim(),
+                          'subjectCombination': subjectController.text.trim(),
+                          'county': currentCountyController.text.trim(),
+                          'currentCounty': currentCountyController.text.trim(),
+                          'targetCounty': targetCountyController.text.trim(),
+                        },
+                      );
 
                     if (mounted) {
                       Navigator.pop(context);
