@@ -838,7 +838,26 @@ class TeacherPortalScreen extends StatefulWidget {
   State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
 }
 
-class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
+class _TeacherPortalScreenState extends State<TeacherPortalScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {}); // Rebuild to update headers based on active tab index
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   bool get isAdmin => widget.userRole.toLowerCase().contains('admin');
 
   bool isListingUnlocked(ListingModel listing) {
@@ -1000,6 +1019,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   }
 
   void _showDetailsDialog(ListingModel listing) {
+    final bool isSeekingBom = _tabController.index == 2;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1013,6 +1034,10 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
             ),
             const SizedBox(height: 12),
+            if (isSeekingBom && listing.tscNumber != null && listing.tscNumber!.isNotEmpty) ...[
+              Text('TSC Number: ${listing.tscNumber}'),
+              const SizedBox(height: 4),
+            ],
             Text('Contact Phone: ${listing.contactPhone.isNotEmpty ? listing.contactPhone : "N/A"}'),
             const SizedBox(height: 4),
             Text('Subjects: ${listing.subject}'),
@@ -1037,26 +1062,42 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       return const Center(child: Text('No listings available.'));
     }
 
+    final bool isBomJobs = _tabController.index == 1;
+    final bool isSeekingBom = _tabController.index == 2;
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
           headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
-          columns: const [
-            DataColumn(
+          columns: [
+            const DataColumn(
               label: Text('Subject Combination', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             DataColumn(
-              label: Text('Teacher Name', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                isBomJobs ? 'School Name' : 'Teacher Name', // Swaps to School Name for BOM Jobs
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
+            if (isSeekingBom)
+              const DataColumn(
+                label: Text('TSC Number', style: TextStyle(fontWeight: FontWeight.bold)), // Added for Seeking BOM
+              ),
             DataColumn(
-              label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                isSeekingBom ? 'Availability' : 'Current Location',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-            DataColumn(
+            const DataColumn(
               label: Text('Target / Info', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
-            DataColumn(
+            const DataColumn(
+              label: Text('Phone Number', style: TextStyle(fontWeight: FontWeight.bold)), // Added Phone Number column
+            ),
+            const DataColumn(
               label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
@@ -1065,6 +1106,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
             return DataRow(
               cells: [
+                // 1. Subject Combination Tag
                 DataCell(
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1081,14 +1123,48 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                     ),
                   ),
                 ),
+
+                // 2. Teacher Name / School Name Cell
                 DataCell(
                   Text(
-                    listing.teacherName.isNotEmpty ? listing.teacherName : 'Teacher',
+                    listing.teacherName.isNotEmpty ? listing.teacherName : (isBomJobs ? 'BOM Hiring School' : 'Teacher'),
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
+
+                // 3. TSC Number Cell (Only for Seeking BOM Tab)
+                if (isSeekingBom)
+                  DataCell(
+                    Text(
+                      listing.tscNumber != null && listing.tscNumber!.isNotEmpty
+                          ? listing.tscNumber!
+                          : 'N/A',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+
+                // 4. Current Location / Availability
                 DataCell(Text(listing.currentCounty.isNotEmpty ? listing.currentCounty : 'N/A')),
+
+                // 5. Target / Info
                 DataCell(Text(listing.targetCounty.isNotEmpty ? listing.targetCounty : 'N/A')),
+
+                // 6. Phone Number Cell (Masked if unpaid)
+                DataCell(
+                  Text(
+                    hasPaid
+                        ? (listing.contactPhone.isNotEmpty ? listing.contactPhone : widget.userPhone)
+                        : (listing.contactPhone.length >= 4
+                            ? '${listing.contactPhone.substring(0, 4)}****'
+                            : '07******'),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: hasPaid ? Colors.teal.shade900 : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+
+                // 7. Action Cell
                 DataCell(
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
@@ -1123,97 +1199,96 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Teacher Portal'),
-          backgroundColor: Colors.teal,
-          actions: [
-            if (isAdmin)
-              IconButton(
-                icon: const Icon(Icons.admin_panel_settings),
-                tooltip: 'Admin Dashboard',
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AdminDashboardScreen(
-                        adminName: widget.userName,
-                      ),
-                    ),
-                  );
-                },
-              ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Teacher Portal'),
+        backgroundColor: Colors.teal,
+        actions: [
+          if (isAdmin)
             IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _handleLogout,
-            ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: Colors.white,
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'TSC Swaps'),
-              Tab(text: 'BOM Jobs'),
-              Tab(text: 'Seeking BOM'),
-              Tab(text: 'Teacher Resources'),
-            ],
-          ),
-        ),
-        body: Column(
-          children: [
-            Container(
-              color: Colors.teal.shade50,
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.teal,
-                    child: Text(
-                      widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                      style: const TextStyle(color: Colors.white),
+              icon: const Icon(Icons.admin_panel_settings),
+              tooltip: 'Admin Dashboard',
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminDashboardScreen(
+                      adminName: widget.userName,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text('Role: ${widget.userRole}'),
-                    ],
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildListingsTable([sampleListing1]),
-                  _buildListingsTable([sampleListing2]),
-                  _buildListingsTable([sampleListing3]),
-                  const TeacherResourcesTab(),
-                ],
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _handleLogout,
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'TSC Swaps'),
+            Tab(text: 'BOM Jobs'),
+            Tab(text: 'Seeking BOM'),
+            Tab(text: 'Teacher Resources'),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showPostDialog(context),
-          backgroundColor: Colors.teal,
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
+      ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.teal.shade50,
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.teal,
+                  child: Text(
+                    widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text('Role: ${widget.userRole}'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildListingsTable([sampleListing1]),
+                _buildListingsTable([sampleListing2]),
+                _buildListingsTable([sampleListing3]),
+                const TeacherResourcesTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showPostDialog(context),
+        backgroundColor: Colors.teal,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 }
-                      
+                                                     
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
