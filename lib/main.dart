@@ -3538,9 +3538,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 }
-
                                       
-
 // ==========================================
 // 2. RESOURCE FORM UI & API LOGIC
 // ==========================================
@@ -3558,16 +3556,48 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
   final TextEditingController _titleController = TextEditingController();
   String _selectedSubject = 'English';
   String _selectedForm = 'Form 1';
-  String _selectedCategory = 'Exam';
+  String _selectedCategory = 'Exams & Marking Schemes';
 
   // File Picker & Loading States
   PlatformFile? _selectedFile;
   bool _isUploading = false;
 
   // Dropdown Options
-  final List<String> _subjects = ['English', 'Literature', 'Kiswahili', 'Mathematics', 'Biology', 'Chemistry', 'Physics', 'History'];
-  final List<String> _forms = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Grade 7', 'Grade 8', 'Grade 9'];
-  final List<String> _categories = ['Exam', 'Scheme of Work', 'Lesson Plan', 'Notes', 'Revision Mock'];
+  final List<String> _subjects = [
+    'English',
+    'Literature',
+    'Kiswahili',
+    'Mathematics',
+    'Biology',
+    'Chemistry',
+    'Physics',
+    'History',
+    'Geography',
+    'CRE',
+    'Business Studies',
+    'Agriculture',
+    'Computer Studies',
+  ];
+
+  final List<String> _forms = [
+    'Form 1',
+    'Form 2',
+    'Form 3',
+    'Form 4',
+    'Grade 7',
+    'Grade 8',
+    'Grade 9',
+    'Grade 10',
+    'Grade 11',
+    'Grade 12',
+  ];
+
+  final List<String> _categories = [
+    'Schemes of Work',
+    'Lesson Plans',
+    'Exams & Marking Schemes',
+    'Setbooks & Notes',
+  ];
 
   // Step A: Pick File Logic
   Future<void> _pickFile() async {
@@ -3660,6 +3690,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Teacher Resource'),
+        backgroundColor: Colors.teal,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -3727,7 +3758,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.attach_file, color: Colors.blue),
+                      const Icon(Icons.attach_file, color: Colors.teal),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -3753,21 +3784,27 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
                 child: ElevatedButton(
                   onPressed: _isUploading ? null : _submitResource,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.shade50,
+                    foregroundColor: Colors.purple.shade700,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: _isUploading
-                      ? const Row(
+                      ? Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.purple.shade700,
+                              ),
                             ),
-                            SizedBox(width: 12),
-                            Text('Uploading & Saving...'),
+                            const SizedBox(width: 12),
+                            const Text('Uploading & Saving...'),
                           ],
                         )
                       : const Text(
@@ -3783,8 +3820,8 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     );
   }
 }
-    
- // ==========================================
+
+// ==========================================
 // MANAGE BOM SCHOOL VACANCIES (PAGINATED)
 // ==========================================
 class ManageBomVacanciesScreen extends StatefulWidget {
