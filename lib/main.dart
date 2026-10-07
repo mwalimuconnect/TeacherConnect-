@@ -185,14 +185,15 @@ class ResourceModel {
   });
 }
 
-// ==========================================
+// =========================================================
 // 2. TABULATED VIEW BUILDERS
-// ==========================================
+// =========================================================
 
 class TeacherPortalTables {
 
   // --- REQ 1: TSC SWAPS TABLE ---
   static Widget buildTscSwapsTable({
+    required BuildContext context,
     required List<ListingModel> listings,
     required Function(ListingModel) isUnlocked,
     required Function(BuildContext, ListingModel) onPayPressed,
@@ -212,7 +213,7 @@ class TeacherPortalTables {
           DataCell(Text(listing.targetCounty)),
           DataCell(_buildActionButton(
             unlocked: unlocked,
-            onPressed: () => _handleListingAction(listing, unlocked, onPayPressed),
+            onPressed: () => _handleListingAction(context, listing, unlocked, onPayPressed),
           )),
         ]);
       }).toList(),
@@ -221,6 +222,7 @@ class TeacherPortalTables {
 
   // --- REQ 2: BOM JOBS TABLE ---
   static Widget buildBomJobsTable({
+    required BuildContext context,
     required List<ListingModel> listings,
     required Function(ListingModel) isUnlocked,
     required Function(BuildContext, ListingModel) onPayPressed,
@@ -240,7 +242,7 @@ class TeacherPortalTables {
           DataCell(Text(listing.salary.isNotEmpty ? listing.salary : 'N/A')),
           DataCell(_buildActionButton(
             unlocked: unlocked,
-            onPressed: () => _handleListingAction(listing, unlocked, onPayPressed),
+            onPressed: () => _handleListingAction(context, listing, unlocked, onPayPressed),
           )),
         ]);
       }).toList(),
@@ -249,6 +251,7 @@ class TeacherPortalTables {
 
   // --- REQ 3: SEEKING BOM TABLE ---
   static Widget buildSeekingBomTable({
+    required BuildContext context,
     required List<ListingModel> listings,
     required Function(ListingModel) isUnlocked,
     required Function(BuildContext, ListingModel) onPayPressed,
@@ -281,7 +284,7 @@ class TeacherPortalTables {
           ),
           DataCell(_buildActionButton(
             unlocked: unlocked,
-            onPressed: () => _handleListingAction(listing, unlocked, onPayPressed),
+            onPressed: () => _handleListingAction(context, listing, unlocked, onPayPressed),
           )),
         ]);
       }).toList(),
@@ -290,6 +293,7 @@ class TeacherPortalTables {
 
   // --- REQ 4: TEACHER RESOURCES TABLE WITH PRICES ---
   static Widget buildResourcesTable({
+    required BuildContext context,
     required List<ResourceModel> resources,
     required Function(BuildContext, ResourceModel) onBuyResource,
   }) {
@@ -379,6 +383,7 @@ class TeacherPortalTables {
 
   // Dialog showing unlocked info after payment
   static void _handleListingAction(
+    BuildContext context,
     ListingModel listing,
     bool unlocked,
     Function(BuildContext, ListingModel) onPayPressed,
@@ -413,7 +418,7 @@ class TeacherPortalTables {
     );
   }
 }
-
+    
 // ==========================================
 // SAMPLE DATA
 // ==========================================
