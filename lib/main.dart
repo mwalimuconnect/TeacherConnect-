@@ -3091,7 +3091,7 @@ class _MemberDataTableSource extends DataTableSource {
 }
                                                                              
 // ============================================================================
-// TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS)
+// TEACHER RESOURCES TAB (PAGINATED + SEARCH + FILTER CHIPS + TABLE FORMAT)
 // ============================================================================
 
 class TeacherResourcesTab extends StatefulWidget {
@@ -3154,49 +3154,44 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   }
 
   Future<void> _downloadOrOpenUrl(String rawUrl) async {
-  if (rawUrl.trim().isEmpty) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid resource link.')),
-      );
+    if (rawUrl.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid resource link.')),
+        );
+      }
+      return;
     }
-    return;
-  }
 
-  String formattedUrl = rawUrl.trim();
+    String formattedUrl = rawUrl.trim();
+    final Uri uri = Uri.parse(formattedUrl);
 
-  // If Cloudinary URL points to raw documents (.docx, .pdf, .xlsx), 
-  // ensure it uses the direct raw link without broken transformation flags
-  final Uri uri = Uri.parse(formattedUrl);
-
-  try {
-    // 1. Primary Attempt: Launch in external browser/file handler
-    bool launched = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
-
-    // 2. Fallback Attempt: Platform default view
-    if (!launched) {
-      launched = await launchUrl(
+    try {
+      bool launched = await launchUrl(
         uri,
-        mode: LaunchMode.platformDefault,
+        mode: LaunchMode.externalApplication,
       );
-    }
 
-    if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not launch $formattedUrl')),
-      );
+      if (!launched) {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+      }
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $formattedUrl')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Url Launcher Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening link: $e')),
+        );
+      }
     }
-  } catch (e) {
-    debugPrint('Url Launcher Error: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error opening link: $e')),
-      );
-    }
-  }
   }
 
   void showPaymentModal(
@@ -3396,7 +3391,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
           ),
         ),
 
-        // Main Resource List
+        // Main Resource Table View
         Expanded(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -3422,60 +3417,120 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                       child: filteredResources.isEmpty
                           ? const Center(
                               child: Text('No resources found in this category.'))
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(12.0),
-                              itemCount: filteredResources.length,
-                              itemBuilder: (context, index) {
-                                final res = filteredResources[index];
-                                final title = res['title'] ?? 'Untitled Resource';
-                                final category = res['category'] ?? 'General';
-                                final fileUrl = res['fileUrl'] ?? '';
-                                double price =
-                                    (res['price'] ?? 50.0).toDouble();
-
-                                // Enforce payment requirement between KSh 50 and 100
-                                if (price > 0 && price < 50) price = 50.0;
-                                if (price > 100) price = 100.0;
-
-                                final bool isPaid = price >= 50.0;
-
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 10.0),
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: DataTable(
+                                  headingRowColor: WidgetStateProperty.all(
+                                    Colors.teal.shade50,
                                   ),
-                                  child: ListTile(
-                                    leading: const Icon(Icons.picture_as_pdf,
-                                        color: Colors.teal, size: 36),
-                                    title: Text(title,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    subtitle: Text(
-                                        'Category: $category${isPaid ? " • Price: KES ${price.toStringAsFixed(0)}" : " • Free"}'),
-                                    trailing: IconButton(
-                                      icon: Icon(
-                                        isPaid ? Icons.lock : Icons.download,
-                                        color: isPaid ? Colors.orange : Colors.teal,
+                                  columns: const [
+                                    DataColumn(
+                                      label: Text(
+                                        'Title',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
                                       ),
-                                      onPressed: () {
-                                        if (isPaid) {
-                                          showPaymentModal(context, title, price,
-                                              () {
-                                            if (fileUrl.isNotEmpty) {
-                                              _downloadOrOpenUrl(fileUrl);
-                                            }
-                                          });
-                                        } else {
-                                          if (fileUrl.isNotEmpty) {
-                                            _downloadOrOpenUrl(fileUrl);
-                                          }
-                                        }
-                                      },
                                     ),
-                                  ),
-                                );
-                              },
+                                    DataColumn(
+                                      label: Text(
+                                        'Category',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    DataColumn(
+                                      label: Text(
+                                        'Price',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    DataColumn(
+                                      label: Text(
+                                        'Action',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                  rows: filteredResources.map((res) {
+                                    final title = res['title'] ?? 'Untitled Resource';
+                                    final category = res['category'] ?? 'General';
+                                    final fileUrl = res['fileUrl'] ?? '';
+                                    double price =
+                                        (res['price'] ?? 50.0).toDouble();
+
+                                    // Enforce payment requirement between KSh 50 and 100
+                                    if (price > 0 && price < 50) price = 50.0;
+                                    if (price > 100) price = 100.0;
+
+                                    final bool isPaid = price >= 50.0;
+
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.picture_as_pdf,
+                                                  color: Colors.teal, size: 20),
+                                              const SizedBox(width: 8),
+                                              ConstrainedBox(
+                                                constraints: const BoxConstraints(
+                                                  maxWidth: 200,
+                                                ),
+                                                child: Text(
+                                                  title,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        DataCell(Text(category)),
+                                        DataCell(
+                                          Text(
+                                            isPaid
+                                                ? 'KES ${price.toStringAsFixed(0)}'
+                                                : 'Free',
+                                            style: TextStyle(
+                                              color: isPaid
+                                                  ? Colors.orange.shade800
+                                                  : Colors.green.shade700,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          IconButton(
+                                            icon: Icon(
+                                              isPaid ? Icons.lock : Icons.download,
+                                              color: isPaid
+                                                  ? Colors.orange
+                                                  : Colors.teal,
+                                            ),
+                                            onPressed: () {
+                                              if (isPaid) {
+                                                showPaymentModal(
+                                                    context, title, price, () {
+                                                  if (fileUrl.isNotEmpty) {
+                                                    _downloadOrOpenUrl(fileUrl);
+                                                  }
+                                                });
+                                              } else {
+                                                if (fileUrl.isNotEmpty) {
+                                                  _downloadOrOpenUrl(fileUrl);
+                                                }
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
                             ),
                     ),
         ),
@@ -3483,55 +3538,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 }
-                                                                          
-// ==========================================
-// 1. FILE UPLOAD SERVICE CLASS
-// ==========================================
-class UploadService {
-  static const String baseUrl = 'https://teacher-connect-backend.vercel.app/api';
-    static Future<String?> uploadResourceFile(PlatformFile platformFile) async {
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/upload'),
-      );
 
-      // Handle file bytes (Web/Memory) or file path (Mobile/Desktop)
-      if (platformFile.bytes != null) {
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            'file',
-            platformFile.bytes!,
-            filename: platformFile.name,
-          ),
-        );
-      } else if (platformFile.path != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'file',
-            platformFile.path!,
-          ),
-        );
-      } else {
-        return null;
-      }
-
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        var jsonResponse = jsonDecode(response.body);
-        return jsonResponse['fileUrl']; // Returns Cloudinary URL
-      } else {
-        print('Upload failed with status: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      print('Error uploading file: $e');
-      return null;
-    }
-  }
-}
+                                      
 
 // ==========================================
 // 2. RESOURCE FORM UI & API LOGIC
