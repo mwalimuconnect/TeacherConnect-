@@ -968,7 +968,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
                                                                                                                                                                                                                                                                                                    
-// =========================================================
+ // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
 class TeacherPortalScreen extends StatefulWidget {
@@ -989,6 +989,11 @@ class TeacherPortalScreen extends StatefulWidget {
 
 class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   bool get isAdmin => widget.userRole.toLowerCase().contains('admin');
+
+  // Master lists for listings in each category
+  List<ListingModel> tscSwaps = [];
+  List<ListingModel> bomJobs = [];
+  List<ListingModel> seekingBom = [];
 
   bool isListingUnlocked(ListingModel listing) {
     return listing.isPaid || isAdmin;
@@ -1134,7 +1139,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
 
-    // If the user tapped 'Cancel' or dismissed the dialog, stop execution
     if (confirm != true) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -1155,6 +1159,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Teacher Portal'),
+          backgroundColor: Colors.teal,
           actions: [
             if (isAdmin)
               IconButton(
@@ -1178,6 +1183,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           ],
           bottom: const TabBar(
             indicatorColor: Colors.white,
+            isScrollable: true,
             tabs: [
               Tab(text: 'TSC Swaps'),
               Tab(text: 'BOM Jobs'),
@@ -1220,21 +1226,31 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
             Expanded(
               child: TabBarView(
                 children: [
-                  ListView(
-                    children: [
-                      _buildListingCard(sampleListing1),
-                    ],
+                  // Tab 1: Tabulated TSC Swaps
+                  TeacherPortalTables.buildTscSwapsTable(
+                    context: context,
+                    listings: tscSwaps,
+                    isUnlocked: isListingUnlocked,
+                    onPayPressed: _showPaymentModal,
                   ),
-                  ListView(
-                    children: [
-                      _buildListingCard(sampleListing2),
-                    ],
+
+                  // Tab 2: Tabulated BOM Jobs
+                  TeacherPortalTables.buildBomJobsTable(
+                    context: context,
+                    listings: bomJobs,
+                    isUnlocked: isListingUnlocked,
+                    onPayPressed: _showPaymentModal,
                   ),
-                  ListView(
-                    children: [
-                      _buildListingCard(sampleListing3),
-                    ],
+
+                  // Tab 3: Tabulated Seeking BOM
+                  TeacherPortalTables.buildSeekingBomTable(
+                    context: context,
+                    listings: seekingBom,
+                    isUnlocked: isListingUnlocked,
+                    onPayPressed: _showPaymentModal,
                   ),
+
+                  // Tab 4: Teacher Resources Tab (Unchanged)
                   const TeacherResourcesTab(),
                 ],
               ),
@@ -1249,86 +1265,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-
-  Widget _buildListingCard(ListingModel listing) {
-    final bool hasPaid = isListingUnlocked(listing);
-
-    return Card(
-      margin: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.work_outline, color: Color(0xFF009688)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    "${listing.teacherName} (${listing.subject})",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text("Location: ${listing.currentCounty}"),
-            const SizedBox(height: 4),
-            Text("Target / Info: ${listing.targetCounty}"),
-            const Divider(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF009688),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                icon: Icon(
-                  hasPaid ? Icons.visibility : Icons.lock,
-                  color: Colors.white,
-                ),
-                label: Text(
-                  hasPaid ? 'View Full Details' : 'Pay KSh 100 to View',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                onPressed: () {
-                  if (hasPaid) {
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: Text(listing.teacherName),
-                        content: Text(
-                          'Full Details Unlocked!\nContact: ${listing.contactPhone.isNotEmpty ? listing.contactPhone : "0712345678"}\n\nSubjects: ${listing.subject}\nFrom: ${listing.currentCounty}\nTo: ${listing.targetCounty}',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
-                          )
-                        ],
-                      ),
-                    );
-                  } else {
-                    _showPaymentModal(context, listing);
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}        
-                                                                   
+}                   
+                                                                                
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
