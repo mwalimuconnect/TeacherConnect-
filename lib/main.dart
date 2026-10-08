@@ -3393,183 +3393,197 @@ Future<bool> _verifyPaymentStatus(String checkoutRequestId) async {
   return false;
 }
 
+@override
+Widget build(BuildContext context) {
+  // Check whether current user has Admin privileges
+  final String currentRole = widget.userRole?.toLowerCase() ?? '';
+  final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
 
-  @override
-  Widget build(BuildContext context) {
-    // Check whether current user has Admin privileges
-    final String currentRole = widget.userRole?.toLowerCase() ?? '';
-    final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
+  final filteredResources = _selectedCategory == 'All'
+      ? _resources
+      : _resources
+          .where((res) => res['category'] == _selectedCategory)
+          .toList();
 
-    final filteredResources = _selectedCategory == 'All'
-        ? _resources
-        : _resources
-            .where((res) => res['category'] == _selectedCategory)
-            .toList();
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(45),
-              backgroundColor: Colors.teal,
-            ),
-            icon: const Icon(Icons.upload_file, color: Colors.white),
-            label: const Text(
-              'UPLOAD NEW RESOURCE',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AddResourceScreen(),
-                ),
-              );
-
-              if (result == true) {
-                _fetchResources();
-              }
-            },
+  return Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(45),
+            backgroundColor: Colors.teal,
           ),
-        ),
-
-        // Category Selector Chips
-        Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              final isSelected = category == _selectedCategory;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: FilterChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  selectedColor: Colors.teal.shade100,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedCategory = category;
-                    });
-                  },
-                ),
-              );
-            },
+          icon: const Icon(Icons.upload_file, color: Colors.white),
+          label: const Text(
+            'UPLOAD NEW RESOURCE',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-        ),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddResourceScreen(),
+              ),
+            );
 
-        // Main Resource List
-        Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage.isNotEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(_errorMessage, textAlign: TextAlign.center),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: _fetchResources,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
+            if (result == true) {
+              _fetchResources();
+            }
+          },
+        ),
+      ),
+
+      // Category Selector Chips
+      Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: _categories.length,
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          itemBuilder: (context, index) {
+            final category = _categories[index];
+            final isSelected = category == _selectedCategory;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: FilterChip(
+                label: Text(category),
+                selected: isSelected,
+                selectedColor: Colors.teal.shade100,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedCategory = category;
+                  });
+                },
+              ),
+            );
+          },
+        ),
+      ),
+
+      // Main Resource List
+      Expanded(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage.isNotEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(_errorMessage, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: _fetchResources,
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _fetchResources,
-                      child: filteredResources.isEmpty
-                          ? const Center(
-                              child: Text('No resources found in this category.'))
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(12.0),
-                              itemCount: filteredResources.length,
-                              itemBuilder: (context, index) {
-                                final res = filteredResources[index];
-                                final title = res['title'] ?? 'Untitled Resource';
-                                final category = res['category'] ?? 'General';
-                                final fileUrl = res['fileUrl'] ?? '';
-                                double price =
-                                    (res['price'] ?? 50.0).toDouble();
-
-                                if (price > 0 && price < 50) price = 50.0;
-                                if (price > 100) price = 100.0;
-
-                                final bool isPaidResource = price >= 50.0;
-
-                                // 📍 ADMIN BYPASS CHECK: Direct download if free OR if user is Admin
-                                final bool canDownloadDirectly = isAdmin || !isPaidResource;
-
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 10.0),
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  child: ListTile(
-                                    leading: const Icon(Icons.picture_as_pdf,
-                                        color: Colors.teal, size: 36),
-                                    title: Text(title,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    subtitle: Text(
-                                        'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : " • Free"}${isAdmin ? " (Admin Free Access)" : ""}'),
-                                    trailing: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: canDownloadDirectly
-                                            ? Colors.teal
-                                            : Colors.teal.shade700,
-                                        elevation: 1,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 6),
-                                      ),
-                                      icon: Icon(
-                                        canDownloadDirectly
-                                            ? Icons.download
-                                            : Icons.lock_outline,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      label: Text(
-                                        canDownloadDirectly
-                                            ? 'Download'
-                                            : 'Pay KES ${price.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                            color: Colors.white, fontSize: 12),
-                                      ),
-                                      onPressed: () {
-                                        if (canDownloadDirectly) {
-                                          if (fileUrl.isNotEmpty) {
-                                            _downloadOrOpenUrl(fileUrl);
-                                          }
-                                        } else {
-                                          showPaymentModal(
-                                              context, title, price, () {
-                                            if (fileUrl.isNotEmpty) {
-                                              _downloadOrOpenUrl(fileUrl);
-                                            }
-                                          });
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
                     ),
-        ),
-      ],
-    );
-  }
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchResources,
+                    child: filteredResources.isEmpty
+                        ? const Center(
+                            child: Text('No resources found in this category.'),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(12.0),
+                            itemCount: filteredResources.length,
+                            itemBuilder: (context, index) {
+                              final res = filteredResources[index];
+                              final title = res['title'] ?? 'Untitled Resource';
+                              final category = res['category'] ?? 'General';
+                              final fileUrl = res['fileUrl'] ?? '';
+                              double price = (res['price'] ?? 50.0).toDouble();
+
+                              if (price > 0 && price < 50) price = 50.0;
+                              if (price > 100) price = 100.0;
+
+                              final bool isPaidResource = price >= 50.0;
+
+                              // ADMIN BYPASS CHECK: Direct download if Free OR if user is Admin
+                              final bool canDownloadDirectly = isAdmin || !isPaidResource;
+
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 10.0),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: ListTile(
+                                  leading: const Icon(
+                                    Icons.picture_as_pdf,
+                                    color: Colors.teal,
+                                    size: 36,
+                                  ),
+                                  title: Text(
+                                    title,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  subtitle: Text(
+                                    'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
+                                  ),
+                                  trailing: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: canDownloadDirectly
+                                          ? Colors.teal
+                                          : Colors.teal.shade700,
+                                      elevation: 1,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                    ),
+                                    icon: Icon(
+                                      canDownloadDirectly
+                                          ? Icons.download
+                                          : Icons.lock_outline,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    label: Text(
+                                      canDownloadDirectly
+                                          ? 'Download'
+                                          : 'Pay KES ${price.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      if (canDownloadDirectly) {
+                                        if (fileUrl.isNotEmpty) {
+                                          _downloadOrOpenUrl(context, fileUrl);
+                                        }
+                                      } else {
+                                        showPaymentModal(
+                                          parentContext: context,
+                                          resourceTitle: title,
+                                          price: price,
+                                          isAdmin: isAdmin,
+                                          onPaymentSuccess: () {
+                                            if (fileUrl.isNotEmpty) {
+                                              _downloadOrOpenUrl(context, fileUrl);
+                                            }
+                                          },
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+      ),
+    ],
+  );
 }
+                                
+
                                                                                                                                                                                                                             
 // ==========================================
 // 2. RESOURCE FORM UI & API LOGIC
