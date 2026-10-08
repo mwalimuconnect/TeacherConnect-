@@ -1898,6 +1898,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   }
 
   Future<void> _deleteListing(String id) async {
+    if (id.isEmpty) return;
     final url = Uri.parse('$_baseUrl/api/listings/$id');
     try {
       final response = await http.delete(url);
@@ -1914,6 +1915,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   }
 
   Future<void> _approveSwap(String swapId) async {
+    if (swapId.isEmpty) return;
     final url = Uri.parse('$_baseUrl/api/listings/$swapId');
     try {
       final response = await http.patch(
@@ -2036,18 +2038,20 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () async {
-                          await _updateListingOnServer(listing.id, {
-                            'teacherName': teacherNameCtrl.text.trim(),
-                            'schoolName': schoolNameCtrl.text.trim(),
-                            'subject': subjectCtrl.text.trim(),
-                            'currentCounty': currentCountyCtrl.text.trim(),
-                            'targetCounty': targetCountyCtrl.text.trim(),
-                            'salary': salaryCtrl.text.trim(),
-                            'contactPhone': contactPhoneCtrl.text.trim(),
-                            'tscNumber': tscNumberCtrl.text.trim(),
-                            'category': categoryCtrl.text.trim(),
-                            'isTscCompliant': isTscCompliant,
-                          });
+                          if (listing.id.isNotEmpty) {
+                            await _updateListingOnServer(listing.id, {
+                              'teacherName': teacherNameCtrl.text.trim(),
+                              'schoolName': schoolNameCtrl.text.trim(),
+                              'subject': subjectCtrl.text.trim(),
+                              'currentCounty': currentCountyCtrl.text.trim(),
+                              'targetCounty': targetCountyCtrl.text.trim(),
+                              'salary': salaryCtrl.text.trim(),
+                              'contactPhone': contactPhoneCtrl.text.trim(),
+                              'tscNumber': tscNumberCtrl.text.trim(),
+                              'category': categoryCtrl.text.trim(),
+                              'isTscCompliant': isTscCompliant,
+                            });
+                          }
 
                           if (mounted) {
                             Navigator.pop(context);
@@ -2068,6 +2072,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   }
 
   Future<void> _updateListingOnServer(String id, Map<String, dynamic> updateData) async {
+    if (id.isEmpty) return;
     final url = Uri.parse('$_baseUrl/api/listings/$id');
     try {
       await http.put(
@@ -2204,7 +2209,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     );
   }
 }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
