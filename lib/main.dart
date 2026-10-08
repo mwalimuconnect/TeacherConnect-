@@ -3181,137 +3181,218 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-  void showPaymentModal(
-    BuildContext parentContext,
-    String resourceTitle,
-    double price,
-    VoidCallback onPaymentSuccess,
-  ) {
-    TextEditingController phoneController = TextEditingController(text: "254");
+// =========================================================================
+// Payment Modal with Strict Payment Verification
+// =========================================================================
+void showPaymentModal({
+  required BuildContext parentContext,
+  required String resourceTitle,
+  required double price,
+  required VoidCallback onPaymentSuccess,
+  bool isAdmin = false,
+}) {
+  // If user is Administrator or price is 0, bypass payment and unlock directly
+  if (isAdmin || price <= 0) {
+    onPaymentSuccess();
+    return;
+  }
 
-    showDialog(
-      context: parentContext,
-      builder: (dialogContext) {
-        bool isLoading = false;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text("Unlock $resourceTitle"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Price: KES ${price.toStringAsFixed(0)}"),
+  TextEditingController phoneController = TextEditingController(text: "254");
+
+  showDialog(
+    context: parentContext,
+    builder: (dialogContext) {
+      bool isLoading = false;
+      String statusMessage = "";
+
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: Text("Unlock $resourceTitle"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAlignment.start,
+              children: [
+                Text(
+                  "Price: KES ${price.toStringAsFixed(0)}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneController,
+                  enabled: !isLoading,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: "M-Pesa Phone Number",
+                    hintText: "254712345678",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (statusMessage.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: "M-Pesa Phone Number",
-                      hintText: "254712345678",
-                      border: OutlineInputBorder(),
+                  Text(
+                    statusMessage,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: statusMessage.contains("failed") || statusMessage.contains("Error")
+                          ? Colors.red
+                          : Colors.teal,
                     ),
                   ),
                 ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
+                child: const Text("Cancel"),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text("Cancel"),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00897B),
                 ),
-                ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          String rawPhone = phoneController.text.trim();
-                          String formattedPhone =
-                              rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
-                          if (formattedPhone.startsWith('0')) {
-                            formattedPhone = '254${formattedPhone.substring(1)}';
-                          }
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        String rawPhone = phoneController.text.trim();
+                        String formattedPhone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
 
-                          if (formattedPhone.length != 12) {
-                            ScaffoldMessenger.of(parentContext).showSnackBar(
-                              const SnackBar(
-                                content: Text("Enter a valid phone number (e.g., 254712345678)"),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
+                        if (formattedPhone.startsWith('0')) {
+                          formattedPhone = '254${formattedPhone.substring(1)}';
+                        }
 
-                          setState(() => isLoading = true);
+                        if (formattedPhone.length != 12) {
+                          ScaffoldMessenger.of(parentContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('Enter a valid phone number (e.g., 254712345678)'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
 
-                          try {
-                            final response = await http.post(
-                              Uri.parse('https://teacher-connect-backend.vercel.app/api/mpesa/stkpush'),
-                              headers: {'Content-Type': 'application/json'},
-                              body: jsonEncode({
-                                'phone': formattedPhone,
-                                'amount': price,
-                                'accountReference': 'ResourceDownload',
-                                'transactionDesc': 'Payment for $resourceTitle',
-                              }),
-                            );
+                        setState(() {
+                          isLoading = true;
+                          statusMessage = "Sending M-Pesa prompt to phone...";
+                        });
 
-                            setState(() => isLoading = false);
+                        try {
+                          final response = await http.post(
+                            Uri.parse('https://teacher-connect-backend.vercel.app/api/mpesa/stkpush'),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({
+                              'phone': formattedPhone,
+                              'amount': price,
+                              'accountReference': 'ResourceDownload',
+                              'transactionDesc': 'Payment for $resourceTitle',
+                            }),
+                          );
 
-                            if (response.statusCode == 200) {
-                              final data = jsonDecode(response.body);
-                              if (data['success'] == true) {
+                          if (response.statusCode == 200) {
+                            final data = jsonDecode(response.body);
+                            
+                            if (data['success'] == true) {
+                              final String checkoutRequestId = data['CheckoutRequestID'] ?? '';
+
+                              setState(() {
+                                statusMessage = "STK Push sent! Please enter your PIN on your phone to complete payment...";
+                              });
+
+                              // Poll backend to verify actual payment confirmation
+                              bool paid = await _verifyPaymentStatus(checkoutRequestId);
+
+                              setState(() => isLoading = false);
+
+                              if (paid) {
                                 if (Navigator.canPop(dialogContext)) {
                                   Navigator.pop(dialogContext);
                                 }
                                 ScaffoldMessenger.of(parentContext).showSnackBar(
                                   const SnackBar(
-                                    content: Text("STK Push sent! Please check your phone to enter your M-Pesa PIN."),
+                                    content: Text('Payment verified! Downloading document...'),
                                     backgroundColor: Colors.green,
                                   ),
                                 );
+                                // Unlock download ONLY after verification succeeds
                                 onPaymentSuccess();
                               } else {
-                                ScaffoldMessenger.of(parentContext).showSnackBar(
-                                  SnackBar(
-                                    content: Text(data['error'] ?? "Failed to initiate M-Pesa payment."),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
+                                setState(() {
+                                  statusMessage = "Payment verification failed or timed out. Please try again.";
+                                });
                               }
                             } else {
-                              ScaffoldMessenger.of(parentContext).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Server error. Please try again later."),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
+                              setState(() {
+                                isLoading = false;
+                                statusMessage = data['error'] ?? 'Failed to initiate M-Pesa payment.';
+                              });
                             }
-                          } catch (e) {
-                            setState(() => isLoading = false);
-                            ScaffoldMessenger.of(parentContext).showSnackBar(
-                              SnackBar(
-                                content: Text("Error: $e"),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                          } else {
+                            setState(() {
+                              isLoading = false;
+                              statusMessage = 'Server error. Please try again later.';
+                            });
                           }
-                        },
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text("Pay Now"),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+                        } catch (e) {
+                          setState(() {
+                            isLoading = false;
+                            statusMessage = 'Error initiating payment: $e';
+                          });
+                        }
+                      },
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Pay Now",
+                        style: TextStyle(color: Colors.white),
+                      ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+// =========================================================================
+// Helper to poll backend until M-Pesa callback updates payment status
+// =========================================================================
+Future<bool> _verifyPaymentStatus(String checkoutRequestId) async {
+  if (checkoutRequestId.isEmpty) return false;
+
+  // Poll server up to 6 times (30 seconds total)
+  for (int i = 0; i < 6; i++) {
+    await Future.delayed(const Duration(seconds: 5));
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/mpesa/query/$checkoutRequestId'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'COMPLETED' || data['success'] == true) {
+          return true;
+        } else if (data['status'] == 'FAILED' || data['status'] == 'CANCELLED') {
+          return false;
+        }
+      }
+    } catch (_) {
+      // Continue polling if network briefly fails
+    }
   }
+  return false;
+}
+
 
   @override
   Widget build(BuildContext context) {
