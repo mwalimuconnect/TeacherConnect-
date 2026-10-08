@@ -3214,7 +3214,7 @@ void showPaymentModal({
             title: Text("Unlock $resourceTitle"),
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start
               children: [
                 Text(
                   "Price: KES ${price.toStringAsFixed(0)}",
