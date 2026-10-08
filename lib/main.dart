@@ -125,7 +125,7 @@ class MyApp extends StatelessWidget {
 // ==========================================
 
 class ListingModel {
-  final String? id;
+  final String id; // Non-nullable String to match function parameters
   final String teacherName;
   final String schoolName;
   final String subject;
@@ -137,9 +137,10 @@ class ListingModel {
   final bool isTscCompliant;
   final String category; // 'TSC Swap', 'BOM Jobs', 'Seeking BOM'
   final bool isPaid;
+  final bool isApproved; // Added missing field required by ManageListingsScreen
 
   ListingModel({
-    this.id,
+    this.id = '',
     this.teacherName = '',
     this.schoolName = '',
     required this.subject,
@@ -151,11 +152,12 @@ class ListingModel {
     this.isTscCompliant = false,
     required this.category,
     this.isPaid = false,
+    this.isApproved = false,
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
     return ListingModel(
-      id: json['_id'] as String?,
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
       teacherName: json['teacherName'] as String? ?? json['fullName'] as String? ?? '',
       schoolName: json['schoolName'] as String? ?? '',
       subject: json['subjectCombination'] as String? ?? json['subject'] as String? ?? '',
@@ -167,6 +169,7 @@ class ListingModel {
       isTscCompliant: json['isTscCompliant'] as bool? ?? false,
       category: json['category'] as String? ?? 'TSC Swap',
       isPaid: json['isPaid'] as bool? ?? false,
+      isApproved: json['isApproved'] as bool? ?? (json['status'] == 'approved'),
     );
   }
 }
