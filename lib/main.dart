@@ -188,7 +188,6 @@ class ResourceModel {
 // =========================================================
 // 2. TABULATED VIEW BUILDERS
 // =========================================================
-
 class TeacherPortalTables {
 
   // --- REQ 1: TSC SWAPS TABLE ---
@@ -291,48 +290,6 @@ class TeacherPortalTables {
     );
   }
 
-  // --- REQ 4: TEACHER RESOURCES TABLE WITH PRICES ---
-  static Widget buildResourcesTable({
-    required BuildContext context,
-    required List<ResourceModel> resources,
-    required Function(BuildContext, ResourceModel) onBuyResource,
-  }) {
-    return _buildScrollableTable(
-      columns: const [
-        DataColumn(label: Text('Title', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Price', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
-      ],
-      rows: resources.map((res) {
-        final bool isFree = res.price <= 0;
-        return DataRow(cells: [
-          DataCell(Text(res.title)),
-          DataCell(Text(res.category)),
-          DataCell(Text(
-            isFree ? 'Free' : 'KSh ${res.price.toStringAsFixed(0)}',
-            style: TextStyle(
-              color: isFree ? Colors.green : Colors.teal,
-              fontWeight: FontWeight.bold,
-            ),
-          )),
-          DataCell(
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isFree ? Colors.green : const Color(0xFF009688),
-              ),
-              onPressed: () => onBuyResource(context, res),
-              child: Text(
-                isFree ? 'Download' : 'Buy Now',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ),
-        ]);
-      }).toList(),
-    );
-  }
-
   // Helper widget to scroll table horizontally & vertically
   static Widget _buildScrollableTable({
     required List<DataColumn> columns,
@@ -393,7 +350,6 @@ class TeacherPortalTables {
       return;
     }
 
-    // Display sensitive paid data upon unlock
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -402,9 +358,9 @@ class TeacherPortalTables {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (listing.teacherName.isNotEmpty) Text('Teacher Name: ${listing.teacherName}'),
+            if (listing.teacherName.isNotEmpty) Text('Teacher/Contact Name: ${listing.teacherName}'),
             if (listing.schoolName.isNotEmpty) Text('School Name: ${listing.schoolName}'),
-            if (listing.tscNumber != null) Text('TSC Number: ${listing.tscNumber}'),
+            if (listing.tscNumber != null && listing.tscNumber!.isNotEmpty) Text('TSC Number: ${listing.tscNumber}'),
             Text('Phone Number: ${listing.contactPhone}'),
           ],
         ),
