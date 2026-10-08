@@ -1806,7 +1806,7 @@ class ManageListingsScreen extends StatefulWidget {
 
 class _ManageListingsScreenState extends State<ManageListingsScreen> {
   final ScrollController _scrollController = ScrollController();
-  final List<dynamic> _listings = [];
+  final List<ListingModel> _listings = [];
 
   int _currentPage = 1;
   final int _limit = 15;
@@ -1842,9 +1842,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
   Future<void> _fetchListings({bool isLoadMore = false, String? categoryType}) async {
     if (isLoadMore) {
       if (!_hasMore || _isFetchingMore) return;
-      setState(() {
-        _isFetchingMore = true;
-      });
+      setState(() => _isFetchingMore = true);
     } else {
       setState(() {
         _isLoadingInitial = true;
@@ -1858,7 +1856,6 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
         ? '&category=${Uri.encodeComponent(activeType)}'
         : '';
 
-    // Pass isAdmin=true so pending listings show on the admin screen
     final url = Uri.parse(
       '$_baseUrl/api/listings?page=$_currentPage&limit=$_limit&isAdmin=true$categoryQueryParam',
     );
@@ -1868,24 +1865,25 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-
-        List<dynamic> newItems = [];
+        List<dynamic> rawData = [];
 
         if (decoded is List) {
-          newItems = decoded;
+          rawData = decoded;
         } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-          newItems = decoded['data'] as List<dynamic>;
+          rawData = decoded['data'] as List<dynamic>;
         }
 
+        final List<ListingModel> loadedListings = rawData.map((item) {
+          return ListingModel.fromJson(item as Map<String, dynamic>);
+        }).toList();
+
         setState(() {
-          _listings.addAll(newItems);
-          _hasMore = newItems.length >= _limit;
+          _listings.addAll(loadedListings);
+          _hasMore = rawData.length >= _limit;
           if (_hasMore) {
             _currentPage++;
           }
         });
-      } else {
-        debugPrint('Failed to load listings. Status Code: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error fetching listings: $e');
@@ -1901,42 +1899,55 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
   Future<void> _deleteListing(String id) async {
     final url = Uri.parse('$_baseUrl/api/listings/$id');
-
     try {
       final response = await http.delete(url);
-
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listing deleted successfully')),
         );
         _fetchListings(categoryType: widget.categoryType);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete listing (${response.statusCode})'),
-          ),
-        );
       }
     } catch (e) {
       debugPrint('Error deleting listing: $e');
     }
   }
 
-  void _editListing(Map<String, dynamic> item) {
-    final nameController = TextEditingController(
-      text: item['fullName'] ?? item['teacherName'] ?? item['userName'] ?? '',
-    );
-    final subjectController = TextEditingController(
-      text: item['subjectCombination'] ?? item['subjects'] ?? item['subject'] ?? '',
-    );
-    final currentCountyController = TextEditingController(
-      text: item['county'] ?? item['currentCounty'] ?? '',
-    );
-    final targetCountyController = TextEditingController(
-      text: item['targetCounty'] ?? item['targetLocation'] ?? item['desiredCounty'] ?? '',
-    );
+  Future<void> _approveSwap(String swapId) async {
+    final url = Uri.parse('$_baseUrl/api/listings/$swapId');
+    try {
+      final response = await http.patch(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': 'approved', 'isApproved': true}),
+      );
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Listing approved successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _fetchListings(categoryType: widget.categoryType);
+      }
+    } catch (e) {
+      debugPrint('Error approving listing: $e');
+    }
+  }
+
+  void _editListing(ListingModel listing) {
+    final teacherNameCtrl = TextEditingController(text: listing.teacherName);
+    final schoolNameCtrl = TextEditingController(text: listing.schoolName);
+    final subjectCtrl = TextEditingController(text: listing.subject);
+    final currentCountyCtrl = TextEditingController(text: listing.currentCounty);
+    final targetCountyCtrl = TextEditingController(text: listing.targetCounty);
+    final contactPhoneCtrl = TextEditingController(text: listing.contactPhone);
+    final tscNumberCtrl = TextEditingController(text: listing.tscNumber ?? '');
+    final salaryCtrl = TextEditingController(text: listing.salary);
+    final categoryCtrl = TextEditingController(text: listing.category);
+    bool isTscCompliant = listing.isTscCompliant;
 
     showModalBottomSheet(
       context: context,
@@ -1945,162 +1956,127 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            left: 16,
-            right: 16,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Edit Listing',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                left: 16,
+                right: 16,
+                top: 20,
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Teacher Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: subjectController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject(s)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: currentCountyController,
-                decoration: const InputDecoration(
-                  labelText: 'Current County',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: targetCountyController,
-                decoration: const InputDecoration(
-                  labelText: 'Target County',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () async {
-                    final listingId = (item['_id'] ?? item['id'])?.toString();
-
-                    if (listingId == null || listingId.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Invalid listing ID')),
-                      );
-                      return;
-                    }
-
-                    await _updateListingOnServer(
-                      listingId,
-                      {
-                        'fullName': nameController.text.trim(),
-                        'teacherName': nameController.text.trim(),
-                        'subjectCombination': subjectController.text.trim(),
-                        'county': currentCountyController.text.trim(),
-                        'currentCounty': currentCountyController.text.trim(),
-                        'targetCounty': targetCountyController.text.trim(),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Edit Listing Data',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: teacherNameCtrl,
+                      decoration: const InputDecoration(labelText: 'Teacher / User Name', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: schoolNameCtrl,
+                      decoration: const InputDecoration(labelText: 'School Name', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: subjectCtrl,
+                      decoration: const InputDecoration(labelText: 'Subject Combination', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: currentCountyCtrl,
+                      decoration: const InputDecoration(labelText: 'Current Location / County', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: targetCountyCtrl,
+                      decoration: const InputDecoration(labelText: 'Target Location / County', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: salaryCtrl,
+                      decoration: const InputDecoration(labelText: 'Salary (BOM Jobs)', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: contactPhoneCtrl,
+                      decoration: const InputDecoration(labelText: 'Contact Phone', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: tscNumberCtrl,
+                      decoration: const InputDecoration(labelText: 'TSC Number', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: categoryCtrl,
+                      decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      title: const Text('TSC Compliant'),
+                      value: isTscCompliant,
+                      onChanged: (val) {
+                        setModalState(() {
+                          isTscCompliant = val ?? false;
+                        });
                       },
-                    );
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () async {
+                          await _updateListingOnServer(listing.id, {
+                            'teacherName': teacherNameCtrl.text.trim(),
+                            'schoolName': schoolNameCtrl.text.trim(),
+                            'subject': subjectCtrl.text.trim(),
+                            'currentCounty': currentCountyCtrl.text.trim(),
+                            'targetCounty': targetCountyCtrl.text.trim(),
+                            'salary': salaryCtrl.text.trim(),
+                            'contactPhone': contactPhoneCtrl.text.trim(),
+                            'tscNumber': tscNumberCtrl.text.trim(),
+                            'category': categoryCtrl.text.trim(),
+                            'isTscCompliant': isTscCompliant,
+                          });
 
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _fetchListings(categoryType: widget.categoryType);
-                    }
-                  },
-                  child: const Text('Save Changes',
-                      style: TextStyle(color: Colors.white)),
+                          if (mounted) {
+                            Navigator.pop(context);
+                            _fetchListings(categoryType: widget.categoryType);
+                          }
+                        },
+                        child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Future<void> _updateListingOnServer(
-      String id, Map<String, dynamic> updateData) async {
+  Future<void> _updateListingOnServer(String id, Map<String, dynamic> updateData) async {
     final url = Uri.parse('$_baseUrl/api/listings/$id');
-
     try {
-      final response = await http.put(
+      await http.put(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(updateData),
       );
-
-      if (response.statusCode == 200) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Listing updated successfully')),
-        );
-        _fetchListings(categoryType: widget.categoryType);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Failed to update listing (${response.statusCode})')),
-        );
-      }
     } catch (e) {
       debugPrint('Error updating listing: $e');
-    }
-  }
-
-  // 📍 APPROVE SWAP ACTION
-  Future<void> approveSwap(String swapId) async {
-    final url = Uri.parse('$_baseUrl/api/listings/$swapId');
-
-    try {
-      final response = await http.patch(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'status': 'approved',
-          'isApproved': true,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Swap approved successfully! It is now live on the user dashboard.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _fetchListings(categoryType: widget.categoryType);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to approve listing (${response.statusCode})'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error approving swap: $e');
     }
   }
 
@@ -2122,128 +2098,113 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
               ? const Center(child: Text("No listings found."))
               : RefreshIndicator(
                   onRefresh: () => _fetchListings(categoryType: widget.categoryType),
-                  child: ListView.builder(
+                  child: SingleChildScrollView(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _listings.length + (_isFetchingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _listings.length) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-
-                      final item = _listings[index];
-                      final listingId = (item['_id'] ?? item['id'])?.toString() ?? '';
-
-                      final String teacherName = item['fullName'] ??
-                          item['teacherName'] ??
-                          item['userName'] ??
-                          'Teacher';
-                      final String subjects = item['subjectCombination'] ??
-                          item['subjects'] ??
-                          item['subject'] ??
-                          'N/A';
-                      final String currentCounty =
-                          item['county'] ?? item['currentCounty'] ?? 'N/A';
-                      final String targetCounty = item['targetCounty'] ??
-                          item['targetLocation'] ??
-                          item['desiredCounty'] ??
-                          'N/A';
-
-                      final String status = item['status'] ?? 'pending';
-                      final bool isApproved = item['isApproved'] == true || status == 'approved';
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 6),
-                        child: ListTile(
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  "$teacherName - $subjects",
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                    scrollDirection: Axis.vertical,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+                        columns: const [
+                          DataColumn(label: Text('Teacher / User', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Target / Salary', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('School', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('TSC No.', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Compliance', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                        ],
+                        rows: _listings.map((listing) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(listing.teacherName)),
+                              DataCell(Text(listing.category)),
+                              DataCell(
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(listing.subject, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: isApproved ? Colors.green.shade100 : Colors.orange.shade100,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  isApproved ? 'Approved' : 'Pending',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: isApproved ? Colors.green.shade800 : Colors.orange.shade800,
+                              DataCell(Text(listing.currentCounty)),
+                              DataCell(Text(listing.salary.isNotEmpty ? listing.salary : listing.targetCounty)),
+                              DataCell(Text(listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')),
+                              DataCell(Text(listing.contactPhone)),
+                              DataCell(Text(listing.tscNumber ?? 'N/A')),
+                              DataCell(
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    listing.isTscCompliant ? 'TSC Compliant' : 'Non-TSC',
+                                    style: TextStyle(
+                                      color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                          subtitle: Text(
-                              "Current: $currentCounty | Target: $targetCounty"),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // 📍 GREEN APPROVE BUTTON (Hidden if already approved)
-                              if (!isApproved)
-                                IconButton(
-                                  icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-                                  tooltip: 'Approve Listing',
-                                  onPressed: () {
-                                    if (listingId.isNotEmpty) {
-                                      approveSwap(listingId);
-                                    }
-                                  },
-                                ),
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _editListing(item),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      title: const Text('Delete Listing'),
-                                      content: const Text(
-                                          'Are you sure you want to delete this listing permanently?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(ctx);
-                                            _deleteListing(listingId);
-                                          },
-                                          child: const Text(
-                                            'Delete',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        ),
-                                      ],
+                              DataCell(
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: listing.isApproved ? Colors.green.shade100 : Colors.orange.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    listing.isApproved ? 'Approved' : 'Pending',
+                                    style: TextStyle(
+                                      color: listing.isApproved ? Colors.green.shade900 : Colors.orange.shade900,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
                                     ),
-                                  );
-                                },
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (!listing.isApproved)
+                                      IconButton(
+                                        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                                        tooltip: 'Approve',
+                                        onPressed: () => _approveSwap(listing.id),
+                                      ),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.blue),
+                                      onPressed: () => _editListing(listing),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () => _deleteListing(listing.id),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
-                          ),
-                        ),
-                      );
-                    },
+                          );
+                        }).toList(),
+                      ),
+                    ),
                   ),
                 ),
     );
   }
-}                                     
-                                                                                                                                                                                                                                                           
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                 
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
