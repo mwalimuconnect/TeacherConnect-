@@ -3080,7 +3080,7 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 
 class TeacherResourcesTab extends StatefulWidget {
-  final String? userRole; // Pass user role (e.g. 'Administrator', 'admin', 'teacher')
+  final String? userRole;
 
   const TeacherResourcesTab({Key? key, this.userRole}) : super(key: key);
 
@@ -3218,11 +3218,29 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
     final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
 
+    // Flexible filtering logic added here
     final filteredResources = _selectedCategory == 'All'
         ? _resources
-        : _resources
-            .where((res) => res['category'] == _selectedCategory)
-            .toList();
+        : _resources.where((res) {
+            final resCat = (res['category'] ?? '').toString().toLowerCase();
+            final selectedCat = _selectedCategory.toLowerCase();
+
+            // Handles partial matches between UI chip labels and database values
+            if (selectedCat.contains('notes') && resCat.contains('notes')) {
+              return true;
+            }
+            if (selectedCat.contains('exam') && resCat.contains('exam')) {
+              return true;
+            }
+            if (selectedCat.contains('schemes') && resCat.contains('scheme')) {
+              return true;
+            }
+            if (selectedCat.contains('lesson') && resCat.contains('lesson')) {
+              return true;
+            }
+
+            return resCat == selectedCat;
+          }).toList();
 
     return Column(
       children: [
