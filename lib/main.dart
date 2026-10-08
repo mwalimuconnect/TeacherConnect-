@@ -3076,7 +3076,7 @@ class _MemberDataTableSource extends DataTableSource {
 }                                                                           
 
 // ============================================================================
-// TEACHER RESOURCES TAB (WITH ADMIN BYPASS FOR PAYWALL)
+// TEACHER RESOURCES TAB (WITH ADMIN BYPASS & FLEXIBLE FILTERING)
 // ============================================================================
 
 class TeacherResourcesTab extends StatefulWidget {
@@ -3218,14 +3218,13 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
     final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
 
-    // Flexible filtering logic added here
+    // Flexible filtering logic matching DB values (e.g. "Notes") with UI tabs
     final filteredResources = _selectedCategory == 'All'
         ? _resources
         : _resources.where((res) {
             final resCat = (res['category'] ?? '').toString().toLowerCase();
             final selectedCat = _selectedCategory.toLowerCase();
 
-            // Handles partial matches between UI chip labels and database values
             if (selectedCat.contains('notes') && resCat.contains('notes')) {
               return true;
             }
@@ -3418,7 +3417,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 }
-          
+                                                                                                                   
 // =========================================================================
 // Payment Modal with Strict Payment Verification
 // =========================================================================
