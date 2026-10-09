@@ -3276,7 +3276,6 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 // TEACHER RESOURCES TAB (WITH ADMIN BYPASS & FLEXIBLE FILTERING)
 // ============================================================================
-
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
 
@@ -3344,7 +3343,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-Future<void> _downloadOrOpenUri(String rawUrl) async {
+Future<void> _downloadOrOpenUrl(String rawUrl) async {
   if (rawUrl.trim().isEmpty) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -3359,7 +3358,7 @@ Future<void> _downloadOrOpenUri(String rawUrl) async {
     formattedUrl = 'https://$formattedUrl';
   }
 
-  // Force direct attachment download so Cloudinary / server preserves .docx, .pdf, .zip extensions
+  // Inject Cloudinary attachment flag so browser downloads natively as .docx, .pdf, or .zip
   if (formattedUrl.contains('cloudinary.com') && !formattedUrl.contains('fl_attachment')) {
     formattedUrl = formattedUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
   }
@@ -3367,13 +3366,11 @@ Future<void> _downloadOrOpenUri(String rawUrl) async {
   final Uri uri = Uri.parse(formattedUrl);
 
   try {
-    // 1. Try launching in external application (browser/native downloader)
     bool launched = await launchUrl(
       uri,
       mode: LaunchMode.externalApplication,
     );
 
-    // 2. Fallback to platform default if external app launch fails
     if (!launched) {
       launched = await launchUrl(
         uri,
@@ -3394,8 +3391,8 @@ Future<void> _downloadOrOpenUri(String rawUrl) async {
       );
     }
   }
-} 
-          
+}
+                
   @override
   Widget build(BuildContext context) {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
