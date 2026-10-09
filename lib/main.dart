@@ -970,8 +970,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-                                                                                                                                                                                                                                                                                                   
- // =========================================================
+
+
+// =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
 class TeacherPortalScreen extends StatefulWidget {
@@ -997,6 +998,83 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   List<ListingModel> tscSwaps = [];
   List<ListingModel> bomJobs = [];
   List<ListingModel> seekingBom = [];
+
+  bool isLoading = true;
+  String errorMessage = '';
+
+  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchListings();
+  }
+
+  Future<void> _fetchListings() async {
+    if (!mounted) return;
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+    });
+
+    try {
+      final url = Uri.parse('$_baseUrl/api/listings?limit=500');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        List<dynamic> rawData = [];
+
+        if (decoded is List) {
+          rawData = decoded;
+        } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          rawData = decoded['data'] as List<dynamic>;
+        }
+
+        final List<ListingModel> allListings = rawData.map((item) {
+          return ListingModel.fromJson(item as Map<String, dynamic>);
+        }).toList();
+
+        if (mounted) {
+          setState(() {
+            // Categorize listings based on category or type string
+            tscSwaps = allListings.where((item) {
+              final cat = item.category.toLowerCase();
+              return cat.contains('swap') || cat.contains('tsc');
+            }).toList();
+
+            bomJobs = allListings.where((item) {
+              final cat = item.category.toLowerCase();
+              return (cat.contains('vacancy') || cat.contains('bom')) &&
+                  !cat.contains('seeking');
+            }).toList();
+
+            seekingBom = allListings.where((item) {
+              final cat = item.category.toLowerCase();
+              return cat.contains('seeking') || cat.contains('seeker');
+            }).toList();
+
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            errorMessage = 'Failed to load listings (${response.statusCode})';
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching portal listings: $e');
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Network error fetching listings.';
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   bool isListingUnlocked(ListingModel listing) {
     return listing.isPaid || isAdmin;
@@ -1065,7 +1143,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/stkpush'),
+        Uri.parse('$_baseUrl/api/mpesa/stkpush'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'phoneNumber': phone,
@@ -1104,8 +1182,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     }
   }
 
-  void _showPostDialog(BuildContext context) {
-    showModalBottomSheet(
+  void _showPostDialog(BuildContext context) async {
+    final result = await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -1116,6 +1194,10 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         userPhone: widget.userPhone,
       ),
     );
+
+    if (result == true) {
+      _fetchListings();
+    }
   }
 
   Future<void> _handleLogout() async {
@@ -1152,6 +1234,33 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const MemberRegistrationScreen()),
+    );
+  }
+
+  Widget _buildTabBody(Widget tableWidget) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (errorMessage.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(errorMessage),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _fetchListings,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchListings,
+      child: tableWidget,
     );
   }
 
@@ -1205,7 +1314,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                   CircleAvatar(
                     backgroundColor: Colors.teal,
                     child: Text(
-                      widget.userName.isNotEmpty ? widget.userName[0] : 'T',
+                      widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -1230,31 +1339,37 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               child: TabBarView(
                 children: [
                   // Tab 1: Tabulated TSC Swaps
-                  TeacherPortalTables.buildTscSwapsTable(
-                    context: context,
-                    listings: tscSwaps,
-                    isUnlocked: isListingUnlocked,
-                    onPayPressed: _showPaymentModal,
+                  _buildTabBody(
+                    TeacherPortalTables.buildTscSwapsTable(
+                      context: context,
+                      listings: tscSwaps,
+                      isUnlocked: isListingUnlocked,
+                      onPayPressed: _showPaymentModal,
+                    ),
                   ),
 
                   // Tab 2: Tabulated BOM Jobs
-                  TeacherPortalTables.buildBomJobsTable(
-                    context: context,
-                    listings: bomJobs,
-                    isUnlocked: isListingUnlocked,
-                    onPayPressed: _showPaymentModal,
+                  _buildTabBody(
+                    TeacherPortalTables.buildBomJobsTable(
+                      context: context,
+                      listings: bomJobs,
+                      isUnlocked: isListingUnlocked,
+                      onPayPressed: _showPaymentModal,
+                    ),
                   ),
 
                   // Tab 3: Tabulated Seeking BOM
-                  TeacherPortalTables.buildSeekingBomTable(
-                    context: context,
-                    listings: seekingBom,
-                    isUnlocked: isListingUnlocked,
-                    onPayPressed: _showPaymentModal,
+                  _buildTabBody(
+                    TeacherPortalTables.buildSeekingBomTable(
+                      context: context,
+                      listings: seekingBom,
+                      isUnlocked: isListingUnlocked,
+                      onPayPressed: _showPaymentModal,
+                    ),
                   ),
 
-                  // Tab 4: Teacher Resources Tab (Unchanged)
-                  const TeacherResourcesTab(),
+                  // Tab 4: Teacher Resources Tab
+                  TeacherResourcesTab(userRole: widget.userRole),
                 ],
               ),
             ),
@@ -1268,8 +1383,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}                   
-                                                                                
+}
+
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
