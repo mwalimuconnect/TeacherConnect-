@@ -1046,23 +1046,7 @@ class TeacherPortalTables {
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
-class TeacherPortalScreen extends StatefulWidget {
-  final String userName;
-  final String userRole;
-  final String userPhone;
-
-  const TeacherPortalScreen({
-    Key? key,
-    required this.userName,
-    required this.userRole,
-    required this.userPhone,
-  }) : super(key: key);
-
-  @override
-  State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
-}
-
-class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
+ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   bool get isAdmin {
     final role = widget.userRole.toLowerCase().trim();
     return role.contains('admin') || role.contains('administrator');
@@ -1111,7 +1095,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
         if (mounted) {
           setState(() {
-            // Categorize listings dynamically based on category/type string
             tscSwaps = allListings.where((item) {
               final cat = item.category.toLowerCase();
               return cat.contains('swap') || cat.contains('tsc');
@@ -1154,7 +1137,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     return isAdmin || listing.isPaid;
   }
 
-  // Helper method to show full contact details when unlocked or accessed by Admin
+  // MUST BE INSIDE _TeacherPortalScreenState
   void _showContactDetailsModal(BuildContext context, ListingModel listing) {
     showModalBottomSheet(
       context: context,
@@ -1192,20 +1175,30 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               ),
               const Divider(),
               const SizedBox(height: 10),
-              Text('Teacher Name: ${listing.teacherName.isNotEmpty ? listing.teacherName : "N/A"}',
-                  style: const TextStyle(fontSize: 16)),
+              Text(
+                'Teacher Name: ${listing.teacherName.isNotEmpty ? listing.teacherName : "N/A"}',
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 8),
-              Text('Phone Number: ${listing.contactPhone}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                'Phone Number: ${listing.contactPhone}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
-              Text('School: ${listing.schoolName.isNotEmpty ? listing.schoolName : "N/A"}',
-                  style: const TextStyle(fontSize: 16)),
+              Text(
+                'School: ${listing.schoolName.isNotEmpty ? listing.schoolName : "N/A"}',
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 8),
-              Text('Subjects: ${listing.subject.isNotEmpty ? listing.subject : "N/A"}',
-                  style: const TextStyle(fontSize: 16)),
+              Text(
+                'Subjects: ${listing.subject.isNotEmpty ? listing.subject : "N/A"}',
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 8),
-              Text('County: ${listing.currentCounty.isNotEmpty ? listing.currentCounty : "N/A"}',
-                  style: const TextStyle(fontSize: 16)),
+              Text(
+                'County: ${listing.currentCounty.isNotEmpty ? listing.currentCounty : "N/A"}',
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -1226,7 +1219,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   }
 
   void _showPaymentModal(BuildContext context, ListingModel listing) {
-    // 1. ADMIN BYPASS: If user is Admin or listing is already paid, show details directly
     if (isListingUnlocked(listing)) {
       _showContactDetailsModal(context, listing);
       return;
@@ -1491,7 +1483,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
             Expanded(
               child: TabBarView(
                 children: [
-                  // Tab 1: Tabulated TSC Swaps
                   _buildTabBody(
                     TeacherPortalTables.buildTscSwapsTable(
                       context: context,
@@ -1500,8 +1491,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
-
-                  // Tab 2: Tabulated BOM Jobs
                   _buildTabBody(
                     TeacherPortalTables.buildBomJobsTable(
                       context: context,
@@ -1510,8 +1499,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
-
-                  // Tab 3: Tabulated Seeking BOM
                   _buildTabBody(
                     TeacherPortalTables.buildSeekingBomTable(
                       context: context,
@@ -1520,8 +1507,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
-
-                  // Tab 4: Teacher Resources Tab
                   TeacherResourcesTab(userRole: widget.userRole),
                 ],
               ),
@@ -1536,7 +1521,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}                    
+ } 
                           
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
