@@ -1147,10 +1147,16 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   }
 
   bool isListingUnlocked(ListingModel listing) {
-  return isAdmin || listing.isPaid;
+    return isAdmin || listing.isPaid;
   }
 
   void _showPaymentModal(BuildContext context, ListingModel listing) {
+    // 1. ADMIN BYPASS: If user is Admin or listing is already paid, show details directly
+    if (isListingUnlocked(listing)) {
+      _showContactDetailsModal(context, listing);
+      return;
+    }
+
     final TextEditingController phoneController =
         TextEditingController(text: widget.userPhone);
 
@@ -1196,8 +1202,10 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                     phone: phoneController.text.trim(),
                   );
                 },
-                child: const Text('Pay via M-Pesa STK Push',
-                    style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Pay via M-Pesa STK Push',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
