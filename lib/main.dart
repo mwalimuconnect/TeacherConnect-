@@ -1968,10 +1968,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-
-
 // ==========================================
-// MANAGE ALL LISTINGS (PAGINATED & TABULAR)
+// MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
 // ==========================================
 class ManageListingsScreen extends StatefulWidget {
   final String? categoryType;
@@ -2256,7 +2254,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(8.0),
                     child: PaginatedDataTable(
-                      header: Text(titleText),
+                      showCheckboxColumn: false,
                       rowsPerPage: 10,
                       columns: const [
                         DataColumn(label: Text('Teacher / User', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -2285,7 +2283,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 }
 
 // ==========================================
-// PAGINATED DATA SOURCE FOR LISTINGS
+// DATA SOURCE WITH EXACT CELL ALIGNMENT
 // ==========================================
 class _ListingDataTableSource extends DataTableSource {
   final List<ListingModel> _listings;
@@ -2305,6 +2303,7 @@ class _ListingDataTableSource extends DataTableSource {
     if (index >= _listings.length) return null;
 
     final listing = _listings[index];
+    final String tsc = listing.tscNumber ?? 'N/A';
 
     return DataRow.byIndex(
       index: index,
@@ -2333,7 +2332,9 @@ class _ListingDataTableSource extends DataTableSource {
         DataCell(Text(listing.salary.isNotEmpty ? listing.salary : listing.targetCounty)),
         DataCell(Text(listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')),
         DataCell(Text(listing.contactPhone)),
-        DataCell(Text(listing.tscNumber ?? 'N/A')),
+        // Explicit TSC Number display cell
+        DataCell(Text(tsc)),
+        // Updated Compliance badge label
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -2342,7 +2343,7 @@ class _ListingDataTableSource extends DataTableSource {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              listing.isTscCompliant ? 'TSC Compliant' : 'Non-TSC',
+              listing.isTscCompliant ? 'TSC compliant' : 'Not TSC compliant',
               style: TextStyle(
                 color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
                 fontWeight: FontWeight.bold,
