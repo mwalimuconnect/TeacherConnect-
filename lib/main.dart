@@ -249,8 +249,6 @@ class ResourceModel {
 // =========================================================
 // 2. TABULATED VIEW BUILDERS
 // =========================================================
-class TeacherPortalTables {
-
   // --- REQ 1: TSC SWAPS TABLE ---
   static Widget buildTscSwapsTable({
     required BuildContext context,
