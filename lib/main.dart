@@ -1137,7 +1137,7 @@ class TeacherPortalTables {
     return isAdmin || listing.isPaid;
   }
 
-  // MUST BE INSIDE _TeacherPortalScreenState
+  // Helper modal to view full contact details when unlocked or accessed by Admin
   void _showContactDetailsModal(BuildContext context, ListingModel listing) {
     showModalBottomSheet(
       context: context,
@@ -1155,7 +1155,7 @@ class TeacherPortalTables {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start, // Fixed CrossAlignment typo
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1521,7 +1521,7 @@ class TeacherPortalTables {
       ),
     );
   }
- } 
+ }                    
                           
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
