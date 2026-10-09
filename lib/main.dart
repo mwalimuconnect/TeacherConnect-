@@ -141,8 +141,8 @@ class ListingModel {
 
   ListingModel({
     this.id = '',
-    this.teacherName = '',
-    this.schoolName = '',
+    this.teacherName = 'N/A',
+    this.schoolName = 'N/A',
     required this.subject,
     required this.currentCounty,
     this.targetCounty = '',
@@ -156,13 +156,13 @@ class ListingModel {
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
-    // Extract nested user objects safely (handles 'userId', 'user', or 'postedBy')
+    // 1. Extract nested user objects safely (handles 'userId', 'user', or 'postedBy')
     final Map<String, dynamic> userMap = 
         (json['userId'] is Map<String, dynamic>) ? json['userId'] :
         (json['user'] is Map<String, dynamic>) ? json['user'] :
         (json['postedBy'] is Map<String, dynamic>) ? json['postedBy'] : {};
 
-    // 1. Extract raw TSC Number string across top-level & nested user keys
+    // 2. Robust TSC Number extraction
     final Object? rawTscValue = json['tscNumber'] ?? 
                                json['tscNo'] ?? 
                                json['tsc'] ?? 
@@ -175,46 +175,62 @@ class ListingModel {
                                userMap['tsc_no'];
 
     final String rawTsc = rawTscValue != null ? rawTscValue.toString().trim() : '';
-
     final String displayTsc = 
         (rawTsc.isNotEmpty && rawTsc.toLowerCase() != 'null' && rawTsc.toLowerCase() != 'undefined') 
         ? rawTsc 
         : 'N/A';
 
-    // 2. Safe Phone extraction
+    // 3. Safe Phone extraction with user fallbacks
     final Object? rawPhoneValue = json['contactPhone'] ?? 
-                                 json['phoneNumber'] ?? 
                                  json['phone'] ?? 
+                                 json['phoneNumber'] ?? 
+                                 userMap['phone'] ?? 
                                  userMap['contactPhone'] ?? 
-                                 userMap['phone'];
+                                 userMap['phoneNumber'];
 
-    final String phone = rawPhoneValue != null ? rawPhoneValue.toString().trim() : 'N/A';
+    final String rawPhoneStr = rawPhoneValue != null ? rawPhoneValue.toString().trim() : '';
+    final String phone = rawPhoneStr.isNotEmpty ? rawPhoneStr : 'N/A';
 
-    // 3. Comprehensive TSC Compliance evaluation logic
+    // 4. Safe School Name extraction with user fallbacks
+    final Object? rawSchoolValue = json['schoolName'] ?? 
+                                  json['currentSchool'] ?? 
+                                  json['school'] ?? 
+                                  userMap['schoolName'] ?? 
+                                  userMap['currentSchool'] ?? 
+                                  userMap['school'];
+
+    final String rawSchoolStr = rawSchoolValue != null ? rawSchoolValue.toString().trim() : '';
+    final String school = rawSchoolStr.isNotEmpty ? rawSchoolStr : 'N/A';
+
+    // 5. Safe Teacher/Full Name extraction
+    final Object? rawNameValue = json['teacherName'] ?? 
+                                json['fullName'] ?? 
+                                json['userName'] ?? 
+                                json['name'] ?? 
+                                userMap['fullName'] ?? 
+                                userMap['teacherName'] ?? 
+                                userMap['name'];
+
+    final String rawNameStr = rawNameValue != null ? rawNameValue.toString().trim() : '';
+    final String teacherName = rawNameStr.isNotEmpty ? rawNameStr : 'N/A';
+
+    // 6. Comprehensive TSC Compliance evaluation
     final bool computedCompliance = json['isTscCompliant'] == true || 
                                      json['tscCompliant'] == true || 
                                      (displayTsc != 'N/A' && displayTsc.isNotEmpty);
 
     return ListingModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
-      teacherName: (json['teacherName'] ?? 
-                    json['fullName'] ?? 
-                    json['userName'] ?? 
-                    userMap['name'] ?? 
-                    userMap['fullName'] ?? 
-                    '').toString(),
-      schoolName: (json['schoolName'] ?? 
-                   json['currentSchool'] ?? 
-                   json['school'] ?? 
-                   '').toString(),
+      teacherName: teacherName,
+      schoolName: school,
       subject: (json['subjectCombination'] ?? 
                 json['subject'] ?? 
                 json['subjects'] ?? 
-                '').toString(),
+                'N/A').toString(),
       currentCounty: (json['currentCounty'] ?? 
-                     json['currentLocation'] ?? 
                      json['county'] ?? 
-                     '').toString(),
+                     json['currentLocation'] ?? 
+                     'N/A').toString(),
       targetCounty: (json['targetCounty'] ?? 
                     json['targetLocation'] ?? 
                     json['desiredCounty'] ?? 
