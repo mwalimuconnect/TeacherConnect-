@@ -249,11 +249,13 @@ class ResourceModel {
 // =========================================================
 // 2. TABULATED VIEW BUILDERS
 // =========================================================
+class TeacherPortalTables {
+
   // --- REQ 1: TSC SWAPS TABLE ---
   static Widget buildTscSwapsTable({
     required BuildContext context,
     required List<ListingModel> listings,
-    required Function(ListingModel) isUnlocked,
+    required bool Function(ListingModel) isUnlocked,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     return _buildScrollableTable(
@@ -282,7 +284,7 @@ class ResourceModel {
   static Widget buildBomJobsTable({
     required BuildContext context,
     required List<ListingModel> listings,
-    required Function(ListingModel) isUnlocked,
+    required bool Function(ListingModel) isUnlocked,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     return _buildScrollableTable(
@@ -311,7 +313,7 @@ class ResourceModel {
   static Widget buildSeekingBomTable({
     required BuildContext context,
     required List<ListingModel> listings,
-    required Function(ListingModel) isUnlocked,
+    required bool Function(ListingModel) isUnlocked,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     return _buildScrollableTable(
@@ -332,10 +334,11 @@ class ResourceModel {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                listing.isTscCompliant ? 'TSC Compliant' : 'Non-TSC',
+                listing.isTscCompliant ? 'TSC compliant' : 'Not TSC compliant',
                 style: TextStyle(
                   color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
                   fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
             ),
@@ -379,19 +382,22 @@ class ResourceModel {
     );
   }
 
-  // Unified Pay/View button
+  // Unified Pay/View button with updated label
   static Widget _buildActionButton({
     required bool unlocked,
     required VoidCallback onPressed,
   }) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF009688),
+        backgroundColor: unlocked ? const Color(0xFF009688) : Colors.orange.shade800,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
       ),
       onPressed: onPressed,
       child: Text(
-        unlocked ? 'View Details' : 'Pay KSh 100',
+        unlocked ? 'View Details' : 'Pay to view full details',
         style: const TextStyle(color: Colors.white, fontSize: 12),
       ),
     );
@@ -433,7 +439,7 @@ class ResourceModel {
     );
   }
 }
-    
+
 // ==========================================
 // SAMPLE DATA
 // ==========================================
