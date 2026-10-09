@@ -1046,7 +1046,23 @@ class TeacherPortalTables {
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
- class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
+ class TeacherPortalScreen extends StatefulWidget {
+  final String userName;
+  final String userRole;
+  final String userPhone;
+
+  const TeacherPortalScreen({
+    Key? key,
+    required this.userName,
+    required this.userRole,
+    required this.userPhone,
+  }) : super(key: key);
+
+  @override
+  State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
+ }
+
+class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   bool get isAdmin {
     final role = widget.userRole.toLowerCase().trim();
     return role.contains('admin') || role.contains('administrator');
