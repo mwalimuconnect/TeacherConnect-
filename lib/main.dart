@@ -1029,6 +1029,200 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+// =========================================================
+// 1. TEACHER PORTAL TABLES (WITH ENFORCED LABELS)
+// =========================================================
+class TeacherPortalTables {
+  static Widget buildTscSwapsTable({
+    required BuildContext context,
+    required List<ListingModel> listings,
+    required bool Function(ListingModel) isUnlocked,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    if (listings.isEmpty) {
+      return const Center(child: Text("No TSC Swaps available."));
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+          columns: const [
+            DataColumn(label: Text('Teacher', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Target Location', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+          rows: listings.map((listing) {
+            final unlocked = isUnlocked(listing);
+            return DataRow(
+              cells: [
+                DataCell(Text(listing.teacherName)),
+                DataCell(Text(listing.subject)),
+                DataCell(Text(listing.currentCounty)),
+                DataCell(Text(listing.targetCounty)),
+                DataCell(
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: unlocked ? Colors.teal : Colors.orange.shade800,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    onPressed: () => onPayPressed(context, listing),
+                    child: Text(
+                      unlocked ? 'View Details' : 'Pay to view full details',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  static Widget buildBomJobsTable({
+    required BuildContext context,
+    required List<ListingModel> listings,
+    required bool Function(ListingModel) isUnlocked,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    if (listings.isEmpty) {
+      return const Center(child: Text("No BOM Vacancies available."));
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+          columns: const [
+            DataColumn(label: Text('School', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Salary', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+          rows: listings.map((listing) {
+            final unlocked = isUnlocked(listing);
+            return DataRow(
+              cells: [
+                DataCell(Text(listing.schoolName)),
+                DataCell(Text(listing.subject)),
+                DataCell(Text(listing.currentCounty)),
+                DataCell(Text(listing.salary.isNotEmpty ? listing.salary : 'N/A')),
+                DataCell(
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: unlocked ? Colors.teal : Colors.orange.shade800,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    onPressed: () => onPayPressed(context, listing),
+                    child: Text(
+                      unlocked ? 'View Details' : 'Pay to view full details',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  static Widget buildSeekingBomTable({
+    required BuildContext context,
+    required List<ListingModel> listings,
+    required bool Function(ListingModel) isUnlocked,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    if (listings.isEmpty) {
+      return const Center(child: Text("No Seekers listed."));
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+          columns: const [
+            DataColumn(label: Text('Teacher', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Combination', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+          rows: listings.map((listing) {
+            final unlocked = isUnlocked(listing);
+            return DataRow(
+              cells: [
+                DataCell(Text(listing.teacherName)),
+                DataCell(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(listing.subject, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                DataCell(Text(listing.currentCounty)),
+                DataCell(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      listing.isTscCompliant ? 'TSC compliant' : 'Not TSC compliant',
+                      style: TextStyle(
+                        color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+                DataCell(
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: unlocked ? Colors.teal : Colors.orange.shade800,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    onPressed: () => onPayPressed(context, listing),
+                    child: Text(
+                      unlocked ? 'View Details' : 'Pay to view full details',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
 
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
@@ -1095,7 +1289,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
         if (mounted) {
           setState(() {
-            // Categorize listings based on category or type string
+            // Categorize listings dynamically based on category/type string
             tscSwaps = allListings.where((item) {
               final cat = item.category.toLowerCase();
               return cat.contains('swap') || cat.contains('tsc');
@@ -1442,7 +1636,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     );
   }
 }
-
+                          
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
