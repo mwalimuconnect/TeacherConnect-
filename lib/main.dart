@@ -1064,8 +1064,8 @@ class TeacherPortalScreen extends StatefulWidget {
 
 class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   bool get isAdmin {
-  final role = widget.userRole.toLowerCase().trim();
-  return role.contains('admin') || role.contains('administrator');
+    final role = widget.userRole.toLowerCase().trim();
+    return role.contains('admin') || role.contains('administrator');
   }
 
   // Master lists for listings in each category
@@ -1152,6 +1152,77 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
   bool isListingUnlocked(ListingModel listing) {
     return isAdmin || listing.isPaid;
+  }
+
+  // Helper method to show full contact details when unlocked or accessed by Admin
+  void _showContactDetailsModal(BuildContext context, ListingModel listing) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Contact Details',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 10),
+              Text('Teacher Name: ${listing.teacherName.isNotEmpty ? listing.teacherName : "N/A"}',
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('Phone Number: ${listing.contactPhone}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('School: ${listing.schoolName.isNotEmpty ? listing.schoolName : "N/A"}',
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('Subjects: ${listing.subject.isNotEmpty ? listing.subject : "N/A"}',
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('County: ${listing.currentCounty.isNotEmpty ? listing.currentCounty : "N/A"}',
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showPaymentModal(BuildContext context, ListingModel listing) {
@@ -1465,7 +1536,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}
+}                    
                           
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
