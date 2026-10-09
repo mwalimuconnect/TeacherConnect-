@@ -1142,7 +1142,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   }
 
   bool isListingUnlocked(ListingModel listing) {
-    return listing.isPaid || isAdmin;
+  return isAdmin || listing.isPaid;
   }
 
   void _showPaymentModal(BuildContext context, ListingModel listing) {
