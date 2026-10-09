@@ -125,7 +125,7 @@ class MyApp extends StatelessWidget {
 // ==========================================
 
 class ListingModel {
-  final String id; // Non-nullable String to match function parameters
+  final String id;
   final String teacherName;
   final String schoolName;
   final String subject;
@@ -135,9 +135,9 @@ class ListingModel {
   final String? tscNumber;
   final String salary;
   final bool isTscCompliant;
-  final String category; // 'TSC Swap', 'BOM Jobs', 'Seeking BOM'
+  final String category;
   final bool isPaid;
-  final bool isApproved; // Added missing field required by ManageListingsScreen
+  final bool isApproved;
 
   ListingModel({
     this.id = '',
@@ -156,20 +156,67 @@ class ListingModel {
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
+    // 1. Robust TSC Number extraction (Handles numbers, strings, and nested user objects)
+    final String rawTsc = (json['tscNumber'] ??
+            json['tscNo'] ??
+            json['tsc'] ??
+            json['tsc_number'] ??
+            (json['user'] is Map ? json['user']['tscNumber'] : null))
+        ?.toString()
+        .trim() ??
+        '';
+
+    final String displayTsc =
+        (rawTsc.isNotEmpty && rawTsc.toLowerCase() != 'null' && rawTsc.toLowerCase() != 'undefined')
+            ? rawTsc
+            : 'N/A';
+
+    // 2. Safe Phone extraction across backend key variations
+    final String phone = (json['contactPhone'] ??
+            json['phoneNumber'] ??
+            json['phone'] ??
+            (json['user'] is Map ? json['user']['phone'] : null))
+        ?.toString()
+        .trim() ??
+        'N/A';
+
     return ListingModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
-      teacherName: json['teacherName'] as String? ?? json['fullName'] as String? ?? '',
-      schoolName: json['schoolName'] as String? ?? '',
-      subject: json['subjectCombination'] as String? ?? json['subject'] as String? ?? '',
-      currentCounty: json['currentLocation'] as String? ?? json['county'] as String? ?? '',
-      targetCounty: json['targetCounty'] as String? ?? json['desiredCounty'] as String? ?? '',
-      contactPhone: json['phone'] as String? ?? json['contactPhone'] as String? ?? '',
-      tscNumber: json['tscNumber'] as String? ?? json['tscNo'] as String?,
-      salary: json['salary'] as String? ?? '',
-      isTscCompliant: json['isTscCompliant'] as bool? ?? false,
-      category: json['category'] as String? ?? 'TSC Swap',
-      isPaid: json['isPaid'] as bool? ?? false,
-      isApproved: json['isApproved'] as bool? ?? (json['status'] == 'approved'),
+      teacherName: (json['teacherName'] ??
+              json['fullName'] ??
+              json['userName'] ??
+              (json['user'] is Map ? json['user']['name'] : null) ??
+              '')
+          .toString(),
+      schoolName: (json['schoolName'] ??
+              json['currentSchool'] ??
+              json['school'] ??
+              '')
+          .toString(),
+      subject: (json['subjectCombination'] ??
+              json['subject'] ??
+              json['subjects'] ??
+              '')
+          .toString(),
+      currentCounty: (json['currentCounty'] ??
+              json['currentLocation'] ??
+              json['county'] ??
+              '')
+          .toString(),
+      targetCounty: (json['targetCounty'] ??
+              json['targetLocation'] ??
+              json['desiredCounty'] ??
+              '')
+          .toString(),
+      contactPhone: phone,
+      tscNumber: displayTsc,
+      salary: (json['salary'] ?? '').toString(),
+      // 3. Automatically evaluate compliance from parsed TSC string if boolean key is missing
+      isTscCompliant: json['isTscCompliant'] == true ||
+          (displayTsc != 'N/A' && displayTsc.isNotEmpty),
+      category: (json['category'] ?? json['type'] ?? 'TSC Swap').toString(),
+      isPaid: json['isPaid'] == true,
+      isApproved: json['isApproved'] == true || json['status'] == 'approved',
     );
   }
 }
@@ -186,8 +233,19 @@ class ResourceModel {
     required this.category,
     required this.price,
   });
-}
 
+  factory ResourceModel.fromJson(Map<String, dynamic> json) {
+    return ResourceModel(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      title: (json['title'] ?? 'Untitled Resource').toString(),
+      category: (json['category'] ?? 'General').toString(),
+      price: (json['price'] != null)
+          ? double.tryParse(json['price'].toString()) ?? 0.0
+          : 0.0,
+    );
+  }
+}        
+      
 // =========================================================
 // 2. TABULATED VIEW BUILDERS
 // =========================================================
@@ -1910,77 +1968,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-// ==========================================
-// LISTING MODEL (WITH FLEXIBLE KEY FALLBACKS)
-// ==========================================
-class ListingModel {
-  final String id;
-  final String teacherName;
-  final String category;
-  final String subject;
-  final String currentCounty;
-  final String targetCounty;
-  final String salary;
-  final String schoolName;
-  final String contactPhone;
-  final String? tscNumber;
-  final bool isTscCompliant;
-  final bool isApproved;
 
-  ListingModel({
-    required this.id,
-    required this.teacherName,
-    required this.category,
-    required this.subject,
-    required this.currentCounty,
-    required this.targetCounty,
-    required this.salary,
-    required this.schoolName,
-    required this.contactPhone,
-    this.tscNumber,
-    required this.isTscCompliant,
-    required this.isApproved,
-  });
-
-  factory ListingModel.fromJson(Map<String, dynamic> json) {
-    final String rawTsc = (json['tscNumber'] ??
-            json['tscNo'] ??
-            json['tsc'] ??
-            json['tsc_number'] ??
-            (json['user'] != null ? json['user']['tscNumber'] : null))
-        ?.toString()
-        .trim() ??
-        '';
-
-    final String displayTsc =
-        (rawTsc.isNotEmpty && rawTsc.toLowerCase() != 'null' && rawTsc.toLowerCase() != 'undefined')
-            ? rawTsc
-            : 'N/A';
-
-    final String phone = (json['contactPhone'] ??
-            json['phoneNumber'] ??
-            json['phone'] ??
-            (json['user'] != null ? json['user']['phone'] : null))
-        ?.toString()
-        .trim() ??
-        'N/A';
-
-    return ListingModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      teacherName: json['teacherName'] ?? json['fullName'] ?? json['userName'] ?? 'N/A',
-      category: json['category'] ?? json['type'] ?? 'TSC Swap',
-      subject: json['subject'] ?? json['subjectCombination'] ?? json['subjects'] ?? 'N/A',
-      currentCounty: json['currentCounty'] ?? json['county'] ?? json['currentLocation'] ?? 'N/A',
-      targetCounty: json['targetCounty'] ?? json['targetLocation'] ?? 'N/A',
-      salary: json['salary']?.toString() ?? '',
-      schoolName: json['schoolName'] ?? json['currentSchool'] ?? json['school'] ?? 'N/A',
-      contactPhone: phone,
-      tscNumber: displayTsc,
-      isTscCompliant: displayTsc != 'N/A',
-      isApproved: json['isApproved'] == true || json['status'] == 'approved',
-    );
-  }
-}
 
 // ==========================================
 // MANAGE ALL LISTINGS (PAGINATED & TABULAR)
