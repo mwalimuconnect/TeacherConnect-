@@ -156,13 +156,13 @@ class ListingModel {
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
-    // Extract nested user objects safely
+    // Extract nested user objects safely (handles 'userId', 'user', or 'postedBy')
     final Map<String, dynamic> userMap = 
         (json['userId'] is Map<String, dynamic>) ? json['userId'] :
         (json['user'] is Map<String, dynamic>) ? json['user'] :
         (json['postedBy'] is Map<String, dynamic>) ? json['postedBy'] : {};
 
-    // 1. Robust TSC Number extraction across top-level keys & nested objects
+    // 1. Extract raw TSC Number string across top-level & nested user keys
     final Object? rawTscValue = json['tscNumber'] ?? 
                                json['tscNo'] ?? 
                                json['tsc'] ?? 
@@ -189,6 +189,11 @@ class ListingModel {
                                  userMap['phone'];
 
     final String phone = rawPhoneValue != null ? rawPhoneValue.toString().trim() : 'N/A';
+
+    // 3. Comprehensive TSC Compliance evaluation logic
+    final bool computedCompliance = json['isTscCompliant'] == true || 
+                                     json['tscCompliant'] == true || 
+                                     (displayTsc != 'N/A' && displayTsc.isNotEmpty);
 
     return ListingModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
@@ -217,14 +222,13 @@ class ListingModel {
       contactPhone: phone,
       tscNumber: displayTsc,
       salary: (json['salary'] ?? '').toString(),
-      isTscCompliant: json['isTscCompliant'] == true || 
-                      (displayTsc != 'N/A' && displayTsc.isNotEmpty),
+      isTscCompliant: computedCompliance,
       category: (json['category'] ?? json['type'] ?? 'TSC Swap').toString(),
       isPaid: json['isPaid'] == true,
       isApproved: json['isApproved'] == true || json['status'] == 'approved',
     );
   }
-} // <--- Added closing brace to prevent nested class scope errors
+}
 
 class ResourceModel {
   final String id;
@@ -250,7 +254,7 @@ class ResourceModel {
     );
   }
 }
-                                                                                
+                                                                               
 // ==========================================
 // SAMPLE DATA
 // ==========================================
