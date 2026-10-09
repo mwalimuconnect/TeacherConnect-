@@ -3344,73 +3344,58 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-  Future<void> _downloadOrOpenUrl(String rawUrl) async {
-    if (rawUrl.trim().isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid resource link.')),
-        );
-      }
-      return;
-    }
-
-    String formattedUrl = rawUrl.trim();
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-      formattedUrl = 'https://$formattedUrl';
-    }
-
-    final Uri uri = Uri.parse(formattedUrl);
-    final String path = uri.path.toLowerCase();
-
-    final bool isValidDocument = path.endsWith('.pdf') ||
-        path.endsWith('.doc') ||
-        path.endsWith('.docx') ||
-        path.endsWith('.zip') ||
-        formattedUrl.contains('.pdf') ||
-        formattedUrl.contains('.doc') ||
-        formattedUrl.contains('.docx') ||
-        formattedUrl.contains('.zip');
-
-    if (!isValidDocument) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unsupported format! Document must be .pdf, .doc, .docx, or .zip.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
-    try {
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
+Future<void> _downloadOrOpenUri(String rawUrl) async {
+  if (rawUrl.trim().isEmpty) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid resource link.')),
       );
-
-      if (!launched) {
-        launched = await launchUrl(
-          uri,
-          mode: LaunchMode.platformDefault,
-        );
-      }
-
-      if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $formattedUrl')),
-        );
-      }
-    } catch (e) {
-      debugPrint('Url Launcher Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening link: $e')),
-        );
-      }
     }
+    return;
   }
 
+  String formattedUrl = rawUrl.trim();
+  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    formattedUrl = 'https://$formattedUrl';
+  }
+
+  // Force direct attachment download so Cloudinary / server preserves .docx, .pdf, .zip extensions
+  if (formattedUrl.contains('cloudinary.com') && !formattedUrl.contains('fl_attachment')) {
+    formattedUrl = formattedUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
+  }
+
+  final Uri uri = Uri.parse(formattedUrl);
+
+  try {
+    // 1. Try launching in external application (browser/native downloader)
+    bool launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    // 2. Fallback to platform default if external app launch fails
+    if (!launched) {
+      launched = await launchUrl(
+        uri,
+        mode: LaunchMode.platformDefault,
+      );
+    }
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not launch $formattedUrl')),
+      );
+    }
+  } catch (e) {
+    debugPrint('Url Launcher Error: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening link: $e')),
+      );
+    }
+  }
+} 
+          
   @override
   Widget build(BuildContext context) {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
