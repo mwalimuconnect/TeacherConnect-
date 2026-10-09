@@ -1054,7 +1054,10 @@ class TeacherPortalScreen extends StatefulWidget {
 }
 
 class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
-  bool get isAdmin => widget.userRole.toLowerCase().contains('admin');
+  bool get isAdmin {
+  final role = widget.userRole.toLowerCase().trim();
+  return role.contains('admin') || role.contains('administrator');
+  }
 
   // Master lists for listings in each category
   List<ListingModel> tscSwaps = [];
