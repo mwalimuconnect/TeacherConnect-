@@ -1796,6 +1796,78 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 }
 
 // ==========================================
+// LISTING MODEL (WITH FLEXIBLE KEY FALLBACKS)
+// ==========================================
+class ListingModel {
+  final String id;
+  final String teacherName;
+  final String category;
+  final String subject;
+  final String currentCounty;
+  final String targetCounty;
+  final String salary;
+  final String schoolName;
+  final String contactPhone;
+  final String? tscNumber;
+  final bool isTscCompliant;
+  final bool isApproved;
+
+  ListingModel({
+    required this.id,
+    required this.teacherName,
+    required this.category,
+    required this.subject,
+    required this.currentCounty,
+    required this.targetCounty,
+    required this.salary,
+    required this.schoolName,
+    required this.contactPhone,
+    this.tscNumber,
+    required this.isTscCompliant,
+    required this.isApproved,
+  });
+
+  factory ListingModel.fromJson(Map<String, dynamic> json) {
+    final String rawTsc = (json['tscNumber'] ??
+            json['tscNo'] ??
+            json['tsc'] ??
+            json['tsc_number'] ??
+            (json['user'] != null ? json['user']['tscNumber'] : null))
+        ?.toString()
+        .trim() ??
+        '';
+
+    final String displayTsc =
+        (rawTsc.isNotEmpty && rawTsc.toLowerCase() != 'null' && rawTsc.toLowerCase() != 'undefined')
+            ? rawTsc
+            : 'N/A';
+
+    final String phone = (json['contactPhone'] ??
+            json['phoneNumber'] ??
+            json['phone'] ??
+            (json['user'] != null ? json['user']['phone'] : null))
+        ?.toString()
+        .trim() ??
+        'N/A';
+
+    return ListingModel(
+      id: json['_id'] ?? json['id'] ?? '',
+      teacherName: json['teacherName'] ?? json['fullName'] ?? json['userName'] ?? 'N/A',
+      category: json['category'] ?? json['type'] ?? 'TSC Swap',
+      subject: json['subject'] ?? json['subjectCombination'] ?? json['subjects'] ?? 'N/A',
+      currentCounty: json['currentCounty'] ?? json['county'] ?? json['currentLocation'] ?? 'N/A',
+      targetCounty: json['targetCounty'] ?? json['targetLocation'] ?? 'N/A',
+      salary: json['salary']?.toString() ?? '',
+      schoolName: json['schoolName'] ?? json['currentSchool'] ?? json['school'] ?? 'N/A',
+      contactPhone: phone,
+      tscNumber: displayTsc,
+      isTscCompliant: displayTsc != 'N/A',
+      isApproved: json['isApproved'] == true || json['status'] == 'approved',
+    );
+  }
+}
+
+// ==========================================
 // MANAGE ALL LISTINGS (PAGINATED & TABULAR)
 // ==========================================
 class ManageListingsScreen extends StatefulWidget {
@@ -1808,59 +1880,27 @@ class ManageListingsScreen extends StatefulWidget {
 }
 
 class _ManageListingsScreenState extends State<ManageListingsScreen> {
-  final ScrollController _scrollController = ScrollController();
-  final List<ListingModel> _listings = [];
-
-  int _currentPage = 1;
-  final int _limit = 15;
-  bool _isLoadingInitial = true;
-  bool _isFetchingMore = false;
-  bool _hasMore = true;
+  List<ListingModel> _listings = [];
+  bool _isLoading = true;
 
   final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
 
   @override
   void initState() {
     super.initState();
-    _fetchListings(categoryType: widget.categoryType);
-    _scrollController.addListener(_onScroll);
+    _fetchListings();
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  Future<void> _fetchListings() async {
+    setState(() => _isLoading = true);
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoadingInitial &&
-        !_isFetchingMore &&
-        _hasMore) {
-      _fetchListings(isLoadMore: true, categoryType: widget.categoryType);
-    }
-  }
-
-  Future<void> _fetchListings({bool isLoadMore = false, String? categoryType}) async {
-    if (isLoadMore) {
-      if (!_hasMore || _isFetchingMore) return;
-      setState(() => _isFetchingMore = true);
-    } else {
-      setState(() {
-        _isLoadingInitial = true;
-        _currentPage = 1;
-        _listings.clear();
-      });
-    }
-
-    final String activeType = categoryType ?? widget.categoryType ?? '';
+    final String activeType = widget.categoryType ?? '';
     final String categoryQueryParam = activeType.isNotEmpty
         ? '&category=${Uri.encodeComponent(activeType)}'
         : '';
 
     final url = Uri.parse(
-      '$_baseUrl/api/listings?page=$_currentPage&limit=$_limit&isAdmin=true$categoryQueryParam',
+      '$_baseUrl/api/listings?limit=1000&isAdmin=true$categoryQueryParam',
     );
 
     try {
@@ -1880,22 +1920,17 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
           return ListingModel.fromJson(item as Map<String, dynamic>);
         }).toList();
 
-        setState(() {
-          _listings.addAll(loadedListings);
-          _hasMore = rawData.length >= _limit;
-          if (_hasMore) {
-            _currentPage++;
-          }
-        });
+        if (mounted) {
+          setState(() {
+            _listings = loadedListings;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching listings: $e');
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoadingInitial = false;
-          _isFetchingMore = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -1910,7 +1945,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listing deleted successfully')),
         );
-        _fetchListings(categoryType: widget.categoryType);
+        _fetchListings();
       }
     } catch (e) {
       debugPrint('Error deleting listing: $e');
@@ -1935,7 +1970,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        _fetchListings(categoryType: widget.categoryType);
+        _fetchListings();
       }
     } catch (e) {
       debugPrint('Error approving listing: $e');
@@ -1980,47 +2015,56 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: teacherNameCtrl,
-                      decoration: const InputDecoration(labelText: 'Teacher / User Name', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'Teacher / User Name', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: schoolNameCtrl,
-                      decoration: const InputDecoration(labelText: 'School Name', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'School Name', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: subjectCtrl,
-                      decoration: const InputDecoration(labelText: 'Subject Combination', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'Subject Combination', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: currentCountyCtrl,
-                      decoration: const InputDecoration(labelText: 'Current Location / County', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'Current Location / County', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: targetCountyCtrl,
-                      decoration: const InputDecoration(labelText: 'Target Location / County', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'Target Location / County', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: salaryCtrl,
-                      decoration: const InputDecoration(labelText: 'Salary (BOM Jobs)', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'Salary (BOM Jobs)', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: contactPhoneCtrl,
-                      decoration: const InputDecoration(labelText: 'Contact Phone', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'Contact Phone', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: tscNumberCtrl,
-                      decoration: const InputDecoration(labelText: 'TSC Number', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'TSC Number', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: categoryCtrl,
-                      decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                          labelText: 'Category', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
                     CheckboxListTile(
@@ -2058,7 +2102,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
                           if (mounted) {
                             Navigator.pop(context);
-                            _fetchListings(categoryType: widget.categoryType);
+                            _fetchListings();
                           }
                         },
                         child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
@@ -2100,111 +2144,35 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
         title: Text(titleText),
         backgroundColor: Colors.teal,
       ),
-      body: _isLoadingInitial
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _listings.isEmpty
               ? const Center(child: Text("No listings found."))
               : RefreshIndicator(
-                  onRefresh: () => _fetchListings(categoryType: widget.categoryType),
+                  onRefresh: _fetchListings,
                   child: SingleChildScrollView(
-                    controller: _scrollController,
-                    scrollDirection: Axis.vertical,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
-                        columns: const [
-                          DataColumn(label: Text('Teacher / User', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Target / Salary', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('School', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('TSC No.', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Compliance', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                        ],
-                        rows: _listings.map((listing) {
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(listing.teacherName)),
-                              DataCell(Text(listing.category)),
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.teal.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(listing.subject, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                ),
-                              ),
-                              DataCell(Text(listing.currentCounty)),
-                              DataCell(Text(listing.salary.isNotEmpty ? listing.salary : listing.targetCounty)),
-                              DataCell(Text(listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')),
-                              DataCell(Text(listing.contactPhone)),
-                              DataCell(Text(listing.tscNumber ?? 'N/A')),
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    listing.isTscCompliant ? 'TSC Compliant' : 'Non-TSC',
-                                    style: TextStyle(
-                                      color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: listing.isApproved ? Colors.green.shade100 : Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    listing.isApproved ? 'Approved' : 'Pending',
-                                    style: TextStyle(
-                                      color: listing.isApproved ? Colors.green.shade900 : Colors.orange.shade900,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (!listing.isApproved)
-                                      IconButton(
-                                        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-                                        tooltip: 'Approve',
-                                        onPressed: () => _approveSwap(listing.id),
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, color: Colors.blue),
-                                      onPressed: () => _editListing(listing),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                      onPressed: () => _deleteListing(listing.id),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
+                    padding: const EdgeInsets.all(8.0),
+                    child: PaginatedDataTable(
+                      header: Text(titleText),
+                      rowsPerPage: 10,
+                      columns: const [
+                        DataColumn(label: Text('Teacher / User', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Target / Salary', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('School', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('TSC No.', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Compliance', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                      source: _ListingDataTableSource(
+                        _listings,
+                        onApprove: _approveSwap,
+                        onEdit: _editListing,
+                        onDelete: _deleteListing,
                       ),
                     ),
                   ),
@@ -2212,7 +2180,126 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     );
   }
 }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+
+// ==========================================
+// PAGINATED DATA SOURCE FOR LISTINGS
+// ==========================================
+class _ListingDataTableSource extends DataTableSource {
+  final List<ListingModel> _listings;
+  final Function(String) onApprove;
+  final Function(ListingModel) onEdit;
+  final Function(String) onDelete;
+
+  _ListingDataTableSource(
+    this._listings, {
+    required this.onApprove,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= _listings.length) return null;
+
+    final listing = _listings[index];
+
+    return DataRow.byIndex(
+      index: index,
+      color: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (index.isEven) {
+            return Colors.teal.shade50.withOpacity(0.3);
+          }
+          return null;
+        },
+      ),
+      cells: [
+        DataCell(Text(listing.teacherName)),
+        DataCell(Text(listing.category)),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(listing.subject, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ),
+        DataCell(Text(listing.currentCounty)),
+        DataCell(Text(listing.salary.isNotEmpty ? listing.salary : listing.targetCounty)),
+        DataCell(Text(listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')),
+        DataCell(Text(listing.contactPhone)),
+        DataCell(Text(listing.tscNumber ?? 'N/A')),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              listing.isTscCompliant ? 'TSC Compliant' : 'Non-TSC',
+              style: TextStyle(
+                color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: listing.isApproved ? Colors.green.shade100 : Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              listing.isApproved ? 'Approved' : 'Pending',
+              style: TextStyle(
+                color: listing.isApproved ? Colors.green.shade900 : Colors.orange.shade900,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!listing.isApproved)
+                IconButton(
+                  icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                  tooltip: 'Approve',
+                  onPressed: () => onApprove(listing.id),
+                ),
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.blue),
+                onPressed: () => onEdit(listing),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: () => onDelete(listing.id),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => _listings.length;
+
+  @override
+  int get selectedRowCount => 0;
+}
+
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
