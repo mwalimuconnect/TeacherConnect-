@@ -4030,6 +4030,7 @@ Future<bool> _verifyPaymentStatus(String checkoutRequestId) async {
   }
   return false;
 }                                                                                                                                                                                                                  
+
 // ==========================================
 // 2. RESOURCE FORM UI & API LOGIC
 // ==========================================
@@ -4094,7 +4095,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx'],
+      allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip'],
     );
 
     if (result != null) {
@@ -4104,7 +4105,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     }
   }
 
-  // Step B: Submit Form Logic (Uploads to Cloudinary + Posts to MongoDB)
+  // Step B: Submit Form Logic (Uploads to Backend /api/upload + Posts to MongoDB /api/resources)
   Future<void> _submitResource() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -4117,21 +4118,51 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
 
     setState(() => _isUploading = true);
 
-    // 1. Upload File to Cloudinary via Express /api/upload
-    String? uploadedFileUrl = await UploadService.uploadResourceFile(_selectedFile!);
-
-    if (uploadedFileUrl == null) {
-      setState(() => _isUploading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to upload file to Cloudinary. Try again.')),
-        );
-      }
-      return;
-    }
-
-    // 2. Create Resource Record in MongoDB via Express /api/resources
     try {
+      // 1. Upload File to Backend /api/upload (which handles Cloudinary stream)
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/upload'),
+      );
+
+      if (_selectedFile!.bytes != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            _selectedFile!.bytes!,
+            filename: _selectedFile!.name,
+          ),
+        );
+      } else if (_selectedFile!.path != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            _selectedFile!.path!,
+            filename: _selectedFile!.name,
+          ),
+        );
+      } else {
+        setState(() => _isUploading = false);
+        return;
+      }
+
+      var streamedResponse = await request.send();
+      var uploadResponse = await http.Response.fromStream(streamedResponse);
+
+      if (uploadResponse.statusCode != 200 && uploadResponse.statusCode != 201) {
+        setState(() => _isUploading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload file: ${uploadResponse.body}')),
+          );
+        }
+        return;
+      }
+
+      final uploadData = jsonDecode(uploadResponse.body);
+      final String uploadedFileUrl = uploadData['url'];
+
+      // 2. Create Resource Record in MongoDB via Express /api/resources
       final response = await http.post(
         Uri.parse('https://teacher-connect-backend.vercel.app/api/resources'),
         headers: {'Content-Type': 'application/json'},
@@ -4255,7 +4286,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
                         child: Text(
                           _selectedFile != null
                               ? _selectedFile!.name
-                              : 'Tap to select document (PDF, DOCX, PPT)',
+                              : 'Tap to select document (PDF, DOCX, PPT, ZIP)',
                           style: TextStyle(
                             color: _selectedFile != null ? Colors.black : Colors.grey.shade700,
                             fontWeight: _selectedFile != null ? FontWeight.bold : FontWeight.normal,
@@ -4311,7 +4342,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     );
   }
 }
-
+                  
 // ==========================================
 // MANAGE BOM SCHOOL VACANCIES (PAGINATED)
 // ==========================================
