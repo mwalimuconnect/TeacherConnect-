@@ -130,7 +130,9 @@ class ListingModel {
   final String schoolName;
   final String subject;
   final String currentCounty;
+  final String subCounty;
   final String targetCounty;
+  final String targetSubCounty;
   final String contactPhone;
   final String? tscNumber;
   final String salary;
@@ -141,11 +143,13 @@ class ListingModel {
 
   ListingModel({
     this.id = '',
-    this.teacherName = 'N/A',
-    this.schoolName = 'N/A',
+    this.teacherName = '',
+    this.schoolName = '',
     required this.subject,
     required this.currentCounty,
+    this.subCounty = '',
     this.targetCounty = '',
+    this.targetSubCounty = '',
     required this.contactPhone,
     this.tscNumber,
     this.salary = '',
@@ -156,13 +160,13 @@ class ListingModel {
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
-    // 1. Extract nested user objects safely (handles 'userId', 'user', or 'postedBy')
+    // Extract nested user objects safely (handles 'userId', 'user', or 'postedBy')
     final Map<String, dynamic> userMap = 
         (json['userId'] is Map<String, dynamic>) ? json['userId'] :
         (json['user'] is Map<String, dynamic>) ? json['user'] :
         (json['postedBy'] is Map<String, dynamic>) ? json['postedBy'] : {};
 
-    // 2. Robust TSC Number extraction
+    // 1. Extract raw TSC Number string across top-level & nested user keys
     final Object? rawTscValue = json['tscNumber'] ?? 
                                json['tscNo'] ?? 
                                json['tsc'] ?? 
@@ -175,54 +179,43 @@ class ListingModel {
                                userMap['tsc_no'];
 
     final String rawTsc = rawTscValue != null ? rawTscValue.toString().trim() : '';
+
     final String displayTsc = 
-        (rawTsc.isNotEmpty && rawTsc.toLowerCase() != 'null' && rawTsc.toLowerCase() != 'undefined') 
+        (rawTsc.isNotEmpty && 
+         rawTsc.toLowerCase() != 'null' && 
+         rawTsc.toLowerCase() != 'undefined' &&
+         rawTsc.toLowerCase() != 'n/a') 
         ? rawTsc 
         : 'N/A';
 
-    // 3. Safe Phone extraction with user fallbacks
+    // 2. Safe Phone extraction
     final Object? rawPhoneValue = json['contactPhone'] ?? 
-                                 json['phone'] ?? 
                                  json['phoneNumber'] ?? 
-                                 userMap['phone'] ?? 
+                                 json['phone'] ?? 
                                  userMap['contactPhone'] ?? 
-                                 userMap['phoneNumber'];
+                                 userMap['phone'];
 
-    final String rawPhoneStr = rawPhoneValue != null ? rawPhoneValue.toString().trim() : '';
-    final String phone = rawPhoneStr.isNotEmpty ? rawPhoneStr : 'N/A';
+    final String phone = rawPhoneValue != null ? rawPhoneValue.toString().trim() : 'N/A';
 
-    // 4. Safe School Name extraction with user fallbacks
-    final Object? rawSchoolValue = json['schoolName'] ?? 
-                                  json['currentSchool'] ?? 
-                                  json['school'] ?? 
-                                  userMap['schoolName'] ?? 
-                                  userMap['currentSchool'] ?? 
-                                  userMap['school'];
-
-    final String rawSchoolStr = rawSchoolValue != null ? rawSchoolValue.toString().trim() : '';
-    final String school = rawSchoolStr.isNotEmpty ? rawSchoolStr : 'N/A';
-
-    // 5. Safe Teacher/Full Name extraction
-    final Object? rawNameValue = json['teacherName'] ?? 
-                                json['fullName'] ?? 
-                                json['userName'] ?? 
-                                json['name'] ?? 
-                                userMap['fullName'] ?? 
-                                userMap['teacherName'] ?? 
-                                userMap['name'];
-
-    final String rawNameStr = rawNameValue != null ? rawNameValue.toString().trim() : '';
-    final String teacherName = rawNameStr.isNotEmpty ? rawNameStr : 'N/A';
-
-    // 6. Comprehensive TSC Compliance evaluation
+    // 3. Comprehensive TSC Compliance evaluation logic
+    // Forces compliance to true if a valid TSC number or string exists
     final bool computedCompliance = json['isTscCompliant'] == true || 
                                      json['tscCompliant'] == true || 
                                      (displayTsc != 'N/A' && displayTsc.isNotEmpty);
 
     return ListingModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
-      teacherName: teacherName,
-      schoolName: school,
+      teacherName: (json['teacherName'] ?? 
+                    json['fullName'] ?? 
+                    json['userName'] ?? 
+                    userMap['name'] ?? 
+                    userMap['fullName'] ?? 
+                    'N/A').toString(),
+      schoolName: (json['schoolName'] ?? 
+                   json['currentSchool'] ?? 
+                   json['school'] ?? 
+                   userMap['school'] ??
+                   'N/A').toString(),
       subject: (json['subjectCombination'] ?? 
                 json['subject'] ?? 
                 json['subjects'] ?? 
@@ -231,10 +224,15 @@ class ListingModel {
                      json['county'] ?? 
                      json['currentLocation'] ?? 
                      'N/A').toString(),
+      subCounty: (json['subCounty'] ?? 
+                  json['currentSubCounty'] ?? 
+                  userMap['subCounty'] ?? 
+                  '').toString(),
       targetCounty: (json['targetCounty'] ?? 
                     json['targetLocation'] ?? 
                     json['desiredCounty'] ?? 
                     '').toString(),
+      targetSubCounty: (json['targetSubCounty'] ?? '').toString(),
       contactPhone: phone,
       tscNumber: displayTsc,
       salary: (json['salary'] ?? '').toString(),
@@ -270,6 +268,7 @@ class ResourceModel {
     );
   }
 }
+                    
                                                                                
 // ==========================================
 // SAMPLE DATA
