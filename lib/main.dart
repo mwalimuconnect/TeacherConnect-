@@ -864,13 +864,14 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // =========================================================
-// 1. TEACHER PORTAL TABLES (WITH ENFORCED LABELS)
+// 1. TEACHER PORTAL TABLES (WITH DYNAMIC PAYWALL LABELS)
 // =========================================================
 class TeacherPortalTables {
   static Widget buildTscSwapsTable({
     required BuildContext context,
     required List<ListingModel> listings,
     required bool Function(ListingModel) isUnlocked,
+    required String Function(ListingModel) getDisplayName,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     if (listings.isEmpty) {
@@ -894,7 +895,15 @@ class TeacherPortalTables {
             final unlocked = isUnlocked(listing);
             return DataRow(
               cells: [
-                DataCell(Text(listing.teacherName)),
+                DataCell(
+                  Text(
+                    getDisplayName(listing),
+                    style: TextStyle(
+                      fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
+                      color: unlocked ? Colors.black87 : Colors.teal.shade800,
+                    ),
+                  ),
+                ),
                 DataCell(Text(listing.subject)),
                 DataCell(Text(listing.currentCounty)),
                 DataCell(Text(listing.targetCounty)),
@@ -926,6 +935,7 @@ class TeacherPortalTables {
     required BuildContext context,
     required List<ListingModel> listings,
     required bool Function(ListingModel) isUnlocked,
+    required String Function(ListingModel) getDisplayName,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     if (listings.isEmpty) {
@@ -939,7 +949,7 @@ class TeacherPortalTables {
         child: DataTable(
           headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
           columns: const [
-            DataColumn(label: Text('School', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('School / Vacancy', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('Salary', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -947,9 +957,21 @@ class TeacherPortalTables {
           ],
           rows: listings.map((listing) {
             final unlocked = isUnlocked(listing);
+            final String schoolDisplay = unlocked 
+                ? (listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')
+                : getDisplayName(listing);
+
             return DataRow(
               cells: [
-                DataCell(Text(listing.schoolName)),
+                DataCell(
+                  Text(
+                    schoolDisplay,
+                    style: TextStyle(
+                      fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
+                      color: unlocked ? Colors.black87 : Colors.teal.shade800,
+                    ),
+                  ),
+                ),
                 DataCell(Text(listing.subject)),
                 DataCell(Text(listing.currentCounty)),
                 DataCell(Text(listing.salary.isNotEmpty ? listing.salary : 'N/A')),
@@ -981,6 +1003,7 @@ class TeacherPortalTables {
     required BuildContext context,
     required List<ListingModel> listings,
     required bool Function(ListingModel) isUnlocked,
+    required String Function(ListingModel) getDisplayName,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     if (listings.isEmpty) {
@@ -1004,7 +1027,15 @@ class TeacherPortalTables {
             final unlocked = isUnlocked(listing);
             return DataRow(
               cells: [
-                DataCell(Text(listing.teacherName)),
+                DataCell(
+                  Text(
+                    getDisplayName(listing),
+                    style: TextStyle(
+                      fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
+                      color: unlocked ? Colors.black87 : Colors.teal.shade800,
+                    ),
+                  ),
+                ),
                 DataCell(
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1057,7 +1088,7 @@ class TeacherPortalTables {
     );
   }
 }
-
+                              
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
