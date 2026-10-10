@@ -1199,7 +1199,25 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     return isAdmin || listing.isPaid;
   }
 
-    // Helper modal to view full contact details when unlocked or accessed by Admin
+  // Helper method to format display text based on payment status and category
+  String _getDisplayName(ListingModel listing) {
+    if (isListingUnlocked(listing)) {
+      return listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A';
+    }
+
+    final String subjectText = listing.subject.isNotEmpty ? listing.subject : 'Subject Unspecified';
+    final String catLower = listing.category.toLowerCase();
+
+    // BOM Vacancy Check
+    if ((catLower.contains('vacancy') || catLower.contains('bom')) && !catLower.contains('seeking')) {
+      return '$subjectText Vacancy';
+    } else {
+      // TSC Swaps & Seeking BOM
+      return '$subjectText Teacher';
+    }
+  }
+
+  // Helper modal to view full contact details when unlocked or accessed by Admin
   void _showContactDetailsModal(BuildContext context, ListingModel listing) {
     final String currentLoc = listing.subCounty.isNotEmpty
         ? '${listing.currentCounty} (${listing.subCounty})'
@@ -1210,6 +1228,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
             ? '${listing.targetCounty} (${listing.targetSubCounty})'
             : listing.targetCounty)
         : 'N/A';
+
+    final String displayName = _getDisplayName(listing);
 
     showModalBottomSheet(
       context: context,
@@ -1248,8 +1268,12 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               const Divider(),
               const SizedBox(height: 10),
               Text(
-                'Full Name: ${listing.teacherName.isNotEmpty ? listing.teacherName : "N/A"}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                'Listing Profile: $displayName',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isListingUnlocked(listing) ? Colors.black87 : Colors.teal.shade800,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -1328,7 +1352,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              const Text('Enter M-Pesa phone number to pay KSh 100:'),
+              Text('Pay KSh 100 to unlock details for ${_getDisplayName(listing)}:'),
               const SizedBox(height: 12),
               TextField(
                 controller: phoneController,
@@ -1570,6 +1594,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       context: context,
                       listings: tscSwaps,
                       isUnlocked: isListingUnlocked,
+                      getDisplayName: _getDisplayName, // Pass display formatter
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
@@ -1578,6 +1603,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       context: context,
                       listings: bomJobs,
                       isUnlocked: isListingUnlocked,
+                      getDisplayName: _getDisplayName, // Pass display formatter
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
@@ -1586,6 +1612,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       context: context,
                       listings: seekingBom,
                       isUnlocked: isListingUnlocked,
+                      getDisplayName: _getDisplayName, // Pass display formatter
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
@@ -1603,8 +1630,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
- }                    
-                          
+}
+                                                        
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
