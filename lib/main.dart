@@ -1784,7 +1784,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-    Widget _buildStatCard({
+  Widget _buildStatCard({
     required String title,
     required String value,
     required IconData icon,
@@ -1834,7 +1834,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ),
     );
-    }
+  }
 
   Widget _buildActionTile({
     required IconData icon,
@@ -2179,7 +2179,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-
+                                       
+                        
 // ==========================================
 // MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
 // ==========================================
