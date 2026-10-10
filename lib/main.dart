@@ -1168,8 +1168,18 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     return isAdmin || listing.isPaid;
   }
 
-  // Helper modal to view full contact details when unlocked or accessed by Admin
+    // Helper modal to view full contact details when unlocked or accessed by Admin
   void _showContactDetailsModal(BuildContext context, ListingModel listing) {
+    final String currentLoc = listing.subCounty.isNotEmpty
+        ? '${listing.currentCounty} (${listing.subCounty})'
+        : (listing.currentCounty.isNotEmpty ? listing.currentCounty : 'N/A');
+
+    final String targetLoc = listing.targetCounty.isNotEmpty
+        ? (listing.targetSubCounty.isNotEmpty
+            ? '${listing.targetCounty} (${listing.targetSubCounty})'
+            : listing.targetCounty)
+        : 'N/A';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1186,7 +1196,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start, // Fixed CrossAlignment typo
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1207,17 +1217,27 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               const Divider(),
               const SizedBox(height: 10),
               Text(
-                'Teacher Name: ${listing.teacherName.isNotEmpty ? listing.teacherName : "N/A"}',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Phone Number: ${listing.contactPhone}',
+                'Full Name: ${listing.teacherName.isNotEmpty ? listing.teacherName : "N/A"}',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'School: ${listing.schoolName.isNotEmpty ? listing.schoolName : "N/A"}',
+                'TSC Number: ${listing.tscNumber ?? "N/A"}',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Current School: ${listing.schoolName.isNotEmpty ? listing.schoolName : "N/A"}',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Current Location: $currentLoc',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Target Location: $targetLoc',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 8),
@@ -1227,8 +1247,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'County: ${listing.currentCounty.isNotEmpty ? listing.currentCounty : "N/A"}',
-                style: const TextStyle(fontSize: 16),
+                'Phone Number: ${listing.contactPhone}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -1248,7 +1268,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
-
+                                 
   void _showPaymentModal(BuildContext context, ListingModel listing) {
     if (isListingUnlocked(listing)) {
       _showContactDetailsModal(context, listing);
