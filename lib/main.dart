@@ -3549,26 +3549,26 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-Future<void> _downloadOrOpenUrl(String rawUrl) async {
-  if (rawUrl.trim().isEmpty) {
+Future<void> _downloadOrOpenUrl(dynamic resourceItem) async {
+  // Support either passing the full resource object or a resource ID string
+  String resourceId = '';
+  if (resourceItem is Map) {
+    resourceId = resourceItem['_id']?.toString() ?? resourceItem['id']?.toString() ?? '';
+  } else if (resourceItem is String) {
+    resourceId = resourceItem;
+  }
+
+  if (resourceId.isEmpty) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid resource link.')),
+        const SnackBar(content: Text('Invalid resource identifier.')),
       );
     }
     return;
   }
 
-  String formattedUrl = rawUrl.trim();
-  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-    formattedUrl = 'https://$formattedUrl';
-  }
-
-  // Inject Cloudinary attachment flag so browser downloads natively as .docx, .pdf, or .zip
-  if (formattedUrl.contains('cloudinary.com') && !formattedUrl.contains('fl_attachment')) {
-    formattedUrl = formattedUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
-  }
-
+  // Point to your live Vercel backend download route
+  final String formattedUrl = 'https://teacher-connect-backend.vercel.app/api/resources/download/$resourceId?isAdmin=true';
   final Uri uri = Uri.parse(formattedUrl);
 
   try {
@@ -3586,7 +3586,7 @@ Future<void> _downloadOrOpenUrl(String rawUrl) async {
 
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not launch $formattedUrl')),
+        SnackBar(content: Text('Could not launch download')),
       );
     }
   } catch (e) {
