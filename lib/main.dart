@@ -4031,6 +4031,7 @@ Future<bool> _verifyPaymentStatus(String checkoutRequestId) async {
   return false;
 }                                                                                                                                                                                                                  
 
+
 // ==========================================
 // 2. RESOURCE FORM UI & API LOGIC
 // ==========================================
@@ -4105,7 +4106,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     }
   }
 
-  // Step B: Submit Form Logic (Direct Cloudinary Upload via auto/upload + Posts to MongoDB)
+  // Step B: Submit Form Logic (Uploads to Backend /api/upload + Posts to MongoDB /api/resources)
   Future<void> _submitResource() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -4119,13 +4120,11 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     setState(() => _isUploading = true);
 
     try {
-      // 1. Upload directly to Cloudinary using the 'auto' endpoint (bypasses Vercel size limits)
-      const String cloudName = 'lxxyqoqa';
-      const String uploadPreset = 'ml_default';
-
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/auto/upload');
-      var request = http.MultipartRequest('POST', uri)
-        ..fields['upload_preset'] = uploadPreset;
+      // 1. Upload File to Backend /api/upload (handled by upload.js)
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/upload'),
+      );
 
       if (_selectedFile!.bytes != null) {
         request.files.add(
@@ -4149,27 +4148,27 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
       }
 
       var streamedResponse = await request.send();
-      var cloudinaryResponse = await http.Response.fromStream(streamedResponse);
-      final responseBody = await cloudinaryResponse.body;
+      var uploadResponse = await http.Response.fromStream(streamedResponse);
+      final responseBody = await uploadResponse.body;
 
-      if (cloudinaryResponse.statusCode != 200 && cloudinaryResponse.statusCode != 201) {
+      if (uploadResponse.statusCode != 200 && uploadResponse.statusCode != 201) {
         setState(() => _isUploading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Cloudinary Error: $responseBody')),
+            SnackBar(content: Text('Failed to upload file: $responseBody')),
           );
         }
         return;
       }
 
-      final responseData = jsonDecode(responseBody);
-      final String? uploadedFileUrl = responseData['secure_url'];
+      final uploadData = jsonDecode(responseBody);
+      final String? uploadedFileUrl = uploadData['fileUrl'];
 
       if (uploadedFileUrl == null || uploadedFileUrl.isEmpty) {
         setState(() => _isUploading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to retrieve secure URL from Cloudinary.')),
+            const SnackBar(content: Text('Server did not return a valid file URL.')),
           );
         }
         return;
@@ -4208,7 +4207,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
       setState(() => _isUploading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Server connection error: $e')),
         );
       }
     }
@@ -4355,7 +4354,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     );
   }
 }
-                                                                                                                              
+                                                                                                                                                       
 // ==========================================
 // MANAGE BOM SCHOOL VACANCIES (PAGINATED)
 // ==========================================
