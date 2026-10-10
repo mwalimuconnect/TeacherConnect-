@@ -4105,7 +4105,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     }
   }
 
-  // Step B: Submit Form Logic (Uploads to Backend /api/upload + Posts to MongoDB /api/resources)
+  // Step B: Submit Form Logic (Direct Cloudinary Upload via auto/upload + Posts to MongoDB)
   Future<void> _submitResource() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -4119,11 +4119,13 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     setState(() => _isUploading = true);
 
     try {
-      // 1. Upload File to Backend /api/upload (which handles Cloudinary stream)
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/upload'),
-      );
+      // 1. Upload directly to Cloudinary using the 'auto' endpoint (bypasses Vercel size limits)
+      const String cloudName = 'lxxyqoqa';
+      const String uploadPreset = 'ml_default';
+
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/auto/upload');
+      var request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset;
 
       if (_selectedFile!.bytes != null) {
         request.files.add(
@@ -4147,20 +4149,31 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
       }
 
       var streamedResponse = await request.send();
-      var uploadResponse = await http.Response.fromStream(streamedResponse);
+      var cloudinaryResponse = await http.Response.fromStream(streamedResponse);
+      final responseBody = await cloudinaryResponse.body;
 
-      if (uploadResponse.statusCode != 200 && uploadResponse.statusCode != 201) {
+      if (cloudinaryResponse.statusCode != 200 && cloudinaryResponse.statusCode != 201) {
         setState(() => _isUploading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload file: ${uploadResponse.body}')),
+            SnackBar(content: Text('Cloudinary Error: $responseBody')),
           );
         }
         return;
       }
 
-      final uploadData = jsonDecode(uploadResponse.body);
-      final String uploadedFileUrl = uploadData['url'];
+      final responseData = jsonDecode(responseBody);
+      final String? uploadedFileUrl = responseData['secure_url'];
+
+      if (uploadedFileUrl == null || uploadedFileUrl.isEmpty) {
+        setState(() => _isUploading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to retrieve secure URL from Cloudinary.')),
+          );
+        }
+        return;
+      }
 
       // 2. Create Resource Record in MongoDB via Express /api/resources
       final response = await http.post(
@@ -4195,7 +4208,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
       setState(() => _isUploading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Server connection error: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -4342,7 +4355,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     );
   }
 }
-                  
+                                                                                                                              
 // ==========================================
 // MANAGE BOM SCHOOL VACANCIES (PAGINATED)
 // ==========================================
