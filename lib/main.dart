@@ -3549,55 +3549,73 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-Future<void> _downloadOrOpenUrl(dynamic resourceItem) async {
-  // Support either passing the full resource object or a resource ID string
-  String resourceId = '';
-  if (resourceItem is Map) {
-    resourceId = resourceItem['_id']?.toString() ?? resourceItem['id']?.toString() ?? '';
-  } else if (resourceItem is String) {
-    resourceId = resourceItem;
-  }
+  Future<void> _downloadOrOpenUrl(dynamic resourceInput) async {
+    String targetUrl = '';
+    final String currentRole = widget.userRole?.toLowerCase() ?? '';
+    final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
 
-  if (resourceId.isEmpty) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid resource identifier.')),
-      );
+    // 1. If a resource map or object is passed, route through backend download proxy using its ID
+    if (resourceInput is Map) {
+      final String resourceId = resourceInput['_id']?.toString() ?? resourceInput['id']?.toString() ?? '';
+      if (resourceId.isNotEmpty) {
+        targetUrl = 'https://teacher-connect-backend.vercel.app/api/resources/download/$resourceId?isAdmin=$isAdmin';
+      }
+    } 
+    // 2. If a String is passed, check if it's an ID or a raw URL
+    else if (resourceInput is String) {
+      String input = resourceInput.trim();
+      if (input.isNotEmpty) {
+        if (!input.startsWith('http://') && !input.startsWith('https://')) {
+          // Treated as an ID
+          targetUrl = 'https://teacher-connect-backend.vercel.app/api/resources/download/$input?isAdmin=$isAdmin';
+        } else {
+          // Raw URL fallback with Cloudinary attachment flag
+          targetUrl = input;
+          if (targetUrl.contains('cloudinary.com') && !targetUrl.contains('fl_attachment')) {
+            targetUrl = targetUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
+          }
+        }
+      }
     }
-    return;
-  }
 
-  // Point to your live Vercel backend download route
-  final String formattedUrl = 'https://teacher-connect-backend.vercel.app/api/resources/download/$resourceId?isAdmin=true';
-  final Uri uri = Uri.parse(formattedUrl);
+    if (targetUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid resource link or identifier.')),
+        );
+      }
+      return;
+    }
 
-  try {
-    bool launched = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
+    final Uri uri = Uri.parse(targetUrl);
 
-    if (!launched) {
-      launched = await launchUrl(
+    try {
+      bool launched = await launchUrl(
         uri,
-        mode: LaunchMode.platformDefault,
+        mode: LaunchMode.externalApplication,
       );
-    }
 
-    if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not launch download')),
-      );
-    }
-  } catch (e) {
-    debugPrint('Url Launcher Error: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error opening link: $e')),
-      );
+      if (!launched) {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+      }
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $targetUrl')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Url Launcher Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening link: $e')),
+        );
+      }
     }
   }
-}
                 
   @override
   Widget build(BuildContext context) {
@@ -3775,8 +3793,8 @@ Future<void> _downloadOrOpenUrl(dynamic resourceItem) async {
                                       ),
                                       onPressed: () {
                                         if (canDownloadDirectly) {
-                                          if (fileUrl.isNotEmpty) {
-                                            _downloadOrOpenUrl(fileUrl);
+                                          if (res != null) {
+                                            _downloadOrOpenUrl(res); // Pass full map
                                           }
                                         } else {
                                           showPaymentModal(
@@ -3785,8 +3803,8 @@ Future<void> _downloadOrOpenUrl(dynamic resourceItem) async {
                                             price: price,
                                             isAdmin: isAdmin,
                                             onPaymentSuccess: () {
-                                              if (fileUrl.isNotEmpty) {
-                                                _downloadOrOpenUrl(fileUrl);
+                                              if (res != null) {
+                                                _downloadOrOpenUrl(res); // Pass full map
                                               }
                                             },
                                           );
@@ -3803,7 +3821,7 @@ Future<void> _downloadOrOpenUrl(dynamic resourceItem) async {
     );
   }
 }
-
+                                      
 // =========================================================================
 // Payment Modal with Strict Payment Verification
 // =========================================================================
