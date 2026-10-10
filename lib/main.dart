@@ -4031,7 +4031,6 @@ Future<bool> _verifyPaymentStatus(String checkoutRequestId) async {
   return false;
 }                                                                                                                                                                                                                  
 
-
 // ==========================================
 // 2. RESOURCE FORM UI & API LOGIC
 // ==========================================
@@ -4161,7 +4160,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
         return;
       }
 
-      final uploadData = jsonDecode(responseBody);
+      final Map<String, dynamic> uploadData = jsonDecode(responseBody);
       final String? uploadedFileUrl = uploadData['fileUrl'];
 
       if (uploadedFileUrl == null || uploadedFileUrl.isEmpty) {
@@ -4354,7 +4353,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     );
   }
 }
-                                                                                                                                                       
+                                                                                                                                                               
 // ==========================================
 // MANAGE BOM SCHOOL VACANCIES (PAGINATED)
 // ==========================================
