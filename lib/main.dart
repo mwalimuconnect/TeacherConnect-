@@ -864,14 +864,36 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // =========================================================
-// 1. TEACHER PORTAL TABLES (WITH DYNAMIC PAYWALL LABELS)
+// 1. TEACHER PORTAL TABLES (WITH ENFORCED LABELS)
 // =========================================================
 class TeacherPortalTables {
+  // Helper function to handle conditional display names
+  static String _getListingDisplayName(
+    ListingModel listing,
+    String Function(ListingModel)? getDisplayName,
+  ) {
+    if (getDisplayName != null) {
+      return getDisplayName(listing);
+    }
+    if (listing.isPaid) {
+      return listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A';
+    }
+    final String subjectText =
+        listing.subject.isNotEmpty ? listing.subject : 'Subject Unspecified';
+    final String catLower = listing.category.toLowerCase();
+    if ((catLower.contains('vacancy') || catLower.contains('bom')) &&
+        !catLower.contains('seeking')) {
+      return '$subjectText Vacancy';
+    } else {
+      return '$subjectText Teacher';
+    }
+  }
+
   static Widget buildTscSwapsTable({
     required BuildContext context,
     required List<ListingModel> listings,
     required bool Function(ListingModel) isUnlocked,
-    required String Function(ListingModel) getDisplayName,
+    String Function(ListingModel)? getDisplayName,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     if (listings.isEmpty) {
@@ -897,7 +919,7 @@ class TeacherPortalTables {
               cells: [
                 DataCell(
                   Text(
-                    getDisplayName(listing),
+                    _getListingDisplayName(listing, getDisplayName),
                     style: TextStyle(
                       fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
                       color: unlocked ? Colors.black87 : Colors.teal.shade800,
@@ -935,7 +957,7 @@ class TeacherPortalTables {
     required BuildContext context,
     required List<ListingModel> listings,
     required bool Function(ListingModel) isUnlocked,
-    required String Function(ListingModel) getDisplayName,
+    String Function(ListingModel)? getDisplayName,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     if (listings.isEmpty) {
@@ -957,9 +979,9 @@ class TeacherPortalTables {
           ],
           rows: listings.map((listing) {
             final unlocked = isUnlocked(listing);
-            final String schoolDisplay = unlocked 
+            final String schoolDisplay = unlocked
                 ? (listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')
-                : getDisplayName(listing);
+                : _getListingDisplayName(listing, getDisplayName);
 
             return DataRow(
               cells: [
@@ -1003,7 +1025,7 @@ class TeacherPortalTables {
     required BuildContext context,
     required List<ListingModel> listings,
     required bool Function(ListingModel) isUnlocked,
-    required String Function(ListingModel) getDisplayName,
+    String Function(ListingModel)? getDisplayName,
     required Function(BuildContext, ListingModel) onPayPressed,
   }) {
     if (listings.isEmpty) {
@@ -1029,7 +1051,7 @@ class TeacherPortalTables {
               cells: [
                 DataCell(
                   Text(
-                    getDisplayName(listing),
+                    _getListingDisplayName(listing, getDisplayName),
                     style: TextStyle(
                       fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
                       color: unlocked ? Colors.black87 : Colors.teal.shade800,
@@ -1088,6 +1110,7 @@ class TeacherPortalTables {
     );
   }
 }
+                        
                               
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
