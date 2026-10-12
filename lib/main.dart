@@ -3480,7 +3480,7 @@ class _MemberDataTableSource extends DataTableSource {
 }                                                                           
 
 // ============================================================================
-// TEACHER RESOURCES TAB (WITH ADMIN BYPASS & FLEXIBLE FILTERING)
+// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS)
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
@@ -3503,6 +3503,22 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Lesson Plans',
     'Exams & Marking Schemes',
     'Setbooks & Notes',
+  ];
+
+  final List<String> _subjects = [
+    'English',
+    'Literature',
+    'Kiswahili',
+    'Mathematics',
+    'Biology',
+    'Chemistry',
+    'Physics',
+    'History',
+    'Geography',
+    'CRE',
+    'Business Studies',
+    'Agriculture',
+    'Computer Studies',
   ];
 
   @override
@@ -3554,22 +3570,17 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
     final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
 
-    // 1. If a resource map or object is passed, route through backend download proxy using its ID
     if (resourceInput is Map) {
       final String resourceId = resourceInput['_id']?.toString() ?? resourceInput['id']?.toString() ?? '';
       if (resourceId.isNotEmpty) {
         targetUrl = 'https://teacher-connect-backend.vercel.app/api/resources/download/$resourceId?isAdmin=$isAdmin';
       }
-    } 
-    // 2. If a String is passed, check if it's an ID or a raw URL
-    else if (resourceInput is String) {
+    } else if (resourceInput is String) {
       String input = resourceInput.trim();
       if (input.isNotEmpty) {
         if (!input.startsWith('http://') && !input.startsWith('https://')) {
-          // Treated as an ID
           targetUrl = 'https://teacher-connect-backend.vercel.app/api/resources/download/$input?isAdmin=$isAdmin';
         } else {
-          // Raw URL fallback with Cloudinary attachment flag
           targetUrl = input;
           if (targetUrl.contains('cloudinary.com') && !targetUrl.contains('fl_attachment')) {
             targetUrl = targetUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
@@ -3616,37 +3627,30 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       }
     }
   }
-                
+
   @override
   Widget build(BuildContext context) {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
     final bool isAdmin = currentRole.contains('admin') || currentRole == 'administrator';
 
-    // Flexible filtering logic matching DB values (e.g. "Notes") with UI tabs
+    // Apply Category Filter to all resources
     final filteredResources = _selectedCategory == 'All'
         ? _resources
         : _resources.where((res) {
             final resCat = (res['category'] ?? '').toString().toLowerCase();
             final selectedCat = _selectedCategory.toLowerCase();
 
-            if (selectedCat.contains('notes') && resCat.contains('notes')) {
-              return true;
-            }
-            if (selectedCat.contains('exam') && resCat.contains('exam')) {
-              return true;
-            }
-            if (selectedCat.contains('schemes') && resCat.contains('scheme')) {
-              return true;
-            }
-            if (selectedCat.contains('lesson') && resCat.contains('lesson')) {
-              return true;
-            }
+            if (selectedCat.contains('notes') && resCat.contains('notes')) return true;
+            if (selectedCat.contains('exam') && resCat.contains('exam')) return true;
+            if (selectedCat.contains('schemes') && resCat.contains('scheme')) return true;
+            if (selectedCat.contains('lesson') && resCat.contains('lesson')) return true;
 
             return resCat == selectedCat;
           }).toList();
 
     return Column(
       children: [
+        // Upload Button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: ElevatedButton.icon(
@@ -3674,7 +3678,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
           ),
         ),
 
-        // Category Selector Chips
+        // Category Filter Chips
         Container(
           height: 50,
           padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -3702,7 +3706,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
           ),
         ),
 
-        // Main Resource List
+        // Folder Directory Grid View
         Expanded(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -3725,103 +3729,223 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                     )
                   : RefreshIndicator(
                       onRefresh: _fetchResources,
-                      child: filteredResources.isEmpty
-                          ? const Center(
-                              child: Text('No resources found in this category.'),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(12.0),
-                              itemCount: filteredResources.length,
-                              itemBuilder: (context, index) {
-                                final res = filteredResources[index];
-                                final title = res['title'] ?? 'Untitled Resource';
-                                final category = res['category'] ?? 'General';
-                                final fileUrl = res['fileUrl'] ?? '';
-                                double price = (res['price'] ?? 50.0).toDouble();
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(12.0),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2, // 2 folders per row
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.3,
+                        ),
+                        itemCount: _subjects.length,
+                        itemBuilder: (context, index) {
+                          final subjectName = _subjects[index];
 
-                                if (price > 0 && price < 50) price = 50.0;
-                                if (price > 100) price = 100.0;
+                          // Count items belonging to this subject
+                          final folderResources = filteredResources.where((r) {
+                            final resSubject = (r['subject'] ?? '').toString().toLowerCase();
+                            return resSubject == subjectName.toLowerCase();
+                          }).toList();
 
-                                final bool isPaidResource = price >= 50.0;
-                                final bool canDownloadDirectly = isAdmin || !isPaidResource;
+                          final int count = folderResources.length;
 
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 10.0),
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
+                          return InkWell(
+                            onTap: () {
+                              // Open Subject Folder View
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SubjectFolderDetailScreen(
+                                    subject: subjectName,
+                                    resources: folderResources,
+                                    isAdmin: isAdmin,
+                                    onDownload: _downloadOrOpenUrl,
                                   ),
-                                  child: ListTile(
-                                    leading: const Icon(
-                                      Icons.picture_as_pdf,
-                                      color: Colors.teal,
-                                      size: 36,
-                                    ),
-                                    title: Text(
-                                      title,
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    subtitle: Text(
-                                      'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
-                                    ),
-                                    trailing: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: canDownloadDirectly
-                                            ? Colors.teal
-                                            : Colors.teal.shade700,
-                                        elevation: 1,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 6,
-                                        ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.08),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.folder,
+                                        color: Colors.teal.shade400,
+                                        size: 38,
                                       ),
-                                      icon: Icon(
-                                        canDownloadDirectly
-                                            ? Icons.download
-                                            : Icons.lock_outline,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      label: Text(
-                                        canDownloadDirectly
-                                            ? 'Download'
-                                            : 'Pay KES ${price.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        if (canDownloadDirectly) {
-                                          if (res != null) {
-                                            _downloadOrOpenUrl(res); // Pass full map
-                                          }
-                                        } else {
-                                          showPaymentModal(
-                                            parentContext: context,
-                                            resourceTitle: title,
-                                            price: price,
-                                            isAdmin: isAdmin,
-                                            onPaymentSuccess: () {
-                                              if (res != null) {
-                                                _downloadOrOpenUrl(res); // Pass full map
-                                              }
-                                            },
-                                          );
-                                        }
-                                      },
+                                      const Spacer(),
+                                      const Icon(Icons.chevron_right, color: Colors.grey),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    subjectName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '$count ${count == 1 ? 'item' : 'items'}',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 12,
                                     ),
                                   ),
-                                );
-                              },
+                                ],
+                              ),
                             ),
+                          );
+                        },
+                      ),
                     ),
         ),
       ],
     );
   }
 }
-                                      
+
+// ============================================================================
+// SUBJECT FOLDER DETAIL SCREEN (Shows Files Inside Selected Subject Folder)
+// ============================================================================
+class SubjectFolderDetailScreen extends StatelessWidget {
+  final String subject;
+  final List<dynamic> resources;
+  final bool isAdmin;
+  final Function(dynamic) onDownload;
+
+  const SubjectFolderDetailScreen({
+    Key? key,
+    required this.subject,
+    required this.resources,
+    required this.isAdmin,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('$subject Folder'),
+        backgroundColor: Colors.teal,
+      ),
+      body: resources.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.folder_open, size: 64, color: Colors.grey.shade400),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No resources found in $subject',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(12.0),
+              itemCount: resources.length,
+              itemBuilder: (context, index) {
+                final res = resources[index];
+                final title = res['title'] ?? 'Untitled Resource';
+                final category = res['category'] ?? 'General';
+                double price = (res['price'] ?? 50.0).toDouble();
+
+                if (price > 0 && price < 50) price = 50.0;
+                if (price > 100) price = 100.0;
+
+                final bool isPaidResource = price >= 50.0;
+                final bool canDownloadDirectly = isAdmin || !isPaidResource;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10.0),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.picture_as_pdf,
+                      color: Colors.teal,
+                      size: 36,
+                    ),
+                    title: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
+                    ),
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: canDownloadDirectly
+                            ? Colors.teal
+                            : Colors.teal.shade700,
+                        elevation: 1,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                      ),
+                      icon: Icon(
+                        canDownloadDirectly ? Icons.download : Icons.lock_outline,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      label: Text(
+                        canDownloadDirectly
+                            ? 'Download'
+                            : 'Pay KES ${price.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onPressed: () {
+                        if (canDownloadDirectly) {
+                          onDownload(res);
+                        } else {
+                          showPaymentModal(
+                            parentContext: context,
+                            resourceTitle: title,
+                            price: price,
+                            isAdmin: isAdmin,
+                            onPaymentSuccess: () {
+                              onDownload(res);
+                            },
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
 // =========================================================================
 // Payment Modal with Strict Payment Verification
 // =========================================================================
