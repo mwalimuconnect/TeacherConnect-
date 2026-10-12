@@ -604,6 +604,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 // =========================================================
 // 2. LOGIN SCREEN
 // =========================================================
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
@@ -718,6 +719,18 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  void _navigateToForgotPassword() {
+    // TODO: Navigate to your Forgot Password screen once created, e.g.:
+    // Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Forgot Password flow coming up next!'),
+        backgroundColor: Color(0xFF00897B),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -730,14 +743,19 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Welcome Back to',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
+            const Center(
+              child: Text(
+                'Welcome Back to',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
+              ),
             ),
-            const Text(
-              'TeacherConnect',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            const Center(
+              child: Text(
+                'TeacherConnect',
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(height: 30),
 
@@ -771,11 +789,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 border: const OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 24),
+            
+            // Forgot Password Link aligned to the right
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _navigateToForgotPassword,
+                child: const Text(
+                  'Forgot Password?',
+                  style: TextStyle(
+                    color: Color(0xFF5E35B1),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
             // Login Button
             SizedBox(
-              width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -796,21 +828,23 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 12),
 
             // Link back to Register
-            TextButton(
-              onPressed: _navigateToRegister,
-              child: RichText(
-                text: const TextSpan(
-                style: TextStyle(fontSize: 15, color: Colors.black87),
-                  children: [
-                    TextSpan(text: "Don't have an account? "),
-                    TextSpan(
-                      text: 'Register',
-                      style: TextStyle(
-                        color: Color(0xFF5E35B1),
-                        fontWeight: FontWeight.bold,
+            Center(
+              child: TextButton(
+                onPressed: _navigateToRegister,
+                child: RichText(
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                    children: [
+                      TextSpan(text: "Don't have an account? "),
+                      TextSpan(
+                        text: 'Register',
+                        style: TextStyle(
+                          color: Color(0xFF5E35B1),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -820,6 +854,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
 
 // =========================================================
 // 1. TEACHER PORTAL TABLES (WITH ENFORCED LABELS)
