@@ -3479,7 +3479,7 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }                                                                           
 
-// ============================================================================
+ // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS)
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
@@ -3503,6 +3503,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Lesson Plans',
     'Exams & Marking Schemes',
     'Setbooks & Notes',
+    'Projects', // Added Projects category
   ];
 
   final List<String> _subjects = [
@@ -3519,6 +3520,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Business Studies',
     'Agriculture',
     'Computer Studies',
+    'Home Science', // Added Home Science subject
   ];
 
   @override
@@ -3644,6 +3646,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
             if (selectedCat.contains('exam') && resCat.contains('exam')) return true;
             if (selectedCat.contains('schemes') && resCat.contains('scheme')) return true;
             if (selectedCat.contains('lesson') && resCat.contains('lesson')) return true;
+            if (selectedCat.contains('project') && resCat.contains('project')) return true;
 
             return resCat == selectedCat;
           }).toList();
@@ -3821,6 +3824,127 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                     ),
         ),
       ],
+    );
+  }
+}
+
+// ============================================================================
+// SUBJECT FOLDER DETAIL SCREEN (Shows Files Inside Selected Subject Folder)
+// ============================================================================
+class SubjectFolderDetailScreen extends StatelessWidget {
+  final String subject;
+  final List<dynamic> resources;
+  final bool isAdmin;
+  final Function(dynamic) onDownload;
+
+  const SubjectFolderDetailScreen({
+    Key? key,
+    required this.subject,
+    required this.resources,
+    required this.isAdmin,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('$subject Folder'),
+        backgroundColor: Colors.teal,
+      ),
+      body: resources.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.folder_open, size: 64, color: Colors.grey.shade400),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No resources found in $subject',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(12.0),
+              itemCount: resources.length,
+              itemBuilder: (context, index) {
+                final res = resources[index];
+                final title = res['title'] ?? 'Untitled Resource';
+                final category = res['category'] ?? 'General';
+                double price = (res['price'] ?? 50.0).toDouble();
+
+                if (price > 0 && price < 50) price = 50.0;
+                if (price > 100) price = 100.0;
+
+                final bool isPaidResource = price >= 50.0;
+                final bool canDownloadDirectly = isAdmin || !isPaidResource;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10.0),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.picture_as_pdf,
+                      color: Colors.teal,
+                      size: 36,
+                    ),
+                    title: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
+                    ),
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: canDownloadDirectly
+                            ? Colors.teal
+                            : Colors.teal.shade700,
+                        elevation: 1,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                      ),
+                      icon: Icon(
+                        canDownloadDirectly ? Icons.download : Icons.lock_outline,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      label: Text(
+                        canDownloadDirectly
+                            ? 'Download'
+                            : 'Pay KES ${price.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onPressed: () {
+                        if (canDownloadDirectly) {
+                          onDownload(res);
+                        } else {
+                          showPaymentModal(
+                            parentContext: context,
+                            resourceTitle: title,
+                            price: price,
+                            isAdmin: isAdmin,
+                            onPaymentSuccess: () {
+                              onDownload(res);
+                            },
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
