@@ -271,6 +271,7 @@ class ResourceModel {
 // =========================================================
 // 1. REGISTRATION SCREEN
 // =========================================================
+
 class MemberRegistrationScreen extends StatefulWidget {
   const MemberRegistrationScreen({Key? key}) : super(key: key);
 
