@@ -268,47 +268,7 @@ class ResourceModel {
     );
   }
 }
-                    
-                                                                               
-// ==========================================
-// SAMPLE DATA
-// ==========================================
-
-final sampleListing1 = ListingModel(
-  id: '1',
-  teacherName: 'Swap Candidate',
-  subject: 'English / Literature',
-  currentCounty: 'Kisii County (Kenyenya)',
-  targetCounty: 'Nyamira County (Manga, Borabu)',
-  contactPhone: '0712345678',
-  tscNumber: '123456',
-  category: 'TSC Swap',
-  isPaid: false,
-);
-
-final sampleListing2 = ListingModel(
-  id: '2',
-  teacherName: 'BOM School Vacancy',
-  subject: 'English / Literature',
-  currentCounty: 'Kisii',
-  targetCounty: 'Salary: KSh 18,000 / month',
-  contactPhone: '0712345678',
-  category: 'BOM Jobs',
-  isPaid: false,
-);
-
-final sampleListing3 = ListingModel(
-  id: '3',
-  teacherName: 'Available Teacher (TSC Compliant)',
-  subject: 'English / Literature',
-  currentCounty: 'Available Immediately',
-  targetCounty: 'Experience: 2 Years',
-  contactPhone: '0712345678',
-  tscNumber: '654321',
-  category: 'Seeking BOM',
-  isPaid: false,
-);
-
+                                                                                                
 // =========================================================
 // 1. REGISTRATION SCREEN
 // =========================================================
