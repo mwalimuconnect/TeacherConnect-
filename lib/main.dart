@@ -720,13 +720,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToForgotPassword() {
-    // TODO: Navigate to your Forgot Password screen once created, e.g.:
-    // Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Forgot Password flow coming up next!'),
-        backgroundColor: Color(0xFF00897B),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ForgotPasswordScreen(),
       ),
     );
   }
@@ -855,6 +852,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+                             
 // =========================================================
 // 3. FORGOT & RESET PASSWORD SCREENS
 // =========================================================
