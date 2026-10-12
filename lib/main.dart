@@ -123,7 +123,6 @@ class MyApp extends StatelessWidget {
 // ==========================================
 // 1. DATA MODELS
 // ==========================================
-
 class ListingModel {
   final String id;
   final String teacherName;
@@ -605,7 +604,6 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 // =========================================================
 // 2. LOGIN SCREEN
 // =========================================================
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
