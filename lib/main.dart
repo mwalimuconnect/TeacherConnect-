@@ -4302,7 +4302,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
   PlatformFile? _selectedFile;
   bool _isUploading = false;
 
-  // Dropdown Options
+  // Dropdown Options (Includes Home Science)
   final List<String> _subjects = [
     'English',
     'Literature',
@@ -4317,6 +4317,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     'Business Studies',
     'Agriculture',
     'Computer Studies',
+    'Home Science',
   ];
 
   final List<String> _forms = [
@@ -4332,11 +4333,13 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     'Grade 12',
   ];
 
+  // Dropdown Options (Includes Projects)
   final List<String> _categories = [
     'Schemes of Work',
     'Lesson Plans',
     'Exams & Marking Schemes',
     'Setbooks & Notes',
+    'Projects',
   ];
 
   // Step A: Pick File Logic
