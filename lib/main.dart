@@ -5889,3 +5889,145 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
     );
   }
 } 
+//=============================
+// class HelpSupportScreen
+//=============================
+class HelpSupportScreen extends StatefulWidget {
+  final String userName;
+  final String userPhone;
+
+  const HelpSupportScreen({Key? key, required this.userName, required this.userPhone}) : super(key: key);
+
+  @override
+  State<HelpSupportScreen> createState() => _HelpSupportScreenState();
+}
+
+class _HelpSupportScreenState extends State<HelpSupportScreen> {
+  final _subjectController = TextEditingController();
+  final _messageController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitConcern() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _isLoading = true);
+
+    try {
+      final payload = {
+        'fullName': widget.userName,
+        'phoneNumber': widget.userPhone,
+        'subject': _subjectController.text.trim(),
+        'message': _messageController.text.trim(),
+      };
+
+      final response = await http.post(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/support/submit'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Concern submitted successfully!'),
+            backgroundColor: Color(0xFF00897B),
+          ),
+        );
+        _subjectController.clear();
+        _messageController.clear();
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to submit concern'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error connecting to server: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Help & Support'),
+        backgroundColor: const Color(0xFF00897B),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Share Your Concerns or Feedback',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Need assistance with a swap or facing technical issues? Send a message to the administration team.',
+              style: TextStyle(fontSize: 14, color: Colors.black54),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _subjectController,
+              decoration: const InputDecoration(
+                labelText: 'Subject (e.g., Swap Assistance)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.subject),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _messageController,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                labelText: 'Describe your concern...',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00897B),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: _isLoading ? null : _submitConcern,
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Submit Concern',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
