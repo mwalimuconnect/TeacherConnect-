@@ -2003,6 +2003,9 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
+// ==========================================
+// 3. ADMIN DASHBOARD MODULE
+// ==========================================
 
 class AdminDashboardScreen extends StatefulWidget {
   final String adminName;
@@ -2027,6 +2030,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'pendingApprovals': 0,
     'paymentsReceived': 0,
     'totalMembers': 0,
+    'totalSupportTickets': 0,
   };
 
   @override
@@ -2062,6 +2066,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _stats['pendingApprovals'] = data['pendingApprovals'] ?? 0;
             _stats['paymentsReceived'] = data['paymentsReceived'] ?? 0;
             _stats['totalMembers'] = data['totalMembers'] ?? 0;
+            _stats['totalSupportTickets'] = data['totalSupportTickets'] ?? 0;
           });
         }
       } else {
@@ -2423,6 +2428,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ).then((_) => _fetchDashboardStats());
                       },
                     ),
+                    _buildStatCard(
+                      title: 'Support Tickets',
+                      value: '${_stats['totalSupportTickets']}',
+                      icon: Icons.support_agent,
+                      color: Colors.purple,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Scaffold(
+                              appBar: AppBar(
+                                title: const Text('Support Tickets'),
+                                backgroundColor: Colors.teal,
+                              ),
+                              body: const AdminSupportTicketsTab(),
+                            ),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
+                    ),
                   ],
                 ),
               const SizedBox(height: 24),
@@ -2514,6 +2539,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ).then((_) => _fetchDashboardStats());
                       },
                     ),
+                    const Divider(height: 1),
+                    _buildActionTile(
+                      icon: Icons.support_agent,
+                      title: 'Member Support Tickets',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Scaffold(
+                              appBar: AppBar(
+                                title: const Text('Support Tickets'),
+                                backgroundColor: Colors.teal,
+                              ),
+                              body: const AdminSupportTicketsTab(),
+                            ),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -2523,9 +2567,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
   }
-}
-                                       
-                        
+}                                                                                                                                                                                                
 // ==========================================
 // MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
 // ==========================================
