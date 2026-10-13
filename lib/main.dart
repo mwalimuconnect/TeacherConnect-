@@ -1392,11 +1392,10 @@ class TeacherPortalTables {
   }
 }
                         
-                              
 // =========================================================
 // 2. TEACHER PORTAL MAIN SCREEN
 // =========================================================
- class TeacherPortalScreen extends StatefulWidget {
+class TeacherPortalScreen extends StatefulWidget {
   final String userName;
   final String userRole;
   final String userPhone;
@@ -1410,7 +1409,7 @@ class TeacherPortalTables {
 
   @override
   State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
- }
+}
 
 class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   bool get isAdmin {
@@ -1627,7 +1626,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
-                                 
+
   void _showPaymentModal(BuildContext context, ListingModel listing) {
     if (isListingUnlocked(listing)) {
       _showContactDetailsModal(context, listing);
@@ -1825,6 +1824,12 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       length: 4,
       child: Scaffold(
         appBar: AppBar(
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
           title: const Text('Teacher Portal'),
           backgroundColor: Colors.teal,
           actions: [
@@ -1856,6 +1861,65 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               Tab(text: 'BOM Jobs'),
               Tab(text: 'Seeking BOM'),
               Tab(text: 'Teacher Resources'),
+            ],
+          ),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: const BoxDecoration(
+                  color: Colors.teal,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: Text(
+                        widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
+                        style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.userName,
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      widget.userPhone,
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.help_outline, color: Color(0xFF00897B)),
+                title: const Text('Help & Support'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => HelpSupportScreen(
+                        userName: widget.userName,
+                        userPhone: widget.userPhone,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleLogout();
+                },
+              ),
             ],
           ),
         ),
@@ -1898,7 +1962,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       context: context,
                       listings: tscSwaps,
                       isUnlocked: isListingUnlocked,
-                      getDisplayName: _getDisplayName, // Pass display formatter
+                      getDisplayName: _getDisplayName,
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
@@ -1907,7 +1971,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       context: context,
                       listings: bomJobs,
                       isUnlocked: isListingUnlocked,
-                      getDisplayName: _getDisplayName, // Pass display formatter
+                      getDisplayName: _getDisplayName,
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
@@ -1916,7 +1980,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       context: context,
                       listings: seekingBom,
                       isUnlocked: isListingUnlocked,
-                      getDisplayName: _getDisplayName, // Pass display formatter
+                      getDisplayName: _getDisplayName,
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
@@ -1934,8 +1998,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}
-                                                        
+}                        
+                                                                                          
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
