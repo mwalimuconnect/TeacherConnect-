@@ -458,7 +458,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
-}
+} // <-- Correctly closes _AuthScreenState
 
 // ============================================================================
 // 2. FORGOT PASSWORD SCREEN (IDENTITY VERIFICATION)
@@ -519,7 +519,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             backgroundColor: const Color(0xFF00897B),
           ),
         );
-        Navigator.pop(context); // Go back to login screen
+        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -538,134 +538,3 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
- @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Reset Password'),
-        backgroundColor: const Color(0xFF00897B),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Account Identity Verification',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Enter your registered Phone Number, ID/Passport Number, and TSC Number to set a new password.',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                // Phone Number
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter your phone number' : null,
-                ),
-                const SizedBox(height: 14),
-
-                // ID / Passport Number
-                TextFormField(
-                  controller: _idController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'ID / Passport Number',
-                    prefixIcon: Icon(Icons.badge),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter your ID number' : null,
-                ),
-                const SizedBox(height: 14),
-
-                // TSC Number
-                TextFormField(
-                  controller: _tscController,
-                  decoration: const InputDecoration(
-                    labelText: 'TSC Number',
-                    prefixIcon: Icon(Icons.card_membership),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter your TSC number' : null,
-                ),
-                const SizedBox(height: 14),
-
-                // New Password
-                TextFormField(
-                  controller: _newPasswordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'New Password',
-                    prefixIcon: const Icon(Icons.lock_reset),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter a new password' : null,
-                ),
-                const SizedBox(height: 24),
-
-                // Submit Button
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleResetPassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00897B),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Reset Password',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-  
-  
