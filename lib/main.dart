@@ -2003,9 +2003,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
-// ==========================================
-// 3. ADMIN DASHBOARD MODULE
-// ==========================================
 
 class AdminDashboardScreen extends StatefulWidget {
   final String adminName;
@@ -2567,7 +2564,157 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
   }
-}                                                                                                                                                                                                
+}   
+
+// ==========================================
+// ADMIN SUPPORT TICKETS TAB WIDGET
+// ==========================================
+
+class AdminSupportTicketsTab extends StatefulWidget {
+  const AdminSupportTicketsTab({Key? key}) : super(key: key);
+
+  @override
+  State<AdminSupportTicketsTab> createState() => _AdminSupportTicketsTabState();
+}
+
+class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
+  List<dynamic> tickets = [];
+  bool isLoading = true;
+  String errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTickets();
+  }
+
+  Future<void> _fetchTickets() async {
+    if (!mounted) return;
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/support/all'),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            tickets = decoded['data'] ?? [];
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            errorMessage = 'Failed to load support tickets (${response.statusCode}).';
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Network error fetching tickets.';
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (errorMessage.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(errorMessage, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _fetchTickets,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (tickets.isEmpty) {
+      return const Center(
+        child: Text('No support tickets submitted yet.'),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchTickets,
+      child: ListView.builder(
+        itemCount: tickets.length,
+        padding: const EdgeInsets.all(12),
+        itemBuilder: (context, index) {
+          final ticket = tickets[index];
+          return Card(
+            elevation: 2,
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        ticket['fullName'] ?? 'Unknown Teacher',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        ticket['phoneNumber'] ?? '',
+                        style: const TextStyle(
+                          color: Colors.teal,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Subject: ${ticket['subject'] ?? 'No Subject'}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    ticket['message'] ?? '',
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 // ==========================================
 // MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
 // ==========================================
