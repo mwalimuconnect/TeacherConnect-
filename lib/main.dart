@@ -2147,12 +2147,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
 
-import 'main.dart';
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'shared_prefs.dart'; // Adjust import if needed based on your project structure
-
 class AdminDashboardScreen extends StatefulWidget {
   final String adminName;
   final String adminPhone;
