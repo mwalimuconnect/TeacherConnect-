@@ -3,10 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-// ============================================================================
-// 1. AUTH SCREEN (LOGIN & REGISTER)
-// ============================================================================
-
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
 
@@ -104,7 +100,6 @@ class _AuthScreenState extends State<AuthScreen> {
           return;
         }
 
-        // ================= NAVIGATION LOGIC FOR LOGIN =================
         final userMap = data['user'] ?? {};
         final String userRole = userMap['role'] ?? _selectedRole;
         final String userName = userMap['fullName'] ?? _phoneController.text.trim();
@@ -185,9 +180,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // ============= REGISTRATION SPECIFIC FIELDS =============
                 if (!_isLogin) ...[
-                  // Full Name
                   TextFormField(
                     key: const ValueKey('fullNameField'),
                     controller: _fullNameController,
@@ -204,8 +197,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
-
-                  // ID / Passport Number
                   TextFormField(
                     key: const ValueKey('idNumberField'),
                     controller: _idNumberController,
@@ -223,8 +214,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
-
-                  // Role Dropdown Selection
                   DropdownButtonFormField<String>(
                     key: const ValueKey('roleDropdownField'),
                     value: _selectedRole,
@@ -250,8 +239,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
-
-                  // TSC Number Field
                   TextFormField(
                     key: const ValueKey('tscNumberField'),
                     controller: _tscNumberController,
@@ -272,8 +259,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
-
-                  // Current School Name Field
                   TextFormField(
                     key: const ValueKey('schoolNameField'),
                     controller: _schoolNameController,
@@ -296,8 +281,6 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 14),
                 ],
 
-                // ============= SHARED FIELDS =============
-                // Phone Number Field
                 TextFormField(
                   key: const ValueKey('phoneNumberField'),
                   controller: _phoneController,
@@ -316,7 +299,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Password Field
                 TextFormField(
                   key: const ValueKey('passwordField'),
                   controller: _passwordController,
@@ -344,7 +326,6 @@ class _AuthScreenState extends State<AuthScreen> {
                   },
                 ),
 
-                // Conditional Admin Security Passcode Field
                 if (!_isLogin && _selectedRole == 'Admin') ...[
                   const SizedBox(height: 14),
                   TextFormField(
@@ -372,7 +353,6 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ],
 
-                // Forgot Password Link (Shown only on Login tab)
                 if (_isLogin) ...[
                   const SizedBox(height: 8),
                   Align(
@@ -399,7 +379,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
                 const SizedBox(height: 24),
 
-                // Submit Button
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleSubmit,
                   style: ElevatedButton.styleFrom(
@@ -430,7 +409,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Toggle Login / Register
                 TextButton(
                   onPressed: _toggleAuthMode,
                   child: RichText(
@@ -458,11 +436,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
-} // <-- Correctly closes _AuthScreenState
-
-// ============================================================================
-// 2. FORGOT PASSWORD SCREEN (IDENTITY VERIFICATION)
-// ============================================================================
+}
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -538,3 +512,129 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Reset Password'),
+        backgroundColor: const Color(0xFF00897B),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Account Identity Verification',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Enter your registered Phone Number, ID/Passport Number, and TSC Number to set a new password.',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                 TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) =>
+                      val == null || val.trim().isEmpty ? 'Enter your phone number' : null,
+                ),
+                const SizedBox(height: 14),
+
+                TextFormField(
+                  controller: _idController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'ID / Passport Number',
+                    prefixIcon: Icon(Icons.badge),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) =>
+                      val == null || val.trim().isEmpty ? 'Enter your ID number' : null,
+                ),
+                const SizedBox(height: 14),
+
+                TextFormField(
+                  controller: _tscController,
+                  decoration: const InputDecoration(
+                    labelText: 'TSC Number',
+                    prefixIcon: Icon(Icons.card_membership),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) =>
+                      val == null || val.trim().isEmpty ? 'Enter your TSC number' : null,
+                ),
+                const SizedBox(height: 14),
+
+                TextFormField(
+                  controller: _newPasswordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    prefixIcon: const Icon(Icons.lock_reset),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (val) =>
+                      val == null || val.trim().isEmpty ? 'Enter a new password' : null,
+                ),
+                const SizedBox(height: 24),
+
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleResetPassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00897B),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Reset Password',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
