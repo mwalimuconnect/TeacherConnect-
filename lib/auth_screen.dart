@@ -40,7 +40,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _toggleAuthMode() {
-    _formKey.currentState?.reset(); // Clears validation errors when toggling mode
+    _formKey.currentState?.reset();
     setState(() {
       _isLogin = !_isLogin;
     });
@@ -49,7 +49,6 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Dismiss software keyboard
     FocusScope.of(context).unfocus();
 
     setState(() => _isLoading = true);
@@ -94,7 +93,6 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         );
 
-        // If registering, switch UI to Login tab so user can sign in immediately
         if (!_isLogin) {
           setState(() {
             _isLogin = true;
@@ -105,10 +103,9 @@ class _AuthScreenState extends State<AuthScreen> {
         // ================= NAVIGATION LOGIC FOR LOGIN =================
         final userMap = data['user'] ?? {};
         final String userRole = userMap['role'] ?? _selectedRole;
-        final String userName = userMap['fullName'] ?? _fullNameController.text.trim();
+        final String userName = userMap['fullName'] ?? _phoneController.text.trim();
         final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
 
-        // Case-insensitive check for Admin role
         final bool isAdmin = userRole.toLowerCase().contains('admin');
 
         if (isAdmin) {
@@ -184,7 +181,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // ================= REGISTRATION SPECIFIC FIELDS =================
+                // ============= REGISTRATION SPECIFIC FIELDS =============
                 if (!_isLogin) ...[
                   // Full Name
                   TextFormField(
@@ -236,7 +233,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       'Member Teacher',
                       'Job Seeker (BOM)',
                       'Admin',
-                      'Representative'
+                      'Representative',
                     ]
                         .map((role) => DropdownMenuItem(value: role, child: Text(role)))
                         .toList(),
@@ -295,7 +292,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 14),
                 ],
 
-                // ================= SHARED FIELDS =================
+                // ============= SHARED FIELDS =============
                 // Phone Number Field
                 TextFormField(
                   key: const ValueKey('phoneNumberField'),
@@ -355,7 +352,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       prefixIcon: Icon(Icons.security, color: Colors.red),
                       labelText: 'Admin Security Passcode',
                       hintText: 'Enter passcode',
-                      border: OutlineInputBorder(
+                      border: OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.red),
                       ),
                     ),
@@ -367,6 +365,31 @@ class _AuthScreenState extends State<AuthScreen> {
                       }
                       return null;
                     },
+                  ),
+                ],
+
+                // Forgot Password Link (Shown only on Login tab)
+                if (_isLogin) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          color: Color(0xFF00897B),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
 
@@ -411,14 +434,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       style: const TextStyle(fontSize: 15, color: Colors.black87),
                       children: [
                         TextSpan(
-                          text: _isLogin
-                              ? "Don't have an account? "
-                              : 'Already have an account? ',
+                          text: _isLogin ? "Don't have an account? " : "Already have an account? ",
                         ),
                         TextSpan(
                           text: _isLogin ? 'Register' : 'Login',
                           style: const TextStyle(
-                            color: Color(0xFF5E35B1),
+                            color: Color(0xFFFF5722),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
