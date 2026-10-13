@@ -1467,7 +1467,6 @@ class TeacherPortalTables {
   }
 }
 
-
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN
 // =========================================================
@@ -1500,6 +1499,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
   bool isLoading = true;
   String errorMessage = '';
+  Map<String, dynamic>? activeAnnouncement;
 
   final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
 
@@ -1507,6 +1507,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   void initState() {
     super.initState();
     _fetchListings();
+    _fetchActiveAnnouncement();
   }
 
   Future<void> _fetchListings() async {
@@ -1571,6 +1572,24 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchActiveAnnouncement() async {
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/api/announcement/active'));
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic> && decoded['announcement'] != null) {
+          if (mounted) {
+            setState(() {
+              activeAnnouncement = decoded['announcement'];
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching announcement: $e');
     }
   }
 
@@ -1861,7 +1880,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const MemberRegistrationScreen()),
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
     );
   }
 
@@ -1892,6 +1911,51 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     );
   }
 
+  Widget _buildAnnouncementBanner() {
+    if (activeAnnouncement == null) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFE0F2F1),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.campaign, color: Color(0xFF00897B), size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activeAnnouncement!['title'] ?? 'Official Notice',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Color(0xFF004D40),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  activeAnnouncement!['message'] ?? '',
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+            onPressed: () {
+              setState(() {
+                activeAnnouncement = null;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -1917,6 +1981,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                     MaterialPageRoute(
                       builder: (_) => AdminDashboardScreen(
                         adminName: widget.userName,
+                        adminPhone: widget.userPhone,
                       ),
                     ),
                   );
@@ -2028,6 +2093,10 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                 ],
               ),
             ),
+            
+            // Announcement banner display
+            _buildAnnouncementBanner(),
+
             Expanded(
               child: TabBarView(
                 children: [
@@ -2072,9 +2141,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}  
-
-                                                                                                                                                                                                                          
+}
+                                                                                                                                                                                                                             
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
