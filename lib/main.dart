@@ -2147,6 +2147,12 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
 
+import 'main.dart';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'shared_prefs.dart'; // Adjust import if needed based on your project structure
+
 class AdminDashboardScreen extends StatefulWidget {
   final String adminName;
   final String adminPhone;
@@ -2230,6 +2236,105 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  void _showPostAnnouncementDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final messageController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('New Broadcast Notice'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Notice Title',
+                  hintText: 'e.g., TSC Mutual Swap Updates',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: messageController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Message Content',
+                  hintText: 'Type announcement details here...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+              ),
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      if (titleController.text.trim().isEmpty ||
+                          messageController.text.trim().isEmpty) {
+                        return;
+                      }
+
+                      setDialogState(() => isSubmitting = true);
+
+                      try {
+                        final prefs = await SharedPreferences.getInstance();
+                        final token = prefs.getString('auth_token') ?? '';
+
+                        final response = await http.post(
+                          Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/announcement'),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+                          },
+                          body: jsonEncode({
+                            'title': titleController.text.trim(),
+                            'message': messageController.text.trim(),
+                            'authorName': widget.adminName,
+                          }),
+                        );
+
+                        if (response.statusCode == 200 || response.statusCode == 201) {
+                          Navigator.pop(dialogContext);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Announcement broadcast live!'),
+                              backgroundColor: Colors.teal,
+                            ),
+                          );
+                        } else {
+                          setDialogState(() => isSubmitting = false);
+                        }
+                      } catch (e) {
+                        setDialogState(() => isSubmitting = false);
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text('Publish Notice', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmLogout(BuildContext context) {
     showDialog(
       context: context,
@@ -2263,7 +2368,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const MemberRegistrationScreen(),
+                    builder: (_) => const AuthScreen(),
                   ),
                 );
               },
@@ -2610,6 +2715,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Column(
                   children: [
                     _buildActionTile(
+                      icon: Icons.campaign,
+                      title: 'Post Broadcast Announcement',
+                      onTap: () => _showPostAnnouncementDialog(context),
+                    ),
+                    const Divider(height: 1),
+                    _buildActionTile(
                       icon: Icons.dashboard,
                       title: 'Manage All Listings',
                       onTap: () {
@@ -2707,8 +2818,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
   }
-}   
-
+}
+                       
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
