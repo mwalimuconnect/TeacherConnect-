@@ -1469,615 +1469,333 @@ class TeacherPortalTables {
   }
 }
               
-                        
 // =========================================================
-// 2. TEACHER PORTAL MAIN SCREEN
+// 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
 // =========================================================
-class TeacherPortalScreen extends StatefulWidget {
-  final String userName;
-  final String userRole;
-  final String userPhone;
-
-  const TeacherPortalScreen({
-    Key? key,
-    required this.userName,
-    required this.userRole,
-    required this.userPhone,
-  }) : super(key: key);
-
-  @override
-  State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
-}
-
-class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
-  bool get isAdmin {
-    final role = widget.userRole.toLowerCase().trim();
-    return role.contains('admin') || role.contains('administrator');
-  }
-
-  // Master lists for listings in each category
-  List<ListingModel> tscSwaps = [];
-  List<ListingModel> bomJobs = [];
-  List<ListingModel> seekingBom = [];
-
-  bool isLoading = true;
-  String errorMessage = '';
-
-  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchListings();
-  }
-
-  Future<void> _fetchListings() async {
-    if (!mounted) return;
-    setState(() {
-      isLoading = true;
-      errorMessage = '';
-    });
-
-    try {
-      final url = Uri.parse('$_baseUrl/api/listings?limit=500');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        List<dynamic> rawData = [];
-
-        if (decoded is List) {
-          rawData = decoded;
-        } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-          rawData = decoded['data'] as List<dynamic>;
-        }
-
-        final List<ListingModel> allListings = rawData.map((item) {
-          return ListingModel.fromJson(item as Map<String, dynamic>);
-        }).toList();
-
-        if (mounted) {
-          setState(() {
-            tscSwaps = allListings.where((item) {
-              final cat = item.category.toLowerCase();
-              return cat.contains('swap') || cat.contains('tsc');
-            }).toList();
-
-            bomJobs = allListings.where((item) {
-              final cat = item.category.toLowerCase();
-              return (cat.contains('vacancy') || cat.contains('bom')) &&
-                  !cat.contains('seeking');
-            }).toList();
-
-            seekingBom = allListings.where((item) {
-              final cat = item.category.toLowerCase();
-              return cat.contains('seeking') || cat.contains('seeker');
-            }).toList();
-
-            isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            errorMessage = 'Failed to load listings (${response.statusCode})';
-            isLoading = false;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Error fetching portal listings: $e');
-      if (mounted) {
-        setState(() {
-          errorMessage = 'Network error fetching listings.';
-          isLoading = false;
-        });
-      }
+class TeacherPortalTables {
+  // Helper function to handle conditional display names
+  static String _getListingDisplayName(
+    ListingModel listing,
+    String Function(ListingModel)? getDisplayName,
+  ) {
+    if (getDisplayName != null) {
+      return getDisplayName(listing);
     }
-  }
-
-  bool isListingUnlocked(ListingModel listing) {
-    return isAdmin || listing.isPaid;
-  }
-
-  // Helper method to format display text based on payment status and category
-  String _getDisplayName(ListingModel listing) {
-    if (isListingUnlocked(listing)) {
+    if (listing.isPaid) {
       return listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A';
     }
-
-    final String subjectText = listing.subject.isNotEmpty ? listing.subject : 'Subject Unspecified';
+    final String subjectText =
+        listing.subject.isNotEmpty ? listing.subject : 'Subject Unspecified';
     final String catLower = listing.category.toLowerCase();
-
-    // BOM Vacancy Check
-    if ((catLower.contains('vacancy') || catLower.contains('bom')) && !catLower.contains('seeking')) {
+    if ((catLower.contains('vacancy') || catLower.contains('bom')) &&
+        !catLower.contains('seeking')) {
       return '$subjectText Vacancy';
     } else {
-      // TSC Swaps & Seeking BOM
       return '$subjectText Teacher';
     }
   }
 
-  // Helper modal to view full contact details when unlocked or accessed by Admin
-  void _showContactDetailsModal(BuildContext context, ListingModel listing) {
-    final String currentLoc = listing.subCounty.isNotEmpty
-        ? '${listing.currentCounty} (${listing.subCounty})'
-        : (listing.currentCounty.isNotEmpty ? listing.currentCounty : 'N/A');
-
-    final String targetLoc = listing.targetCounty.isNotEmpty
-        ? (listing.targetSubCounty.isNotEmpty
-            ? '${listing.targetCounty} (${listing.targetSubCounty})'
-            : listing.targetCounty)
-        : 'N/A';
-
-    final String displayName = _getDisplayName(listing);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            top: 20,
-            left: 20,
-            right: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Contact Details',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal,
-                        ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const Divider(),
-              const SizedBox(height: 10),
-              Text(
-                'Listing Profile: $displayName',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isListingUnlocked(listing) ? Colors.black87 : Colors.teal.shade800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'TSC Number: ${listing.tscNumber ?? "N/A"}',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Current School: ${listing.schoolName.isNotEmpty ? listing.schoolName : "N/A"}',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Current Location: $currentLoc',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Target Location: $targetLoc',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Subjects: ${listing.subject.isNotEmpty ? listing.subject : "N/A"}',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Phone Number: ${listing.contactPhone}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close', style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showPaymentModal(BuildContext context, ListingModel listing) {
-    if (isListingUnlocked(listing)) {
-      _showContactDetailsModal(context, listing);
-      return;
-    }
-
-    final TextEditingController phoneController =
-        TextEditingController(text: widget.userPhone);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            top: 16,
-            left: 16,
-            right: 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Unlock Contact Details',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text('Pay KSh 100 to unlock details for ${_getDisplayName(listing)}:'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number (e.g. 0712345678)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF009688),
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  _triggerMpesaPayment(
-                    context,
-                    amount: 100,
-                    phone: phoneController.text.trim(),
-                  );
-                },
-                child: const Text(
-                  'Pay via M-Pesa STK Push',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<bool> _triggerMpesaPayment(
-    BuildContext context, {
-    required double amount,
-    required String phone,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/mpesa/stkpush'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phoneNumber': phone,
-          'amount': amount,
-        }),
-      );
-
-      if (!context.mounted) return false;
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('M-Pesa prompt sent! Check your phone to enter PIN.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        return true;
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Payment Request Failed: ${response.body}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return false;
+  // Helper function to group listings by subject combination
+  static Map<String, List<ListingModel>> _groupBySubject(List<ListingModel> listings) {
+    final Map<String, List<ListingModel>> grouped = {};
+    for (var listing in listings) {
+      final subjectKey = listing.subject.trim().isNotEmpty 
+          ? listing.subject.trim() 
+          : 'Subject Unspecified';
+      if (!grouped.containsKey(subjectKey)) {
+        grouped[subjectKey] = [];
       }
-    } catch (e) {
-      if (!context.mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error connecting to server: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return false;
+      grouped[subjectKey]!.add(listing);
     }
+    return grouped;
   }
 
-  void _showPostDialog(BuildContext context) async {
-    final result = await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => DynamicPostListingModal(
-        userName: widget.userName,
-        userPhone: widget.userPhone,
-      ),
-    );
-
-    if (result == true) {
-      _fetchListings();
+  static Widget buildTscSwapsTable({
+    required BuildContext context,
+    required List<ListingModel> listings,
+    required bool Function(ListingModel) isUnlocked,
+    String Function(ListingModel)? getDisplayName,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    if (listings.isEmpty) {
+      return const Center(child: Text("No TSC Swaps available."));
     }
-  }
 
-  Future<void> _handleLogout() async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to log out?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+    final groupedListings = _groupBySubject(listings);
+
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: groupedListings.entries.map((entry) {
+        final subject = entry.key;
+        final subjectListings = entry.value;
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ExpansionTile(
+            initiallyExpanded: true,
+            title: Text(
+              subject,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.teal,
               ),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Logout', style: TextStyle(color: Colors.white)),
             ),
-          ],
-        );
-      },
-    );
-
-    if (confirm != true) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-
-    if (!mounted) return;
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MemberRegistrationScreen()),
-    );
-  }
-
-  Widget _buildTabBody(Widget tableWidget) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (errorMessage.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(errorMessage),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _fetchListings,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _fetchListings,
-      child: tableWidget,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
-          title: const Text('Teacher Portal'),
-          backgroundColor: Colors.teal,
-          actions: [
-            if (isAdmin)
-              IconButton(
-                icon: const Icon(Icons.admin_panel_settings),
-                tooltip: 'Admin Dashboard',
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AdminDashboardScreen(
-                        adminName: widget.userName,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _handleLogout,
-            ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: Colors.white,
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'TSC Swaps'),
-              Tab(text: 'BOM Jobs'),
-              Tab(text: 'Seeking BOM'),
-              Tab(text: 'Teacher Resources'),
-            ],
-          ),
-        ),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
+            subtitle: Text('${subjectListings.length} swap(s) available'),
             children: [
-              DrawerHeader(
-                decoration: const BoxDecoration(
-                  color: Colors.teal,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Text(
-                        widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                        style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.userName,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      widget.userPhone,
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+                  columns: const [
+                    DataColumn(label: Text('Teacher', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Target Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
+                  rows: subjectListings.map((listing) {
+                    final unlocked = isUnlocked(listing);
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Text(
+                            _getListingDisplayName(listing, getDisplayName),
+                            style: TextStyle(
+                              fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
+                              color: unlocked ? Colors.black87 : Colors.teal.shade800,
+                            ),
+                          ),
+                        ),
+                        DataCell(Text(listing.currentCounty)),
+                        DataCell(Text(listing.targetCounty)),
+                        DataCell(
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: unlocked ? Colors.teal : Colors.orange.shade800,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            onPressed: () => onPayPressed(context, listing),
+                            child: Text(
+                              unlocked ? 'View Details' : 'Pay to view full details',
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.help_outline, color: Color(0xFF00897B)),
-                title: const Text('Help & Support'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => HelpSupportScreen(
-                        userName: widget.userName,
-                        userPhone: widget.userPhone,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Logout', style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleLogout();
-                },
               ),
             ],
           ),
-        ),
-        body: Column(
-          children: [
-            Container(
-              color: Colors.teal.shade50,
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.teal,
-                    child: Text(
-                      widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text('Role: ${widget.userRole}'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildTabBody(
-                    TeacherPortalTables.buildTscSwapsTable(
-                      context: context,
-                      listings: tscSwaps,
-                      isUnlocked: isListingUnlocked,
-                      getDisplayName: _getDisplayName,
-                      onPayPressed: _showPaymentModal,
-                    ),
-                  ),
-                  _buildTabBody(
-                    TeacherPortalTables.buildBomJobsTable(
-                      context: context,
-                      listings: bomJobs,
-                      isUnlocked: isListingUnlocked,
-                      getDisplayName: _getDisplayName,
-                      onPayPressed: _showPaymentModal,
-                    ),
-                  ),
-                  _buildTabBody(
-                    TeacherPortalTables.buildSeekingBomTable(
-                      context: context,
-                      listings: seekingBom,
-                      isUnlocked: isListingUnlocked,
-                      getDisplayName: _getDisplayName,
-                      onPayPressed: _showPaymentModal,
-                    ),
-                  ),
-                  TeacherResourcesTab(userRole: widget.userRole),
-                ],
-              ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showPostDialog(context),
-          backgroundColor: Colors.teal,
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
+        );
+      }).toList(),
     );
   }
-}                        
-                                                                                          
+
+  static Widget buildBomJobsTable({
+    required BuildContext context,
+    required List<ListingModel> listings,
+    required bool Function(ListingModel) isUnlocked,
+    String Function(ListingModel)? getDisplayName,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    if (listings.isEmpty) {
+      return const Center(child: Text("No BOM Vacancies available."));
+    }
+
+    final groupedListings = _groupBySubject(listings);
+
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: groupedListings.entries.map((entry) {
+        final subject = entry.key;
+        final subjectListings = entry.value;
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ExpansionTile(
+            initiallyExpanded: true,
+            title: Text(
+              subject,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.teal,
+              ),
+            ),
+            subtitle: Text('${subjectListings.length} vacancy/vacancies available'),
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+                  columns: const [
+                    DataColumn(label: Text('School / Vacancy', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Salary', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: subjectListings.map((listing) {
+                    final unlocked = isUnlocked(listing);
+                    final String schoolDisplay = unlocked
+                        ? (listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')
+                        : _getListingDisplayName(listing, getDisplayName);
+
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Text(
+                            schoolDisplay,
+                            style: TextStyle(
+                              fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
+                              color: unlocked ? Colors.black87 : Colors.teal.shade800,
+                            ),
+                          ),
+                        ),
+                        DataCell(Text(listing.currentCounty)),
+                        DataCell(Text(listing.salary.isNotEmpty ? listing.salary : 'N/A')),
+                        DataCell(
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: unlocked ? Colors.teal : Colors.orange.shade800,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            onPressed: () => onPayPressed(context, listing),
+                            child: Text(
+                              unlocked ? 'View Details' : 'Pay to view full details',
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  static Widget buildSeekingBomTable({
+    required BuildContext context,
+    required List<ListingModel> listings,
+    required bool Function(ListingModel) isUnlocked,
+    String Function(ListingModel)? getDisplayName,
+    required Function(BuildContext, ListingModel) onPayPressed,
+  }) {
+    if (listings.isEmpty) {
+      return const Center(child: Text("No Seekers listed."));
+    }
+
+    final groupedListings = _groupBySubject(listings);
+
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: groupedListings.entries.map((entry) {
+        final subject = entry.key;
+        final subjectListings = entry.value;
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ExpansionTile(
+            initiallyExpanded: true,
+            title: Text(
+              subject,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.teal,
+              ),
+            ),
+            subtitle: Text('${subjectListings.length} seeker(s) available'),
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+                  columns: const [
+                    DataColumn(label: Text('Teacher', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: subjectListings.map((listing) {
+                    final unlocked = isUnlocked(listing);
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Text(
+                            _getListingDisplayName(listing, getDisplayName),
+                            style: TextStyle(
+                              fontWeight: unlocked ? FontWeight.bold : FontWeight.normal,
+                              color: unlocked ? Colors.black87 : Colors.teal.shade800,
+                            ),
+                          ),
+                        ),
+                        DataCell(Text(listing.currentCounty)),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              listing.isTscCompliant ? 'TSC compliant' : 'Not TSC compliant',
+                              style: TextStyle(
+                                color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: unlocked ? Colors.teal : Colors.orange.shade800,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            onPressed: () => onPayPressed(context, listing),
+                            child: Text(
+                              unlocked ? 'View Details' : 'Pay to view full details',
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+                      
+                                                                                                                
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
