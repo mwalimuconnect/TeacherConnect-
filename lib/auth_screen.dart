@@ -54,6 +54,31 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // If registering and role requires a TSC number, verify it first against official portal
+      if (!_isLogin && _selectedRole != 'Job Seeker (BOM)' && _tscNumberController.text.trim().isNotEmpty) {
+        final verifyResponse = await http.post(
+          Uri.parse('https://teacher-connect-backend.vercel.app/api/verify-tsc'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'idNumber': _idNumberController.text.trim(),
+            'tscNumber': _tscNumberController.text.trim(),
+          }),
+        );
+
+        final verifyData = jsonDecode(verifyResponse.body);
+        if (verifyData['success'] == false) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(verifyData['message'] ?? 'TSC verification failed. Please check your ID and TSC number.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _isLoading = false);
+          return; // Halt registration if verification fails
+        }
+      }
+
       final String endpoint = _isLogin ? '/api/auth/login' : '/api/auth/register';
       final Uri url = Uri.parse('https://teacher-connect-backend.vercel.app$endpoint');
 
@@ -515,7 +540,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -545,7 +570,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                 TextFormField(
+                TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
