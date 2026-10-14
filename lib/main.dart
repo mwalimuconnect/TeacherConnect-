@@ -4609,9 +4609,9 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 }
 
 // ============================================================================
-// SUBJECT FOLDER DETAIL SCREEN (Declared ONCE)
+// SUBJECT FOLDER DETAIL SCREEN (Converted to StatefulWidget for local deletion)
 // ============================================================================
-class SubjectFolderDetailScreen extends StatelessWidget {
+class SubjectFolderDetailScreen extends StatefulWidget {
   final String subject;
   final List<dynamic> resources;
   final bool isAdmin;
@@ -4626,13 +4626,78 @@ class SubjectFolderDetailScreen extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<SubjectFolderDetailScreen> createState() => _SubjectFolderDetailScreenState();
+}
+
+class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
+  late List<dynamic> _localResources;
+
+  @override
+  void initState() {
+    super.initState();
+    _localResources = List.from(widget.resources);
+  }
+
+  Future<void> _deleteResource(String resourceId) async {
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Resource'),
+        content: const Text('Are you sure you want to delete this resource? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final response = await http.delete(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/resources/$resourceId?isAdmin=true'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            _localResources.removeWhere((item) => (item['_id']?.toString() ?? item['id']?.toString()) == resourceId);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Resource deleted successfully by admin')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete: ${response.body}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Network error: $e')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$subject Folder'),
+        title: Text('${widget.subject} Folder'),
         backgroundColor: Colors.teal,
       ),
-      body: resources.isEmpty
+      body: _localResources.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -4640,7 +4705,7 @@ class SubjectFolderDetailScreen extends StatelessWidget {
                   Icon(Icons.folder_open, size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 12),
                   Text(
-                    'No resources found in $subject',
+                    'No resources found in ${widget.subject}',
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                   ),
                 ],
@@ -4648,18 +4713,19 @@ class SubjectFolderDetailScreen extends StatelessWidget {
             )
           : ListView.builder(
               padding: const EdgeInsets.all(12.0),
-              itemCount: resources.length,
+              itemCount: _localResources.length,
               itemBuilder: (context, index) {
-                final res = resources[index];
+                final res = _localResources[index];
                 final title = res['title'] ?? 'Untitled Resource';
                 final category = res['category'] ?? 'General';
+                final resourceId = res['_id']?.toString() ?? res['id']?.toString() ?? '';
                 double price = (res['price'] ?? 50.0).toDouble();
 
                 if (price > 0 && price < 50) price = 50.0;
                 if (price > 100) price = 100.0;
 
                 final bool isPaidResource = price >= 50.0;
-                final bool canDownloadDirectly = isAdmin || !isPaidResource;
+                final bool canDownloadDirectly = widget.isAdmin || !isPaidResource;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10.0),
@@ -4680,46 +4746,62 @@ class SubjectFolderDetailScreen extends StatelessWidget {
                     subtitle: Text(
                       'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
                     ),
-                    trailing: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: canDownloadDirectly
-                            ? Colors.teal
-                            : Colors.teal.shade700,
-                        elevation: 1,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Download / Pay Button
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: canDownloadDirectly
+                                ? Colors.teal
+                                : Colors.teal.shade700,
+                            elevation: 1,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                          ),
+                          icon: Icon(
+                            canDownloadDirectly ? Icons.download : Icons.lock_outline,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          label: Text(
+                            canDownloadDirectly
+                                ? 'Download'
+                                : 'Pay KES ${price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          onPressed: () {
+                            if (canDownloadDirectly) {
+                              widget.onDownload(res);
+                            } else {
+                              showPaymentModal(
+                                parentContext: context,
+                                resourceTitle: title,
+                                price: price,
+                                isAdmin: widget.isAdmin,
+                                onPaymentSuccess: () {
+                                  widget.onDownload(res);
+                                },
+                              );
+                            }
+                          },
                         ),
-                      ),
-                      icon: Icon(
-                        canDownloadDirectly ? Icons.download : Icons.lock_outline,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      label: Text(
-                        canDownloadDirectly
-                            ? 'Download'
-                            : 'Pay KES ${price.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                      onPressed: () {
-                        if (canDownloadDirectly) {
-                          onDownload(res);
-                        } else {
-                          showPaymentModal(
-                            parentContext: context,
-                            resourceTitle: title,
-                            price: price,
-                            isAdmin: isAdmin,
-                            onPaymentSuccess: () {
-                              onDownload(res);
-                            },
-                          );
-                        }
-                      },
+
+                        // Admin-Only Delete Trash Icon Button
+                        if (widget.isAdmin) ...[
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            tooltip: 'Delete Resource',
+                            onPressed: () => _deleteResource(resourceId),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 );
@@ -4728,7 +4810,7 @@ class SubjectFolderDetailScreen extends StatelessWidget {
     );
   }
 }
-                                 
+                                                                           
 // =========================================================================
 // Payment Modal with Strict Payment Verification
 // =========================================================================
