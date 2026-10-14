@@ -4609,7 +4609,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 }
 
 // ============================================================================
-// SUBJECT FOLDER DETAIL SCREEN (Converted to StatefulWidget for local deletion)
+// SUBJECT FOLDER DETAIL SCREEN (With Admin Edit & Delete)
 // ============================================================================
 class SubjectFolderDetailScreen extends StatefulWidget {
   final String subject;
@@ -4638,6 +4638,91 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
     _localResources = List.from(widget.resources);
   }
 
+  // --- 1. EDIT RESOURCE DIALOG ---
+  Future<void> _editResource(Map<String, dynamic> resource) async {
+    final String resourceId = resource['_id']?.toString() ?? resource['id']?.toString() ?? '';
+    final titleController = TextEditingController(text: resource['title'] ?? '');
+    final priceController = TextEditingController(text: (resource['price'] ?? 50).toString());
+    String selectedCategory = resource['category'] ?? 'Setbooks & Notes';
+
+    bool? updated = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Resource'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Resource Title'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: priceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Price (KES)'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            onPressed: () async {
+              try {
+                final response = await http.put(
+                  Uri.parse('https://teacher-connect-backend.vercel.app/api/resources/$resourceId?isAdmin=true'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({
+                    'title': titleController.text.trim(),
+                    'price': double.tryParse(priceController.text) ?? 50.0,
+                    'category': selectedCategory,
+                    'subject': widget.subject,
+                  }),
+                );
+
+                if (response.statusCode == 200) {
+                  if (context.mounted) Navigator.pop(context, true);
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update: ${response.body}')),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (updated == true) {
+      if (mounted) {
+        setState(() {
+          resource['title'] = titleController.text.trim();
+          resource['price'] = double.tryParse(priceController.text) ?? 50.0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Resource updated successfully')),
+        );
+      }
+    }
+  }
+
+  // --- 2. DELETE RESOURCE ---
   Future<void> _deleteResource(String resourceId) async {
     bool? confirm = await showDialog(
       context: context,
@@ -4671,7 +4756,7 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
             _localResources.removeWhere((item) => (item['_id']?.toString() ?? item['id']?.toString()) == resourceId);
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Resource deleted successfully by admin')),
+            const SnackBar(content: Text('Resource deleted successfully')),
           );
         }
       } else {
@@ -4792,9 +4877,13 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                           },
                         ),
 
-                        // Admin-Only Delete Trash Icon Button
+                        // Admin-Only Edit Pencil Icon Button
                         if (widget.isAdmin) ...[
-                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                            tooltip: 'Edit Resource',
+                            onPressed: () => _editResource(res),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             tooltip: 'Delete Resource',
@@ -4810,7 +4899,6 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
     );
   }
 }
-                                                                           
 // =========================================================================
 // Payment Modal with Strict Payment Verification
 // =========================================================================
