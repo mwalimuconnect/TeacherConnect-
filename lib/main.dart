@@ -6343,7 +6343,6 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       if (mounted) setState(() => isSubmitting = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -6388,27 +6387,13 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: selectedSubject,
+              // Safely ensure the selected value exists in the dynamic list
+              value: _subjects.contains(selectedSubject) ? selectedSubject : null,
               decoration: const InputDecoration(
                 labelText: 'Subject Combination',
                 border: OutlineInputBorder(),
               ),
-              items: [
-                'English / Literature',
-                'Mathematics / Chemistry',
-                'Mathematics / Biology',
-                'Mathematics / Physics',
-                'Kiswahili / History',
-                'Kiswahili / CRE',
-                'Kiswahili / Geography',
-                'Biology / Chemistry',
-                'Agriculture / Biology',
-                'History / CRE',
-                'Geography / Business',
-                'Geography / CRE',
-                'Computer / Any',
-                'HomeScience / Any',
-              ].map((sub) {
+              items: _subjects.map((sub) {
                 return DropdownMenuItem(value: sub, child: Text(sub));
               }).toList(),
               onChanged: (val) {
