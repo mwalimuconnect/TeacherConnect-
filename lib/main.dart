@@ -4288,7 +4288,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Projects',
   ];
 
-  final List<String> _subjects = [
+  List<String> _subjects = [
     'English',
     'Literature',
     'Kiswahili',
@@ -4304,11 +4304,13 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Computer Studies',
     'Home Science',
   ];
+  bool _isLoadingSubjects = true;
 
   @override
   void initState() {
     super.initState();
     _fetchResources();
+    _fetchDynamicSubjects();
   }
 
   Future<void> _fetchResources() async {
@@ -4349,6 +4351,32 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
+  Future<void> _fetchDynamicSubjects() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/subjects'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final List<dynamic> data = jsonResponse['data'];
+        if (mounted && data != null && data.isNotEmpty) {
+          setState(() {
+            _subjects = List<String>.from(data);
+            _isLoadingSubjects = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching dynamic subjects: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSubjects = false;
+        });
+      }
+    }
+  }
+      
   Future<void> _downloadOrOpenUrl(dynamic resourceInput) async {
     String targetUrl = '';
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
