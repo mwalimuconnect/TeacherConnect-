@@ -6783,3 +6783,190 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 }
+
+// ============================================================================
+// ADMIN SUPPORT TICKETS SCREEN (WITH DISMISS / DELETE FUNCTIONALITY)
+// ============================================================================
+class AdminSupportTicketsScreen extends StatefulWidget {
+  const AdminSupportTicketsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AdminSupportTicketsScreen> createState() => _AdminSupportTicketsScreenState();
+}
+
+class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
+  List<dynamic> _tickets = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTickets();
+  }
+
+  Future<void> _fetchTickets() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/support'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _tickets = data is List ? data : (data['tickets'] ?? data['data'] ?? []);
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Failed to load tickets. Status code: ${response.statusCode}';
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Network error: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _dismissTicket(String ticketId, int index) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/support/$ticketId'),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _tickets.removeAt(index);
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Support ticket dismissed successfully'),
+            backgroundColor: Color(0xFF00897B),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to dismiss ticket'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error dismissing ticket: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Support Tickets'),
+        backgroundColor: const Color(0xFF00897B),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+              ? Center(child: Text(_errorMessage, style: const TextStyle(color: Colors.red)))
+              : _tickets.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No support tickets found.',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: _tickets.length,
+                      itemBuilder: (context, index) {
+                        final ticket = _tickets[index];
+                        final ticketId = ticket['_id'] ?? ticket['id'] ?? '';
+                        final fullName = ticket['fullName'] ?? ticket['name'] ?? 'Mwl. Teacher';
+                        final phone = ticket['phoneNumber'] ?? ticket['phone'] ?? '';
+                        final subject = ticket['subject'] ?? 'General Inquiry';
+                        final message = ticket['message'] ?? '';
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        fullName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          phone,
+                                          style: const TextStyle(
+                                            color: Color(0xFF00897B),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
+                                          tooltip: 'Dismiss Ticket',
+                                          onPressed: () => _dismissTicket(ticketId, index),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 16),
+                                Text(
+                                  'Subject: $subject',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  message,
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+    );
+  }
+}
