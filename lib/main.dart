@@ -7007,51 +7007,64 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // 1. TOP LINE: Subject Subtitle (Left) & Delete Button (Right)
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        fullName,
+                                        'Subject: $subject',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                          fontSize: 15,
+                                          color: Color(0xFF00897B),
                                         ),
                                       ),
                                     ),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          phone,
-                                          style: const TextStyle(
-                                            color: Color(0xFF00897B),
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
-                                          tooltip: 'Dismiss Ticket',
-                                          onPressed: () => _dismissTicket(ticketId, index),
-                                        ),
-                                      ],
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.redAccent,
+                                        size: 22,
+                                      ),
+                                      tooltip: 'Dismiss Ticket',
+                                      onPressed: () => _dismissTicket(ticketId, index),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+
+                                // 2. SECOND LINE: Teacher Name & Phone Number
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      fullName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      phone,
+                                      style: const TextStyle(
+                                        color: Color(0xFF00897B),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ],
                                 ),
                                 const Divider(height: 16),
-                                Text(
-                                  'Subject: $subject',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
+
+                                // 3. THIRD LINE: Ticket Message Body
                                 Text(
                                   message,
                                   style: TextStyle(
-                                    color: Colors.grey[700],
+                                    color: Colors.grey[800],
                                     fontSize: 14,
                                   ),
                                 ),
