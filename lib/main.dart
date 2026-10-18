@@ -5151,31 +5151,17 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
 
   // Form Fields Controllers
   final TextEditingController _titleController = TextEditingController();
-  String _selectedSubject = 'English';
+  String? _selectedSubject;
   String _selectedForm = 'Form 1';
   String _selectedCategory = 'Exams & Marking Schemes';
 
   // File Picker & Loading States
   PlatformFile? _selectedFile;
   bool _isUploading = false;
+  bool _isLoadingSubjects = true;
 
-  // Dropdown Options (Includes Home Science)
-  final List<String> _subjects = [
-    'English',
-    'Literature',
-    'Kiswahili',
-    'Mathematics',
-    'Biology',
-    'Chemistry',
-    'Physics',
-    'History',
-    'Geography',
-    'CRE',
-    'Business Studies',
-    'Agriculture',
-    'Computer Studies',
-    'Home Science',
-  ];
+  // Dynamic Subject Options (Fetched from backend with full comprehensive fallback)
+  List<String> _subjects = [];
 
   final List<String> _forms = [
     'Form 1',
@@ -5199,6 +5185,88 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
     'Projects',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchDynamicSubjects();
+  }
+
+  Future<void> _fetchDynamicSubjects() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/subjects'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final List<dynamic> data = jsonResponse['data'];
+        if (mounted && data != null && data.isNotEmpty) {
+          setState(() {
+            _subjects = List<String>.from(data);
+            if (_subjects.isNotEmpty) {
+              _selectedSubject = _subjects.first;
+            }
+            _isLoadingSubjects = false;
+          });
+          return;
+        }
+      }
+      
+      // If response is empty or status isn't 200, trigger fallback
+      _loadCompleteFallbackSubjects();
+    } catch (e) {
+      print('Error fetching dynamic subjects: $e');
+      _loadCompleteFallbackSubjects();
+    }
+  }
+
+  void _loadCompleteFallbackSubjects() {
+    if (mounted) {
+      setState(() {
+        _subjects = [
+          // Languages & Humanities
+          'English / Literature',
+          'Kiswahili / History',
+          'Kiswahili / CRE',
+          'Kiswahili / Geography',
+          'Kiswahili / IRE',
+          'History / CRE',
+          'History / IRE',
+          'Geography / CRE',
+          'Geography / Business',
+          'French / English',
+          'German / Any',
+
+          // Sciences & Mathematics (STEM)
+          'Mathematics / Chemistry',
+          'Mathematics / Biology',
+          'Mathematics / Physics',
+          'Physics / Chemistry',
+          'Mathematics / Computer Studies',
+          'Biology / Chemistry',
+
+          // Technical, Applied & Business Studies
+          'Business Studies / Mathematics',
+          'Business Studies / Kiswahili',
+          'Business Studies / History',
+          'Business Studies / Computer Studies',
+          'Agriculture / Biology',
+          'Agriculture / Chemistry',
+          'Agriculture / Geography',
+          'Home Science / Biology',
+          'Home Science / Chemistry',
+          'Home Science / History',
+          'Computer / Any',
+          'HomeScience / Any',
+        ];
+        if (_subjects.isNotEmpty) {
+          _selectedSubject = _subjects.first;
+        }
+        _isLoadingSubjects = false;
+      });
+    }
+  }
+  
   // Step A: Pick File Logic
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
