@@ -2845,14 +2845,14 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
 
     try {
       final response = await http.get(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/support/all'),
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/support'),
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         if (mounted) {
           setState(() {
-            tickets = decoded['data'] ?? [];
+            tickets = decoded is List ? decoded : (decoded['tickets'] ?? decoded['data'] ?? []);
             isLoading = false;
           });
         }
@@ -2871,6 +2871,37 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
           isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _dismissTicket(String ticketId, int index) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/support/$ticketId'),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          tickets.removeAt(index);
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Support ticket dismissed successfully'),
+            backgroundColor: Color(0xFF00897B),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to dismiss ticket'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error dismissing ticket: $e');
     }
   }
 
@@ -2909,6 +2940,12 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
         padding: const EdgeInsets.all(12),
         itemBuilder: (context, index) {
           final ticket = tickets[index];
+          final ticketId = ticket['_id'] ?? ticket['id'] ?? '';
+          final fullName = ticket['fullName'] ?? ticket['name'] ?? 'Unknown Teacher';
+          final phone = ticket['phoneNumber'] ?? ticket['phone'] ?? '';
+          final subject = ticket['subject'] ?? 'No Subject';
+          final message = ticket['message'] ?? '';
+
           return Card(
             elevation: 2,
             margin: const EdgeInsets.symmetric(vertical: 8),
@@ -2920,38 +2957,66 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. TOP LINE: Subject Subtitle (Left) & Delete Button (Right)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Subject: $subject',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF00897B),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                          size: 22,
+                        ),
+                        tooltip: 'Dismiss Ticket',
+                        onPressed: () => _dismissTicket(ticketId, index),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // 2. SECOND LINE: Teacher Name & Phone Number
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        ticket['fullName'] ?? 'Unknown Teacher',
+                        fullName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 14,
+                          color: Colors.black87,
                         ),
                       ),
                       Text(
-                        ticket['phoneNumber'] ?? '',
+                        phone,
                         style: const TextStyle(
-                          color: Colors.teal,
+                          color: Color(0xFF00897B),
                           fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
                     ],
                   ),
-                  const Divider(),
-                  const SizedBox(height: 4),
+                  const Divider(height: 16),
+
+                  // 3. THIRD LINE: Ticket Message Body
                   Text(
-                    'Subject: ${ticket['subject'] ?? 'No Subject'}',
+                    message,
                     style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Colors.black54,
+                      fontSize: 14,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    ticket['message'] ?? '',
-                    style: const TextStyle(color: Colors.black54),
                   ),
                 ],
               ),
@@ -2962,7 +3027,7 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
     );
   }
 }
-
+     
 // ==========================================
 // MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
 // ==========================================
