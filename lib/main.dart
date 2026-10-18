@@ -5856,6 +5856,9 @@ class _ManageBomVacanciesScreenState extends State<ManageBomVacanciesScreen> {
 // ==========================================
 // 4. FREE POSTING MODAL
 // ==========================================
+// ==========================================
+// 4. FREE POSTING MODAL
+// ==========================================
 
 class DynamicPostListingModal extends StatefulWidget {
   final String userName;
@@ -5874,8 +5877,12 @@ class DynamicPostListingModal extends StatefulWidget {
 
 class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
   String selectedType = 'TSC Swap';
-  String selectedSubject = 'English / Literature';
+  String? selectedSubject;
   bool isSubmitting = false;
+
+  // Dynamic Subjects List & Loading state
+  List<String> _subjects = [];
+  bool _isLoadingSubjects = true;
 
   String? _selectedCounty;
   String? _selectedSubCounty;
@@ -6300,6 +6307,56 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
     _tscController = TextEditingController();
     _phoneController = TextEditingController(text: widget.userPhone);
     _salaryController = TextEditingController();
+    _fetchDynamicSubjects();
+  }
+
+  Future<void> _fetchDynamicSubjects() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/subjects'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final List<dynamic> data = jsonResponse['data'];
+        if (mounted && data != null && data.isNotEmpty) {
+          setState(() {
+            _subjects = List<String>.from(data);
+            selectedSubject = _subjects.first;
+            _isLoadingSubjects = false;
+          });
+          return;
+        }
+      }
+      _loadFallbackSubjects();
+    } catch (e) {
+      _loadFallbackSubjects();
+    }
+  }
+
+  void _loadFallbackSubjects() {
+    if (mounted) {
+      setState(() {
+        _subjects = [
+          'English / Literature',
+          'Mathematics / Chemistry',
+          'Mathematics / Biology',
+          'Mathematics / Physics',
+          'Kiswahili / History',
+          'Kiswahili / CRE',
+          'Kiswahili / Geography',
+          'Biology / Chemistry',
+          'Agriculture / Biology',
+          'History / CRE',
+          'Geography / Business',
+          'Geography / CRE',
+          'Computer / Any',
+          'HomeScience / Any',
+        ];
+        selectedSubject = _subjects.first;
+        _isLoadingSubjects = false;
+      });
+    }
   }
 
   @override
@@ -6411,6 +6468,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       if (mounted) setState(() => isSubmitting = false);
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -6455,14 +6513,17 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              // Safely ensure the selected value exists in the dynamic list
               value: _subjects.contains(selectedSubject) ? selectedSubject : null,
+              isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Subject Combination',
                 border: OutlineInputBorder(),
               ),
               items: _subjects.map((sub) {
-                return DropdownMenuItem(value: sub, child: Text(sub));
+                return DropdownMenuItem(
+                  value: sub,
+                  child: Text(sub, overflow: TextOverflow.ellipsis),
+                );
               }).toList(),
               onChanged: (val) {
                 if (val != null) {
@@ -6471,54 +6532,72 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
               },
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'County',
-                border: OutlineInputBorder(),
-              ),
-              value: _selectedCounty,
-              hint: const Text('Select County'),
-              items: _countySubCountyData.keys.map((String county) {
-                return DropdownMenuItem<String>(
-                  value: county,
-                  child: Text(county),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedCounty = newValue;
-                  _selectedSubCounty = null;
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Sub-County',
-                border: OutlineInputBorder(),
-              ),
-              value: _selectedSubCounty,
-              hint: Text(_selectedCounty == null
-                  ? 'Select County First'
-                  : 'Select Sub-County'),
-              disabledHint: const Text('Select County First'),
-              items: (_selectedCounty == null
-                      ? <String>[]
-                      : _countySubCountyData[_selectedCounty] ?? [])
-                  .map((String subCounty) {
-                return DropdownMenuItem<String>(
-                  value: subCounty,
-                  child: Text(subCounty),
-                );
-              }).toList(),
-              onChanged: _selectedCounty == null
-                  ? null
-                  : (String? newValue) {
+            
+            // ==========================================
+            // CURRENT LOCATION (HORIZONTAL ROW)
+            // ==========================================
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'County',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                    ),
+                    isExpanded: true,
+                    value: _selectedCounty,
+                    hint: const Text('County', overflow: TextOverflow.ellipsis),
+                    items: _countySubCountyData.keys.map((String county) {
+                      return DropdownMenuItem<String>(
+                        value: county,
+                        child: Text(county, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
                       setState(() {
-                        _selectedSubCounty = newValue;
+                        _selectedCounty = newValue;
+                        _selectedSubCounty = null;
                       });
                     },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Sub-County',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                    ),
+                    isExpanded: true,
+                    value: _selectedSubCounty,
+                    hint: Text(
+                      _selectedCounty == null ? 'Select County' : 'Sub-County',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    disabledHint: const Text('Select County', overflow: TextOverflow.ellipsis),
+                    items: (_selectedCounty == null
+                            ? <String>[]
+                            : _countySubCountyData[_selectedCounty] ?? [])
+                        .map((String subCounty) {
+                      return DropdownMenuItem<String>(
+                        value: subCounty,
+                        child: Text(subCounty, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: _selectedCounty == null
+                        ? null
+                        : (String? newValue) {
+                            setState(() {
+                              _selectedSubCounty = newValue;
+                            });
+                          },
+                  ),
+                ),
+              ],
             ),
+
             if (selectedType == 'TSC Swap') ...[
               const SizedBox(height: 12),
               TextField(
@@ -6547,55 +6626,69 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Target County (Desired Destination)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.map),
-                ),
-                value: _selectedTargetCounty,
-                hint: const Text('Select Target County'),
-                items: _countySubCountyData.keys.map((String county) {
-                  return DropdownMenuItem<String>(
-                    value: county,
-                    child: Text(county),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedTargetCounty = newValue;
-                    _selectedTargetSubCounty = null;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Target Sub-County (Optional/Any)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_city),
-                ),
-                value: _selectedTargetSubCounty,
-                hint: const Text('Select Target Sub-County'),
-                items: _selectedTargetCounty == null
-                    ? []
-                    : (_countySubCountyData[_selectedTargetCounty] ?? [])
-                        .map((String subCounty) {
+              const SizedBox(height: 12),            
+// ==========================================
+// TARGET LOCATION (HORIZONTAL ROW)
+// ==========================================
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Target County',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                      ),
+                      isExpanded: true,
+                      value: _selectedTargetCounty,
+                      hint: const Text('Target County', overflow: TextOverflow.ellipsis),
+                      items: _countySubCountyData.keys.map((String county) {
                         return DropdownMenuItem<String>(
-                          value: subCounty,
-                          child: Text(subCounty),
+                          value: county,
+                          child: Text(county, overflow: TextOverflow.ellipsis),
                         );
                       }).toList(),
-                onChanged: _selectedTargetCounty == null
-                    ? null
-                    : (String? newValue) {
+                      onChanged: (String? newValue) {
                         setState(() {
-                          _selectedTargetSubCounty = newValue;
+                          _selectedTargetCounty = newValue;
+                          _selectedTargetSubCounty = null;
                         });
                       },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Target Sub-County',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                      ),
+                      isExpanded: true,
+                      value: _selectedTargetSubCounty,
+                      hint: const Text('Optional/Any', overflow: TextOverflow.ellipsis),
+                      items: _selectedTargetCounty == null
+                          ? []
+                          : (_countySubCountyData[_selectedTargetCounty] ?? [])
+                              .map((String subCounty) {
+                              return DropdownMenuItem<String>(
+                                value: subCounty,
+                                child: Text(subCounty, overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                      onChanged: _selectedTargetCounty == null
+                          ? null
+                          : (String? newValue) {
+                              setState(() {
+                                _selectedTargetSubCounty = newValue;
+                              });
+                            },
+                    ),
+                  ),
+                ],
               ),
             ],
+
             if (selectedType == 'BOM Vacancy') ...[
               const SizedBox(height: 12),
               TextField(
@@ -6640,7 +6733,8 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       ),
     );
   }
-} 
+}                           
+                                          
 //=============================
 // class HelpSupportScreen
 //=============================
