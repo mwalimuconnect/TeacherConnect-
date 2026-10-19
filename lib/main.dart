@@ -5286,52 +5286,52 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
   }
 
   void _loadCompleteFallbackSubjects() {
-    if (mounted) {
-      setState(() {
-        _subjects = [
-          // Languages & Humanities
-          'English / Literature',
-          'Kiswahili / History',
-          'Kiswahili / CRE',
-          'Kiswahili / Geography',
-          'Kiswahili / IRE',
-          'History / CRE',
-          'History / IRE',
-          'Geography / CRE',
-          'Geography / Business',
-          'French / English',
-          'German / Any',
+  if (mounted) {
+    setState(() {
+      _subjects = [
+        // Languages & Humanities
+        'English / Literature',
+        'Kiswahili / History',
+        'Kiswahili / CRE',
+        'Kiswahili / Geography',
+        'Kiswahili / IRE',
+        'History / CRE',
+        'History / IRE',
+        'Geography / CRE',
+        'Geography / Business',
+        'French / English',
+        'German / Any',
 
-          // Sciences & Mathematics (STEM)
-          'Mathematics / Chemistry',
-          'Mathematics / Biology',
-          'Mathematics / Physics',
-          'Physics / Chemistry',
-          'Mathematics / Computer Studies',
-          'Biology / Chemistry',
+        // Sciences & Mathematics (STEM)
+        'Mathematics / Chemistry',
+        'Mathematics / Biology',
+        'Mathematics / Physics',
+        'Physics / Chemistry',
+        'Mathematics / Computer Studies',
+        'Biology / Chemistry',
 
-          // Technical, Applied & Business Studies
-          'Business Studies / Mathematics',
-          'Business Studies / Kiswahili',
-          'Business Studies / History',
-          'Business Studies / Computer Studies',
-          'Agriculture / Biology',
-          'Agriculture / Chemistry',
-          'Agriculture / Geography',
-          'Home Science / Biology',
-          'Home Science / Chemistry',
-          'Home Science / History',
-          'Computer / Any',
-          'HomeScience / Any',
-        ];
-        if (_subjects.isNotEmpty) {
-          _selectedSubject = _subjects.first;
-        }
-        _isLoadingSubjects = false;
-      });
-    }
+        // Technical, Applied & Business Studies
+        'Business Studies / Mathematics',
+        'Business Studies / Kiswahili',
+        'Business Studies / History',
+        'Business Studies / Computer Studies',
+        'Agriculture / Biology',
+        'Agriculture / Chemistry',
+        'Agriculture / Geography',
+        'Home Science / Biology',
+        'Home Science / Chemistry',
+        'Home Science / History',
+        'Computer / Any',
+        'HomeScience / Any',
+      ];
+      if (_subjects.isNotEmpty) {
+        _selectedSubject = _subjects.first;
+      }
+      _isLoadingSubjects = false;
+    });
   }
-  
+  }
+      
   // Step A: Pick File Logic
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
