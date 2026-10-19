@@ -6945,7 +6945,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
 // ============================================================================
 // ADMIN SUPPORT TICKETS SCREEN (WITH DISMISS / DELETE FUNCTIONALITY)
-// ============================================================================
+// ===========================================================================
 class AdminSupportTicketsScreen extends StatefulWidget {
   const AdminSupportTicketsScreen({Key? key}) : super(key: key);
 
@@ -7011,7 +7011,9 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         setState(() {
           _tickets.removeAt(index);
         });
+
         if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Support ticket dismissed successfully'),
@@ -7020,6 +7022,7 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
         );
       } else {
         if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to dismiss ticket'),
@@ -7042,7 +7045,16 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty
-              ? Center(child: Text(_errorMessage, style: const TextStyle(color: Colors.red)))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      _errorMessage,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
               : _tickets.isEmpty
                   ? const Center(
                       child: Text(
@@ -7128,8 +7140,8 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                                 // 3. THIRD LINE: Ticket Message Body
                                 Text(
                                   message,
-                                  style: TextStyle(
-                                    color: Colors.grey[800],
+                                  style: const TextStyle(
+                                    color: Colors.grey,
                                     fontSize: 14,
                                   ),
                                 ),
