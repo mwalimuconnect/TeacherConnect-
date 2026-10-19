@@ -6537,7 +6537,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
     }
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
@@ -6583,6 +6583,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
             DropdownButtonFormField<String>(
               value: _subjects.contains(selectedSubject) ? selectedSubject : null,
               isExpanded: true,
+              menuMaxHeight: 380, // Enables scrolling through all 29 subject combinations
               decoration: const InputDecoration(
                 labelText: 'Subject Combination',
                 border: OutlineInputBorder(),
@@ -6600,7 +6601,8 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
               },
             ),
             const SizedBox(height: 12),
-            
+   
+              
             // ==========================================
             // CURRENT LOCATION (HORIZONTAL ROW)
             // ==========================================
