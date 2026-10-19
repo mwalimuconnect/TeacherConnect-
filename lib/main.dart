@@ -5485,17 +5485,20 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
               const SizedBox(height: 16),
 
               // Subject Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedSubject,
-                decoration: const InputDecoration(
-                  labelText: 'Subject',
-                  border: OutlineInputBorder(),
-                ),
-                items: _subjects.map((sub) => DropdownMenuItem(value: sub, child: Text(sub))).toList(),
-                onChanged: (val) => setState(() => _selectedSubject = val!),
-              ),
-              const SizedBox(height: 16),
-
+DropdownButtonFormField<String>(
+  value: _subjects.contains(_selectedSubject) ? _selectedSubject : (_subjects.isNotEmpty ? _subjects.first : null),
+  isExpanded: true,
+  menuMaxHeight: 380, // Enables scrolling for all 28+ subject combinations
+  decoration: const InputDecoration(
+    labelText: 'Subject',
+    border: OutlineInputBorder(),
+  ),
+  items: _subjects.map((sub) => DropdownMenuItem(
+    value: sub,
+    child: Text(sub, overflow: TextOverflow.ellipsis),
+  )).toList(),
+  onChanged: (val) => setState(() => _selectedSubject = val),
+),
               // Form Level Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedForm,
