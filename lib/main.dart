@@ -6401,31 +6401,50 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       _loadFallbackSubjects();
     }
   }
+void _loadFallbackSubjects() {
+  if (mounted) {
+    setState(() {
+      _subjects = [
+        // Languages & Humanities
+        'English / Literature',
+        'Kiswahili / History',
+        'Kiswahili / CRE',
+        'Kiswahili / Geography',
+        'Kiswahili / IRE',
+        'History / CRE',
+        'History / IRE',
+        'Geography / CRE',
+        'Geography / Business',
+        'French / English',
+        'German / Any',
 
-  void _loadFallbackSubjects() {
-    if (mounted) {
-      setState(() {
-        _subjects = [
-          'English / Literature',
-          'Mathematics / Chemistry',
-          'Mathematics / Biology',
-          'Mathematics / Physics',
-          'Kiswahili / History',
-          'Kiswahili / CRE',
-          'Kiswahili / Geography',
-          'Biology / Chemistry',
-          'Agriculture / Biology',
-          'History / CRE',
-          'Geography / Business',
-          'Geography / CRE',
-          'Computer / Any',
-          'HomeScience / Any',
-        ];
-        selectedSubject = _subjects.first;
-        _isLoadingSubjects = false;
-      });
-    }
+        // Sciences & Mathematics (STEM)
+        'Mathematics / Chemistry',
+        'Mathematics / Biology',
+        'Mathematics / Physics',
+        'Physics / Chemistry',
+        'Mathematics / Computer Studies',
+        'Biology / Chemistry',
+
+        // Technical, Applied & Business Studies
+        'Business Studies / Mathematics',
+        'Business Studies / Kiswahili',
+        'Business Studies / History',
+        'Business Studies / Computer Studies',
+        'Agriculture / Biology',
+        'Agriculture / Chemistry',
+        'Agriculture / Geography',
+        'Home Science / Biology',
+        'Home Science / Chemistry',
+        'Home Science / History',
+        'Computer / Any',
+        'HomeScience / Any',
+      ];
+      selectedSubject = _subjects.first;
+      _isLoadingSubjects = false;
+    });
   }
+}
 
   @override
   void dispose() {
