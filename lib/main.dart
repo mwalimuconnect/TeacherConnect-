@@ -597,8 +597,14 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 }
             
 // =========================================================
-// 2. LOGIN SCREEN (With Biometric Fingerprint Support)
+// 2. LOGIN SCREEN (With Biometric Fingerprint & Session Support)
 // =========================================================
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -622,9 +628,27 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// Handles Fingerprint / Biometric Login Prompt
+  /// Handles Biometric (Fingerprint) Authentication
   Future<void> _handleBiometricLogin() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? savedPhone = prefs.getString('savedPhone');
+      final String? savedName = prefs.getString('savedName');
+      final String? savedRole = prefs.getString('savedRole');
+
+      // Check if a valid user session was saved on this device
+      if (savedPhone == null || savedPhone.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in with your phone and password first to enable fingerprint login.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
       final bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
 
@@ -632,7 +656,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Biometric authentication is not available on this device.'),
+            content: Text('Biometric authentication is not supported or set up on this device.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -651,24 +675,37 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Biometric authentication successful!'),
-            backgroundColor: Color(0xFF00897B),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text('Welcome back, ${savedName ?? 'Teacher'}!'),
+            backgroundColor: const Color(0xFF00897B),
+            duration: const Duration(seconds: 2),
           ),
         );
 
-        // TODO: Replace with saved session reader or default portal entry
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const TeacherPortalScreen(
-              userName: 'Member Teacher',
-              userRole: 'Member Teacher',
-              userPhone: '',
+        final bool isAdmin = savedRole?.toLowerCase().contains('admin') ?? false;
+
+        if (isAdmin) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AdminDashboardScreen(
+                adminName: savedName ?? 'Admin',
+                adminPhone: savedPhone,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherPortalScreen(
+                userName: savedName ?? 'Member Teacher',
+                userRole: savedRole ?? 'Member Teacher',
+                userPhone: savedPhone,
+              ),
+            ),
+          );
+        }
       }
     } on PlatformException catch (e) {
       if (!mounted) return;
@@ -681,8 +718,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Handles standard Phone & Password login
   Future<void> _handleLogin() async {
-    // Dismiss soft keyboard
     FocusScope.of(context).unfocus();
 
     setState(() => _isLoading = true);
@@ -704,12 +741,17 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         if (!mounted) return;
 
-        // Extract user payload cleanly
         final userMap = data['user'] ?? {};
         final String userRole = userMap['role'] ?? 'Member Teacher';
         final String userName = userMap['fullName'] ?? 'Teacher';
-        // Read backend 'phone' field, fallback to 'phoneNumber' or input text
         final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
+
+        // Save session data locally so fingerprint authentication can load this specific user
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedPhone', userPhone);
+        await prefs.setString('savedName', userName);
+        await prefs.setString('savedRole', userRole);
+        await prefs.setBool('isLoggedIn', true);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -719,7 +761,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Case-insensitive role verification
         final bool isAdmin = userRole.toLowerCase().contains('admin');
 
         if (isAdmin) {
@@ -896,7 +937,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   InkWell(
-  onTap: _handleBiometricLogin, // ✅ USE onTap INSTEAD
+                    onTap: _handleBiometricLogin,
                     borderRadius: BorderRadius.circular(50),
                     child: Container(
                       padding: const EdgeInsets.all(12),
@@ -953,8 +994,8 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}                                            
-                             
+}
+                                                                                         
 // =========================================================
 // 3. FORGOT & RESET PASSWORD SCREENS
 // =========================================================
