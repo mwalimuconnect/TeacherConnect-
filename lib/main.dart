@@ -603,8 +603,14 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 }
             
 // =========================================================
-// 2. LOGIN SCREEN
+// 2. LOGIN SCREEN (With Biometric Fingerprint Support)
 // =========================================================
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:local_auth/local_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -616,6 +622,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final LocalAuthentication _localAuth = LocalAuthentication();
+
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -624,6 +632,65 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Handles Fingerprint / Biometric Login Prompt
+  Future<void> _handleBiometricLogin() async {
+    try {
+      final bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
+      final bool isDeviceSupported = await _localAuth.isDeviceSupported();
+
+      if (!canCheckBiometrics || !isDeviceSupported) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric authentication is not available on this device.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      final bool authenticated = await _localAuth.authenticate(
+        localizedReason: 'Scan your fingerprint to log into TeacherConnect',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+
+      if (authenticated) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric authentication successful!'),
+            backgroundColor: Color(0xFF00897B),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // TODO: Replace with saved session reader or default portal entry
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const TeacherPortalScreen(
+              userName: 'Member Teacher',
+              userRole: 'Member Teacher',
+              userPhone: '',
+            ),
+          ),
+        );
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Biometric Error: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -787,8 +854,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 border: const OutlineInputBorder(),
               ),
             ),
-            
-            // Forgot Password Link aligned to the right
+
+            // Forgot Password Link
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -823,7 +890,54 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+
+            // --- Biometric Fingerprint Section ---
+            Row(
+              children: const [
+                Expanded(child: Divider(thickness: 1)),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('OR', style: TextStyle(color: Colors.grey)),
+                ),
+                Expanded(child: Divider(thickness: 1)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Column(
+                children: [
+                  InkWell(
+                    onPressed: _handleBiometricLogin,
+                    borderRadius: BorderRadius.circular(50),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00897B).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFF00897B), width: 1.5),
+                      ),
+                      child: const Icon(
+                        Icons.fingerprint,
+                        size: 40,
+                        color: Color(0xFF00897B),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Login with Fingerprint',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF00897B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
 
             // Link back to Register
             Center(
@@ -851,8 +965,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
-
+}                                            
                              
 // =========================================================
 // 3. FORGOT & RESET PASSWORD SCREENS
