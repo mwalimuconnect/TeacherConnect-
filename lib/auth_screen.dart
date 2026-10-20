@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -49,9 +50,27 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
-  /// Handles Biometric (Fingerprint) Authentication flow
+  /// Handles Biometric (Fingerprint) Authentication flow with saved session lookup
   Future<void> _handleBiometricLogin() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? savedPhone = prefs.getString('savedPhone');
+      final String? savedName = prefs.getString('savedName');
+      final String? savedRole = prefs.getString('savedRole');
+
+      // Check if a valid user session was saved on this device
+      if (savedPhone == null || savedPhone.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in with your phone and password first to enable fingerprint login.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
       final bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
 
@@ -76,23 +95,39 @@ class _AuthScreenState extends State<AuthScreen> {
 
       if (didAuthenticate) {
         if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Biometric login successful!'),
-            backgroundColor: Color(0xFF00897B),
+          SnackBar(
+            content: Text('Welcome back, ${savedName ?? 'Teacher'}!'),
+            backgroundColor: const Color(0xFF00897B),
+            duration: const Duration(seconds: 2),
           ),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const TeacherPortalScreen(
-              userName: 'Member Teacher',
-              userRole: 'Member Teacher',
-              userPhone: 'Biometric User',
+        final bool isAdmin = savedRole?.toLowerCase().contains('admin') ?? false;
+
+        if (isAdmin) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AdminDashboardScreen(
+                adminName: savedName ?? 'Admin',
+                adminPhone: savedPhone,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TeacherPortalScreen(
+                userName: savedName ?? 'Member Teacher',
+                userRole: savedRole ?? 'Member Teacher',
+                userPhone: savedPhone,
+              ),
+            ),
+          );
+        }
       }
     } on PlatformException catch (e) {
       if (!mounted) return;
@@ -188,6 +223,13 @@ class _AuthScreenState extends State<AuthScreen> {
         final String userName = userMap['fullName'] ?? _phoneController.text.trim();
         final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
 
+        // Save session locally so fingerprint login can identify the user
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedPhone', userPhone);
+        await prefs.setString('savedName', userName);
+        await prefs.setString('savedRole', userRole);
+        await prefs.setBool('isLoggedIn', true);
+
         final bool isAdmin = userRole.toLowerCase().contains('admin');
 
         if (isAdmin) {
@@ -219,7 +261,7 @@ class _AuthScreenState extends State<AuthScreen> {
             content: Text(data['message'] ?? 'Authentication failed'),
             backgroundColor: Colors.red,
           ),
-        );
+        );  
       }
     } catch (e) {
       if (!mounted) return;
@@ -233,8 +275,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
-  @override
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -509,7 +550,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Column(
                       children: [
                         InkWell(
-                          onTap: _handleBiometricLogin, // Fixed from onPressed to onTap
+                          onTap: _handleBiometricLogin,
                           borderRadius: BorderRadius.circular(50),
                           child: Container(
                             padding: const EdgeInsets.all(12),
@@ -560,207 +601,6 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({Key? key}) : super(key: key);
-
-  @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
-}
-
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _idController = TextEditingController();
-  final TextEditingController _tscController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
-
-  bool _isLoading = false;
-  bool _obscurePassword = true;
-
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    _idController.dispose();
-    _tscController.dispose();
-    _newPasswordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleResetPassword() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    FocusScope.of(context).unfocus();
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'phoneNumber': _phoneController.text.trim(),
-          'idNumber': _idController.text.trim(),
-          'tscNumber': _tscController.text.trim(),
-          'newPassword': _newPasswordController.text.trim(),
-        }),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Password reset successfully!'),
-            backgroundColor: const Color(0xFF00897B),
-          ),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Verification failed.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Network error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Reset Password'),
-        backgroundColor: const Color(0xFF00897B),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Account Identity Verification',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Enter your registered Phone Number, ID/Passport Number, and TSC Number to set a new password.',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter your phone number' : null,
-                ),
-                const SizedBox(height: 14),
-
-                TextFormField(
-                  controller: _idController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'ID / Passport Number',
-                    prefixIcon: Icon(Icons.badge),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter your ID number' : null,
-                ),
-                const SizedBox(height: 14),
-
-                TextFormField(
-                  controller: _tscController,
-                  decoration: const InputDecoration(
-                    labelText: 'TSC Number',
-                    prefixIcon: Icon(Icons.card_membership),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter your TSC number' : null,
-                ),
-                const SizedBox(height: 14),
-
-                TextFormField(
-                  controller: _newPasswordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'New Password',
-                    prefixIcon: const Icon(Icons.lock_reset),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'Enter a new password' : null,
-                ),
-                const SizedBox(height: 24),
-
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleResetPassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00897B),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Reset Password',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
                 ),
               ],
             ),
