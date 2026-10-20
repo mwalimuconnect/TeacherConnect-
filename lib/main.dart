@@ -896,7 +896,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   InkWell(
-                    onPressed: _handleBiometricLogin,
+  onTap: _handleBiometricLogin, // ✅ USE onTap INSTEAD
                     borderRadius: BorderRadius.circular(50),
                     child: Container(
                       padding: const EdgeInsets.all(12),
