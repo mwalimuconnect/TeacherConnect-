@@ -1,7 +1,9 @@
 import 'main.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:local_auth/local_auth.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -12,6 +14,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   bool _isLogin = true;
   bool _isLoading = false;
@@ -44,6 +47,63 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _isLogin = !_isLogin;
     });
+  }
+
+  /// Handles Biometric (Fingerprint) Authentication flow
+  Future<void> _handleBiometricLogin() async {
+    try {
+      final bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
+      final bool isDeviceSupported = await _localAuth.isDeviceSupported();
+
+      if (!canCheckBiometrics || !isDeviceSupported) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric authentication is not supported or set up on this device.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      final bool didAuthenticate = await _localAuth.authenticate(
+        localizedReason: 'Scan your fingerprint to log into TeacherConnect',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+
+      if (didAuthenticate) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric login successful!'),
+            backgroundColor: Color(0xFF00897B),
+          ),
+        );
+
+        // TODO: Replace with your post-biometric login navigation / user session loader
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const TeacherPortalScreen(
+              userName: 'Member Teacher',
+              userRole: 'Member Teacher',
+              userPhone: 'Biometric User',
+            ),
+          ),
+        );
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Biometric error: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _handleSubmit() async {
@@ -432,6 +492,55 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                 ),
+
+                 // Fingerprint Login Section (Visible only in Login mode)
+                if (_isLogin) ...[
+                  const SizedBox(height: 20),
+                  Row(
+                    children: const [
+                      Expanded(child: Divider(thickness: 1)),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('OR', style: TextStyle(color: Colors.grey)),
+                      ),
+                      Expanded(child: Divider(thickness: 1)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Column(
+                      children: [
+                        InkWell(
+                          onPressed: _handleBiometricLogin,
+                          borderRadius: BorderRadius.circular(50),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00897B).withOpacity(0.1),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFF00897B), width: 1.5),
+                            ),
+                            child: const Icon(
+                              Icons.fingerprint,
+                              size: 40,
+                              color: Color(0xFF00897B),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Login with Fingerprint',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF00897B),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 12),
 
                 TextButton(
@@ -540,7 +649,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
