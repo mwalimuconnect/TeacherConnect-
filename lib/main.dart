@@ -1,19 +1,13 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart'; // <-- Add this for PlatformException
 import 'package:http/http.dart' as http;
-
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:teacherconnect/auth_screen.dart';
-
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:teacherconnect/services/upload_service.dart';
-
 import 'package:file_picker/file_picker.dart';
-
+import 'package:local_auth/local_auth.dart'; // <-- Add this for LocalAuthentication & AuthenticationOptions
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
