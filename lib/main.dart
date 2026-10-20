@@ -606,12 +606,6 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 // 2. LOGIN SCREEN (With Biometric Fingerprint Support)
 // =========================================================
 
-import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:local_auth/local_auth.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
