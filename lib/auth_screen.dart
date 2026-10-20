@@ -83,7 +83,6 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         );
 
-        // TODO: Replace with your post-biometric login navigation / user session loader
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -114,7 +113,6 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // If registering and role requires a TSC number, verify it first against official portal
       if (!_isLogin && _selectedRole != 'Job Seeker (BOM)' && _tscNumberController.text.trim().isNotEmpty) {
         final verifyResponse = await http.post(
           Uri.parse('https://teacher-connect-backend.vercel.app/api/verify-tsc'),
@@ -135,7 +133,7 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           );
           setState(() => _isLoading = false);
-          return; // Halt registration if verification fails
+          return;
         }
       }
 
@@ -493,7 +491,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                 ),
 
-                 // Fingerprint Login Section (Visible only in Login mode)
+                // Fingerprint Login Section (Visible only in Login mode)
                 if (_isLogin) ...[
                   const SizedBox(height: 20),
                   Row(
@@ -511,7 +509,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Column(
                       children: [
                         InkWell(
-                          onPressed: _handleBiometricLogin,
+                          onTap: _handleBiometricLogin, // Fixed from onPressed to onTap
                           borderRadius: BorderRadius.circular(50),
                           child: Container(
                             padding: const EdgeInsets.all(12),
