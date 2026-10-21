@@ -4728,110 +4728,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
             },
           ),
         ),
-
-void _showPdfPreviewModal(BuildContext context, String pdfUrl, String title, double price, VoidCallback onDownloadPressed) async {
-  // Show a loading dialog while fetching the sample PDF
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.teal)),
-  );
-
-  File? pdfFile;
-  try {
-    // Download the PDF bytes temporarily for previewing
-    final response = await http.get(Uri.parse(pdfUrl));
-    if (response.statusCode == 200) {
-      final bytes = response.bodyBytes;
-      final dir = await getTemporaryDirectory();
-      pdfFile = File('${dir.path}/preview_temp.pdf');
-      await pdfFile.writeAsBytes(bytes);
-    }
-  } catch (e) {
-    debugPrint('Error loading PDF preview: $e');
-  }
-
-  // Close the loading dialog
-  if (!context.mounted) return;
-  Navigator.pop(context);
-
-  if (pdfFile == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Could not load PDF preview.'), backgroundColor: Colors.red),
-    );
-    return;
-  }
-
-  // Open the PDF Preview Modal Bottom Sheet
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (context) {
-      return Container(
-        height: MediaQuery.of(context).size.height * 0.80,
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Preview: $title',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.teal),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const Divider(),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: PDFView(
-                  filePath: pdfFile!.path,
-                  enableSwipe: true,
-                  swipeHorizontal: false,
-                  autoSpacing: false,
-                  pageFling: true,
-                  onError: (error) => debugPrint(error.toString()),
-                  onPageError: (page, error) => debugPrint('$page: ${error.toString()}'),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ).wrap(
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onDownloadPressed();
-                  },
-                  child: Text(
-                    price > 0 ? 'Unlock & Download for KES $price' : 'Download Document',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+           
         // Folder Directory Grid View
         Expanded(
           child: _isLoading
@@ -4942,7 +4839,134 @@ void _showPdfPreviewModal(BuildContext context, String pdfUrl, String title, dou
                           );
                         },
                       ),
+                   ),
+      void _showPdfPreviewModal(
+    BuildContext context,
+    String pdfUrl,
+    String title,
+    double price,
+    VoidCallback onDownloadPressed,
+  ) async {
+    // 1. Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.teal),
+      ),
+    );
+
+    File? pdfFile;
+    try {
+      final response = await http.get(Uri.parse(pdfUrl));
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        final dir = await getTemporaryDirectory();
+        pdfFile = File('${dir.path}/preview_temp.pdf');
+        await pdfFile.writeAsBytes(bytes);
+      }
+    } catch (e) {
+      debugPrint('Error loading PDF preview: $e');
+    }
+
+    // 2. Close loading dialog
+    if (!context.mounted) return;
+    Navigator.pop(context);
+
+    if (pdfFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not load PDF preview.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // 3. Open PDF Preview Modal Bottom Sheet
+    if (!context.mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.80,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Preview: $title',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.teal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: PDFView(
+                    filePath: pdfFile!.path,
+                    enableSwipe: true,
+                    swipeHorizontal: false,
+                    autoSpacing: false,
+                    pageFling: true,
+                    onError: (error) => debugPrint(error.toString()),
+                    onPageError: (page, error) =>
+                        debugPrint('$page: ${error.toString()}'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onDownloadPressed();
+                  },
+                  child: Text(
+                    price > 0
+                        ? 'Unlock & Download for KES $price'
+                        : 'Download Document',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+        
         ),
       ],
     );
