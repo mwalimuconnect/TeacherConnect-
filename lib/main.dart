@@ -8,6 +8,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:teacherconnect/services/upload_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:local_auth/local_auth.dart'; // <-- Add this for LocalAuthentication & AuthenticationOptions
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
