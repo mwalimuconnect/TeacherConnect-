@@ -1606,9 +1606,6 @@ class TeacherPortalTables {
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN
 // =========================================================
-// =========================================================
-// TEACHER PORTAL MAIN SCREEN
-// =========================================================
 class TeacherPortalScreen extends StatefulWidget {
   final String userName;
   final String userRole;
@@ -2497,7 +2494,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Navigator.of(dialogContext).pop();
 
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
+                
+                // ✅ PRESERVE savedPhone, savedName, and savedRole for fingerprint login!
+                // Only mark active session as logged out:
+                await prefs.setBool('isLoggedIn', false);
 
                 if (!mounted) return;
 
@@ -2955,7 +2955,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-                       
+                                             
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
