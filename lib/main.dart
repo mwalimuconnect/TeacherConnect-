@@ -4472,6 +4472,7 @@ class _MemberDataTableSource extends DataTableSource {
 }                                                                           
 
 
+
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
 // ============================================================================
@@ -4657,9 +4658,10 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       }
     }
   }
- // =========================================================
-  // IN-APP PDF PREVIEW MODAL
-  // =========================================================
+
+  // ============================================================================
+  // INSTANT PDF PREVIEW HANDLER (USING URL LAUNCHER)
+  // ============================================================================
   void _showPdfPreviewModal(
     BuildContext context,
     String pdfUrl,
@@ -4667,158 +4669,27 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     double price,
     VoidCallback onDownloadPressed,
   ) async {
-    File? pdfFile;
-    bool isLoading = true;
-    String? errorMessage;
+    final Uri uri = Uri.parse(pdfUrl);
 
-    // Show the modal bottom sheet first with a loading state
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            // Trigger download once when modal opens
-            if (isLoading && pdfFile == null && errorMessage == null) {
-              http.get(Uri.parse(pdfUrl)).then((response) async {
-                if (response.statusCode == 200) {
-                  try {
-                    final bytes = response.bodyBytes;
-                    final dir = await getTemporaryDirectory();
-                    final file = File(
-                        '${dir.path}/${DateTime.now().millisecondsSinceEpoch}_preview.pdf');
-                    await file.writeAsBytes(bytes);
-                    if (context.mounted) {
-                      setModalState(() {
-                        pdfFile = file;
-                        isLoading = false;
-                      });
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      setModalState(() {
-                        errorMessage = 'Error saving temp file: $e';
-                        isLoading = false;
-                      });
-                    }
-                  }
-                } else {
-                  if (context.mounted) {
-                    setModalState(() {
-                      errorMessage =
-                          'Server returned status: ${response.statusCode}';
-                      isLoading = false;
-                    });
-                  }
-                }
-              }).catchError((e) {
-                if (context.mounted) {
-                  setModalState(() {
-                    errorMessage = 'Network error: $e';
-                    isLoading = false;
-                  });
-                }
-              });
-            }
+    try {
+      bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.inAppWebView,
+      );
 
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.80,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Preview: $title',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.teal,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  Expanded(
-                    child: isLoading
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(color: Colors.teal),
-                                SizedBox(height: 12),
-                                Text('Loading PDF Preview...'),
-                              ],
-                            ),
-                          )
-                        : errorMessage != null
-                            ? Center(
-                                child: Text(
-                                  errorMessage!,
-                                  style: const TextStyle(color: Colors.red),
-                                  textAlign: TextAlign.center,
-                                ),
-                              )
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: PDFView(
-                                  filePath: pdfFile!.path,
-                                  enableSwipe: true,
-                                  swipeHorizontal: false,
-                                  autoSpacing: false,
-                                  pageFling: true,
-                                  onError: (error) =>
-                                      debugPrint(error.toString()),
-                                  onPageError: (page, error) =>
-                                      debugPrint('$page: ${error.toString()}'),
-                                ),
-                              ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        onDownloadPressed();
-                      },
-                      child: Text(
-                        price > 0
-                            ? 'Unlock & Download for KES ${price.toStringAsFixed(0)}'
-                            : 'Download Document',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+      if (!launched) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
         );
-      },
-    );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open preview: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -4932,9 +4803,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                           ],
                         ),
                       ),
-                    )            
-  
-                 : RefreshIndicator(
+                    )
+                  : RefreshIndicator(
                       onRefresh: _fetchResources,
                       child: GridView.builder(
                         padding: const EdgeInsets.all(12.0),
@@ -5035,8 +4905,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       ],
     );
   }
-}                                                                    
-
+}
+                                                                      
 // ============================================================================
 // SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & In-App PDF Preview)
 // ============================================================================
