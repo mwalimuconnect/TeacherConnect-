@@ -4471,10 +4471,8 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }                                                                           
 
+
 // ============================================================================
-// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
-// ============================================================================
- // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
@@ -5037,12 +5035,10 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       ],
     );
   }
-} 
+}                                                                    
 
-                        
-                                          
 // ============================================================================
-// SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & PDF Preview)
+// SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & In-App PDF Preview)
 // ============================================================================
 class SubjectFolderDetailScreen extends StatefulWidget {
   final String subject;
@@ -5061,10 +5057,12 @@ class SubjectFolderDetailScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<SubjectFolderDetailScreen> createState() => _SubjectFolderDetailScreenState();
+  State<SubjectFolderDetailScreen> createState() =>
+      _SubjectFolderDetailScreenState();
 }
 
-class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
+class _SubjectFolderDetailScreenState
+    extends State<SubjectFolderDetailScreen> {
   late List<dynamic> _localResources;
 
   @override
@@ -5075,9 +5073,12 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
 
   // --- 1. EDIT RESOURCE DIALOG ---
   Future<void> _editResource(Map<String, dynamic> resource) async {
-    final String resourceId = resource['_id']?.toString() ?? resource['id']?.toString() ?? '';
-    final titleController = TextEditingController(text: resource['title'] ?? '');
-    final priceController = TextEditingController(text: (resource['price'] ?? 50).toString());
+    final String resourceId =
+        resource['_id']?.toString() ?? resource['id']?.toString() ?? '';
+    final titleController =
+        TextEditingController(text: resource['title'] ?? '');
+    final priceController =
+        TextEditingController(text: (resource['price'] ?? 50).toString());
     String selectedCategory = resource['category'] ?? 'Setbooks & Notes';
 
     bool? updated = await showDialog<bool>(
@@ -5111,7 +5112,8 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
             onPressed: () async {
               try {
                 final response = await http.put(
-                  Uri.parse('https://teacher-connect-backend.vercel.app/api/resources/$resourceId?isAdmin=true'),
+                  Uri.parse(
+                      'https://teacher-connect-backend.vercel.app/api/resources/$resourceId?isAdmin=true'),
                   headers: {'Content-Type': 'application/json'},
                   body: jsonEncode({
                     'title': titleController.text.trim(),
@@ -5126,7 +5128,8 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                 } else {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to update: ${response.body}')),
+                      SnackBar(
+                          content: Text('Failed to update: ${response.body}')),
                     );
                   }
                 }
@@ -5163,7 +5166,8 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Resource'),
-        content: const Text('Are you sure you want to delete this resource? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete this resource? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -5181,14 +5185,17 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
 
     try {
       final response = await http.delete(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/resources/$resourceId?isAdmin=true'),
+        Uri.parse(
+            'https://teacher-connect-backend.vercel.app/api/resources/$resourceId?isAdmin=true'),
         headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
         if (mounted) {
           setState(() {
-            _localResources.removeWhere((item) => (item['_id']?.toString() ?? item['id']?.toString()) == resourceId);
+            _localResources.removeWhere((item) =>
+                (item['_id']?.toString() ?? item['id']?.toString()) ==
+                resourceId);
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Resource deleted successfully')),
@@ -5223,11 +5230,13 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.folder_open, size: 64, color: Colors.grey.shade400),
+                  Icon(Icons.folder_open,
+                      size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 12),
                   Text(
                     'No resources found in ${widget.subject}',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                    style:
+                        TextStyle(color: Colors.grey.shade600, fontSize: 16),
                   ),
                 ],
               ),
@@ -5239,15 +5248,16 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                 final res = _localResources[index];
                 final title = res['title'] ?? 'Untitled Resource';
                 final category = res['category'] ?? 'General';
-                final resourceId = res['_id']?.toString() ?? res['id']?.toString() ?? '';
-                final fileUrl = res['fileUrl'] ?? res['url'] ?? '';
+                final resourceId =
+                    res['_id']?.toString() ?? res['id']?.toString() ?? '';
                 double price = (res['price'] ?? 50.0).toDouble();
 
                 if (price > 0 && price < 50) price = 50.0;
                 if (price > 100) price = 100.0;
 
                 final bool isPaidResource = price >= 50.0;
-                final bool canDownloadDirectly = widget.isAdmin || !isPaidResource;
+                final bool canDownloadDirectly =
+                    widget.isAdmin || !isPaidResource;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10.0),
@@ -5274,12 +5284,16 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                                 children: [
                                   Text(
                                     title,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                    style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -5292,19 +5306,24 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            // Preview Button
+                            // Preview Button (Routes directly through Backend Download API)
                             OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.teal,
                                 side: const BorderSide(color: Colors.teal),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
                               ),
                               icon: const Icon(Icons.visibility, size: 16),
-                              label: const Text('Preview', style: TextStyle(fontSize: 12)),
+                              label: const Text('Preview',
+                                  style: TextStyle(fontSize: 12)),
                               onPressed: () {
+                                final String previewUrl =
+                                    'https://teacher-connect-backend.vercel.app/api/resources/download/$resourceId?isAdmin=${widget.isAdmin}';
+
                                 widget.onPreview(
                                   context,
-                                  fileUrl,
+                                  previewUrl,
                                   title,
                                   price,
                                   () {
@@ -5339,7 +5358,9 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                                 ),
                               ),
                               icon: Icon(
-                                canDownloadDirectly ? Icons.download : Icons.lock_outline,
+                                canDownloadDirectly
+                                    ? Icons.download
+                                    : Icons.lock_outline,
                                 color: Colors.white,
                                 size: 16,
                               ),
@@ -5375,7 +5396,8 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                               IconButton(
                                 constraints: const BoxConstraints(),
                                 padding: const EdgeInsets.all(4),
-                                icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                                icon: const Icon(Icons.edit_outlined,
+                                    color: Colors.blue, size: 20),
                                 tooltip: 'Edit Resource',
                                 onPressed: () => _editResource(res),
                               ),
@@ -5383,7 +5405,8 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                               IconButton(
                                 constraints: const BoxConstraints(),
                                 padding: const EdgeInsets.all(4),
-                                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.red, size: 20),
                                 tooltip: 'Delete Resource',
                                 onPressed: () => _deleteResource(resourceId),
                               ),
@@ -5398,7 +5421,7 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
             ),
     );
   }
-}
+}            
                  
 // =========================================================================
 // Payment Modal with Strict Payment Verification
