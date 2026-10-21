@@ -4474,6 +4474,9 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
 // ============================================================================
+ // ============================================================================
+// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
+// ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
 
@@ -4656,7 +4659,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       }
     }
   }
-  // =========================================================
+ // =========================================================
   // IN-APP PDF PREVIEW MODAL
   // =========================================================
   void _showPdfPreviewModal(
@@ -4687,7 +4690,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                   try {
                     final bytes = response.bodyBytes;
                     final dir = await getTemporaryDirectory();
-                    final file = File('${dir.path}/${DateTime.now().millisecondsSinceEpoch}_preview.pdf');
+                    final file = File(
+                        '${dir.path}/${DateTime.now().millisecondsSinceEpoch}_preview.pdf');
                     await file.writeAsBytes(bytes);
                     if (context.mounted) {
                       setModalState(() {
@@ -4706,7 +4710,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                 } else {
                   if (context.mounted) {
                     setModalState(() {
-                      errorMessage = 'Server returned status: ${response.statusCode}';
+                      errorMessage =
+                          'Server returned status: ${response.statusCode}';
                       isLoading = false;
                     });
                   }
@@ -4775,7 +4780,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                   swipeHorizontal: false,
                                   autoSpacing: false,
                                   pageFling: true,
-                                  onError: (error) => debugPrint(error.toString()),
+                                  onError: (error) =>
+                                      debugPrint(error.toString()),
                                   onPageError: (page, error) =>
                                       debugPrint('$page: ${error.toString()}'),
                                 ),
@@ -4816,7 +4822,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       },
     );
   }
-    
+
   @override
   Widget build(BuildContext context) {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
@@ -4928,8 +4934,9 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                           ],
                         ),
                       ),
-                    )
-                  : RefreshIndicator(
+                    )            
+  
+                 : RefreshIndicator(
                       onRefresh: _fetchResources,
                       child: GridView.builder(
                         padding: const EdgeInsets.all(12.0),
@@ -5030,7 +5037,9 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       ],
     );
   }
-}
+} 
+
+                        
                                           
 // ============================================================================
 // SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & PDF Preview)
@@ -6320,9 +6329,7 @@ class _ManageBomVacanciesScreenState extends State<ManageBomVacanciesScreen> {
 
 }
 
-// ==========================================
-// 4. FREE POSTING MODAL
-// ==========================================
+
 // ==========================================
 // 4. FREE POSTING MODAL
 // ==========================================
