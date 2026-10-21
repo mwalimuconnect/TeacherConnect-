@@ -1984,42 +1984,48 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   }
 
   Future<void> _handleLogout() async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to log out?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+  final bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Logout', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      );
+    },
+  );
 
-    if (confirm != true) return;
+  if (confirm != true) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+  final prefs = await SharedPreferences.getInstance();
+  
+  // ❌ REMOVE await prefs.clear(); so you don't delete the fingerprint cache!
+  
+  // ✅ Instead, just update your active session flag:
+  await prefs.setBool('isLoggedIn', false);
+  // (Optional: clear auth tokens if you use them, e.g., await prefs.remove('token');)
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const AuthScreen()),
-    );
-  }
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => const AuthScreen()),
+  );
+}
 
+// Keep your existing helper as is:
   Widget _buildTabBody(Widget tableWidget) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -2046,7 +2052,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       child: tableWidget,
     );
   }
-
+            
   Widget _buildAnnouncementBanner() {
     if (activeAnnouncement == null) return const SizedBox.shrink();
 
