@@ -1606,6 +1606,9 @@ class TeacherPortalTables {
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN
 // =========================================================
+// =========================================================
+// TEACHER PORTAL MAIN SCREEN
+// =========================================================
 class TeacherPortalScreen extends StatefulWidget {
   final String userName;
   final String userRole;
@@ -1984,48 +1987,45 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   }
 
   Future<void> _handleLogout() async {
-  final bool? confirm = await showDialog<bool>(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Confirm Logout'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
             ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      );
-    },
-  );
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
 
-  if (confirm != true) return;
+    if (confirm != true) return;
 
-  final prefs = await SharedPreferences.getInstance();
-  
-  // ❌ REMOVE await prefs.clear(); so you don't delete the fingerprint cache!
-  
-  // ✅ Instead, just update your active session flag:
-  await prefs.setBool('isLoggedIn', false);
-  // (Optional: clear auth tokens if you use them, e.g., await prefs.remove('token');)
+    final prefs = await SharedPreferences.getInstance();
+    
+    // ✅ PRESERVE savedPhone, savedName, savedRole so fingerprint login works!
+    // Only update the session flag:
+    await prefs.setBool('isLoggedIn', false);
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (_) => const AuthScreen()),
-  );
-}
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
+    );
+  }
 
-// Keep your existing helper as is:
   Widget _buildTabBody(Widget tableWidget) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -2283,7 +2283,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}
+}                                                                
                                                                                                                                                                                                                              
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
