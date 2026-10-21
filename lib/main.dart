@@ -4666,44 +4666,11 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     double price,
     VoidCallback onDownloadPressed,
   ) async {
-    // 1. Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Colors.teal),
-      ),
-    );
-
     File? pdfFile;
-    try {
-      final response = await http.get(Uri.parse(pdfUrl));
-      if (response.statusCode == 200) {
-        final bytes = response.bodyBytes;
-        final dir = await getTemporaryDirectory();
-        pdfFile = File('${dir.path}/preview_temp.pdf');
-        await pdfFile.writeAsBytes(bytes);
-      }
-    } catch (e) {
-      debugPrint('Error loading PDF preview: $e');
-    }
+    bool isLoading = true;
+    String? errorMessage;
 
-    // 2. Close loading dialog
-    if (!context.mounted) return;
-    Navigator.pop(context);
-
-    if (pdfFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not load PDF preview.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // 3. Open PDF Preview Modal Bottom Sheet
-    if (!context.mounted) return;
+    // Show the modal bottom sheet first with a loading state
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -4711,81 +4678,145 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.80,
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // Trigger download once when modal opens
+            if (isLoading && pdfFile == null && errorMessage == null) {
+              http.get(Uri.parse(pdfUrl)).then((response) async {
+                if (response.statusCode == 200) {
+                  try {
+                    final bytes = response.bodyBytes;
+                    final dir = await getTemporaryDirectory();
+                    final file = File('${dir.path}/${DateTime.now().millisecondsSinceEpoch}_preview.pdf');
+                    await file.writeAsBytes(bytes);
+                    if (context.mounted) {
+                      setModalState(() {
+                        pdfFile = file;
+                        isLoading = false;
+                      });
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      setModalState(() {
+                        errorMessage = 'Error saving temp file: $e';
+                        isLoading = false;
+                      });
+                    }
+                  }
+                } else {
+                  if (context.mounted) {
+                    setModalState(() {
+                      errorMessage = 'Server returned status: ${response.statusCode}';
+                      isLoading = false;
+                    });
+                  }
+                }
+              }).catchError((e) {
+                if (context.mounted) {
+                  setModalState(() {
+                    errorMessage = 'Network error: $e';
+                    isLoading = false;
+                  });
+                }
+              });
+            }
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.80,
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Preview: $title',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.teal,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Preview: $title',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.teal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                  const Divider(),
+                  Expanded(
+                    child: isLoading
+                        ? const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(color: Colors.teal),
+                                SizedBox(height: 12),
+                                Text('Loading PDF Preview...'),
+                              ],
+                            ),
+                          )
+                        : errorMessage != null
+                            ? Center(
+                                child: Text(
+                                  errorMessage!,
+                                  style: const TextStyle(color: Colors.red),
+                                  textAlign: TextAlign.center,
+                                ),
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: PDFView(
+                                  filePath: pdfFile!.path,
+                                  enableSwipe: true,
+                                  swipeHorizontal: false,
+                                  autoSpacing: false,
+                                  pageFling: true,
+                                  onError: (error) => debugPrint(error.toString()),
+                                  onPageError: (page, error) =>
+                                      debugPrint('$page: ${error.toString()}'),
+                                ),
+                              ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        onDownloadPressed();
+                      },
+                      child: Text(
+                        price > 0
+                            ? 'Unlock & Download for KES ${price.toStringAsFixed(0)}'
+                            : 'Download Document',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const Divider(),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: PDFView(
-                    filePath: pdfFile!.path,
-                    enableSwipe: true,
-                    swipeHorizontal: false,
-                    autoSpacing: false,
-                    pageFling: true,
-                    onError: (error) => debugPrint(error.toString()),
-                    onPageError: (page, error) =>
-                        debugPrint('$page: ${error.toString()}'),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onDownloadPressed();
-                  },
-                  child: Text(
-                    price > 0
-                        ? 'Unlock & Download for KES $price'
-                        : 'Download Document',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
-
+    
   @override
   Widget build(BuildContext context) {
     final String currentRole = widget.userRole?.toLowerCase() ?? '';
