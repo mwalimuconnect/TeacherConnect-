@@ -4472,9 +4472,6 @@ class _MemberDataTableSource extends DataTableSource {
 }                                                                           
 
 // ============================================================================
-// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS)
-// ============================================================================
-// ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
@@ -5005,13 +5002,14 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 }
                                           
 // ============================================================================
-// SUBJECT FOLDER DETAIL SCREEN (With Admin Edit & Delete)
+// SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & PDF Preview)
 // ============================================================================
 class SubjectFolderDetailScreen extends StatefulWidget {
   final String subject;
   final List<dynamic> resources;
   final bool isAdmin;
   final Function(dynamic) onDownload;
+  final Function(BuildContext, String, String, double, VoidCallback) onPreview;
 
   const SubjectFolderDetailScreen({
     Key? key,
@@ -5019,6 +5017,7 @@ class SubjectFolderDetailScreen extends StatefulWidget {
     required this.resources,
     required this.isAdmin,
     required this.onDownload,
+    required this.onPreview,
   }) : super(key: key);
 
   @override
@@ -5177,6 +5176,7 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
       appBar: AppBar(
         title: Text('${widget.subject} Folder'),
         backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
       ),
       body: _localResources.isEmpty
           ? Center(
@@ -5200,6 +5200,7 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                 final title = res['title'] ?? 'Untitled Resource';
                 final category = res['category'] ?? 'General';
                 final resourceId = res['_id']?.toString() ?? res['id']?.toString() ?? '';
+                final fileUrl = res['fileUrl'] ?? res['url'] ?? '';
                 double price = (res['price'] ?? 50.0).toDouble();
 
                 if (price > 0 && price < 50) price = 50.0;
@@ -5214,78 +5215,141 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.picture_as_pdf,
-                      color: Colors.teal,
-                      size: 36,
-                    ),
-                    title: Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Download / Pay Button
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: canDownloadDirectly
-                                ? Colors.teal
-                                : Colors.teal.shade700,
-                            elevation: 1,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.picture_as_pdf,
+                              color: Colors.teal,
+                              size: 36,
                             ),
-                          ),
-                          icon: Icon(
-                            canDownloadDirectly ? Icons.download : Icons.lock_outline,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          label: Text(
-                            canDownloadDirectly
-                                ? 'Download'
-                                : 'Pay KES ${price.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Category: $category${isPaidResource ? " • Price: KES ${price.toStringAsFixed(0)}" : ""}',
+                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          onPressed: () {
-                            if (canDownloadDirectly) {
-                              widget.onDownload(res);
-                            } else {
-                              showPaymentModal(
-                                parentContext: context,
-                                resourceTitle: title,
-                                price: price,
-                                isAdmin: widget.isAdmin,
-                                onPaymentSuccess: () {
-                                  widget.onDownload(res);
-                                },
-                              );
-                            }
-                          },
+                          ],
                         ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // Preview Button
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.teal,
+                                side: const BorderSide(color: Colors.teal),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              ),
+                              icon: const Icon(Icons.visibility, size: 16),
+                              label: const Text('Preview', style: TextStyle(fontSize: 12)),
+                              onPressed: () {
+                                widget.onPreview(
+                                  context,
+                                  fileUrl,
+                                  title,
+                                  price,
+                                  () {
+                                    if (canDownloadDirectly) {
+                                      widget.onDownload(res);
+                                    } else {
+                                      showPaymentModal(
+                                        parentContext: context,
+                                        resourceTitle: title,
+                                        price: price,
+                                        isAdmin: widget.isAdmin,
+                                        onPaymentSuccess: () {
+                                          widget.onDownload(res);
+                                        },
+                                      );
+                                    }
+                                  },
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            // Download / Pay Button
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: canDownloadDirectly
+                                    ? Colors.teal
+                                    : Colors.teal.shade700,
+                                elevation: 1,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                              ),
+                              icon: Icon(
+                                canDownloadDirectly ? Icons.download : Icons.lock_outline,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              label: Text(
+                                canDownloadDirectly
+                                    ? 'Download'
+                                    : 'KES ${price.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              onPressed: () {
+                                if (canDownloadDirectly) {
+                                  widget.onDownload(res);
+                                } else {
+                                  showPaymentModal(
+                                    parentContext: context,
+                                    resourceTitle: title,
+                                    price: price,
+                                    isAdmin: widget.isAdmin,
+                                    onPaymentSuccess: () {
+                                      widget.onDownload(res);
+                                    },
+                                  );
+                                }
+                              },
+                            ),
 
-                        // Admin-Only Edit Pencil Icon Button
-                        if (widget.isAdmin) ...[
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                            tooltip: 'Edit Resource',
-                            onPressed: () => _editResource(res),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            tooltip: 'Delete Resource',
-                            onPressed: () => _deleteResource(resourceId),
-                          ),
-                        ],
+                            // Admin-Only Edit & Delete Buttons
+                            if (widget.isAdmin) ...[
+                              const SizedBox(width: 4),
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(4),
+                                icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                                tooltip: 'Edit Resource',
+                                onPressed: () => _editResource(res),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(4),
+                                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                tooltip: 'Delete Resource',
+                                onPressed: () => _deleteResource(resourceId),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -5295,6 +5359,7 @@ class _SubjectFolderDetailScreenState extends State<SubjectFolderDetailScreen> {
     );
   }
 }
+                 
 // =========================================================================
 // Payment Modal with Strict Payment Verification
 // =========================================================================
