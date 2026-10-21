@@ -203,6 +203,18 @@ class _AuthScreenState extends State<AuthScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
 
+        final userMap = data['user'] ?? {};
+        final String userRole = userMap['role'] ?? _selectedRole;
+        final String userName = userMap['fullName'] ?? _phoneController.text.trim();
+        final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
+
+        // Save session locally so fingerprint login and direct entry work instantly
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedPhone', userPhone);
+        await prefs.setString('savedName', userName);
+        await prefs.setString('savedRole', userRole);
+        await prefs.setBool('isLoggedIn', true);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data['message'] ?? (_isLogin ? 'Login successful!' : 'Registration successful!')),
@@ -210,25 +222,6 @@ class _AuthScreenState extends State<AuthScreen> {
             duration: const Duration(seconds: 2),
           ),
         );
-
-        if (!_isLogin) {
-          setState(() {
-            _isLogin = true;
-          });
-          return;
-        }
-
-        final userMap = data['user'] ?? {};
-        final String userRole = userMap['role'] ?? _selectedRole;
-        final String userName = userMap['fullName'] ?? _phoneController.text.trim();
-        final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
-
-        // Save session locally so fingerprint login can identify the user
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('savedPhone', userPhone);
-        await prefs.setString('savedName', userName);
-        await prefs.setString('savedRole', userRole);
-        await prefs.setBool('isLoggedIn', true);
 
         final bool isAdmin = userRole.toLowerCase().contains('admin');
 
@@ -275,7 +268,8 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-   @override
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
