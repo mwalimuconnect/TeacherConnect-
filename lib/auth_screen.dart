@@ -56,6 +56,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _handleBiometricLogin() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final String userId = prefs.getString('userId') ?? '';
       final String? savedPhone = prefs.getString('savedPhone');
       final String? savedName = prefs.getString('savedName');
       final String? savedRole = prefs.getString('savedRole');
