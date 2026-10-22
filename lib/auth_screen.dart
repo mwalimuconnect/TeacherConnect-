@@ -60,6 +60,7 @@ class _AuthScreenState extends State<AuthScreen> {
       final String? savedPhone = prefs.getString('savedPhone');
       final String? savedName = prefs.getString('savedName');
       final String? savedRole = prefs.getString('savedRole');
+      final String? savedPhotoUrl = prefs.getString('savedPhotoUrl');
 
       // Check if a valid user session was saved on this device
       if (savedPhone == null || savedPhone.isEmpty) {
@@ -114,8 +115,10 @@ class _AuthScreenState extends State<AuthScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => AdminDashboardScreen(
+                userId: userId,
                 adminName: savedName ?? 'Admin',
-                adminPhone: savedPhone,
+                adminPhone: savedPhone ?? '',
+                adminPhotoUrl: savedPhotoUrl,
               ),
             ),
           );
@@ -124,9 +127,11 @@ class _AuthScreenState extends State<AuthScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => TeacherPortalScreen(
+                userId: userId,
                 userName: savedName ?? 'Member Teacher',
                 userRole: savedRole ?? 'Member Teacher',
-                userPhone: savedPhone,
+                userPhone: savedPhone ?? '',
+                userPhotoUrl: savedPhotoUrl,
               ),
             ),
           );
@@ -238,8 +243,10 @@ class _AuthScreenState extends State<AuthScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => AdminDashboardScreen(
+                userId: userId,
                 adminName: userName,
                 adminPhone: userPhone,
+                adminPhotoUrl: profilePhotoUrl,
               ),
             ),
           );
@@ -248,9 +255,11 @@ class _AuthScreenState extends State<AuthScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => TeacherPortalScreen(
+                userId: userId,
                 userName: userName,
                 userRole: userRole,
                 userPhone: userPhone,
+                userPhotoUrl: profilePhotoUrl,
               ),
             ),
           );
@@ -262,7 +271,7 @@ class _AuthScreenState extends State<AuthScreen> {
             content: Text(data['message'] ?? 'Authentication failed'),
             backgroundColor: Colors.red,
           ),
-        );  
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -521,7 +530,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     backgroundColor: const Color(0xFF00897B),
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(50),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
