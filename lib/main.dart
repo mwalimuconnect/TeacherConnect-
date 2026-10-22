@@ -696,6 +696,7 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => AdminDashboardScreen(
+                userId: userId,
                 adminName: savedName ?? 'Admin',
                 adminPhone: savedPhone,
               ),
@@ -706,6 +707,7 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => TeacherPortalScreen(
+                userId: userId,
                 userName: savedName ?? 'Member Teacher',
                 userRole: savedRole ?? 'Member Teacher',
                 userPhone: savedPhone,
