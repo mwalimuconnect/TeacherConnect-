@@ -1285,7 +1285,348 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 }
-                                                
+
+// =========================================
+// PROFILE SCREEN UPDATED WITH PROFILE PHOTO 
+// =========================================
+class ProfileScreen extends StatefulWidget {
+  final String userId;
+
+  const ProfileScreen({Key? key, required this.userId}) : super(key: key);
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _schoolController = TextEditingController();
+  final TextEditingController _countyController = TextEditingController();
+  final TextEditingController _subCountyController = TextEditingController();
+
+  final TextEditingController _tscNumberController = TextEditingController();
+  final TextEditingController _nationalIdController = TextEditingController();
+
+  String _role = '';
+  String _profilePhotoUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfile();
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _phoneController.dispose();
+    _schoolController.dispose();
+    _countyController.dispose();
+    _subCountyController.dispose();
+    _tscNumberController.dispose();
+    _nationalIdController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile?userId=${widget.userId}'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        final user = data['user'];
+        setState(() {
+          _fullNameController.text = user['fullName'] ?? '';
+          _phoneController.text = user['phone'] ?? '';
+          _schoolController.text = user['currentSchool'] ?? '';
+          _countyController.text = user['county'] ?? '';
+          _subCountyController.text = user['subCounty'] ?? '';
+          
+          _tscNumberController.text = user['tscNumber'] ?? 'Not Provided';
+          _nationalIdController.text = user['nationalId'] ?? 'Not Provided';
+          
+          _role = user['role'] ?? 'Member Teacher';
+          _profilePhotoUrl = user['profilePhotoUrl'] ?? '';
+          _isLoading = false;
+        });
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Failed to load profile'), backgroundColor: Colors.red),
+        );
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error connecting to server: $e'), backgroundColor: Colors.red),
+      );
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final response = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': widget.userId,
+          'fullName': _fullNameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'currentSchool': _schoolController.text.trim(),
+          'county': _countyController.text.trim(),
+          'subCounty': _subCountyController.text.trim(),
+          'profilePhotoUrl': _profilePhotoUrl,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Color(0xFF00897B)),
+        );
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedName', _fullNameController.text.trim());
+        await prefs.setString('savedPhone', _phoneController.text.trim());
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Failed to update profile'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving profile: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Member Profile'),
+        backgroundColor: const Color(0xFF00897B),
+        centerTitle: true,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF00897B)))
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: const Color(0xFF00897B).withOpacity(0.1),
+                            backgroundImage: (_profilePhotoUrl.isNotEmpty)
+                                ? NetworkImage(_profilePhotoUrl) as ImageProvider
+                                : null,
+                            child: _profilePhotoUrl.isEmpty
+                                ? const Icon(Icons.person, size: 50, color: Color(0xFF00897B))
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: const Color(0xFF00897B),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Profile photo upload feature coming soon!')),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _role,
+                        style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 24),
+
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'National ID and TSC numbers are permanently locked for identity verification and compliance.',
+                                style: TextStyle(fontSize: 12, color: Colors.black87),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: _nationalIdController,
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: 'National ID / Passport Number',
+                          prefixIcon: const Icon(Icons.badge, color: Colors.grey),
+                          suffixIcon: const Icon(Icons.lock, color: Colors.grey, size: 18),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      TextFormField(
+                        controller: _tscNumberController,
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: 'TSC Number',
+                          prefixIcon: const Icon(Icons.card_membership, color: Colors.grey),
+                          suffixIcon: const Icon(Icons.lock, color: Colors.grey, size: 18),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 10),
+
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Editable Information',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF00897B)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      TextFormField(
+                        controller: _fullNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your full name' : null,
+                      ),
+                      const SizedBox(height: 14),
+
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Phone Number',
+                          prefixIcon: Icon(Icons.phone),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your phone number' : null,
+                      ),
+                      const SizedBox(height: 14),
+
+                      TextFormField(
+                        controller: _schoolController,
+                        decoration: const InputDecoration(
+                          labelText: 'Current School Name',
+                          prefixIcon: Icon(Icons.domain),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _countyController,
+                              decoration: const InputDecoration(
+                                labelText: 'County',
+                                prefixIcon: Icon(Icons.location_city),
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _subCountyController,
+                              decoration: const InputDecoration(
+                                labelText: 'Sub-County',
+                                prefixIcon: Icon(Icons.map),
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _updateProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00897B),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text(
+                                'Save Changes',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+}
+
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
 // =========================================================
