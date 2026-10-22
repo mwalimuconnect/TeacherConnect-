@@ -108,6 +108,8 @@ class MyApp extends StatelessWidget {
               ? AdminDashboardScreen(adminName: userName)
 
               : TeacherPortalScreen(
+                
+                  userId: userId,
 
                   userName: userName,
 
