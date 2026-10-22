@@ -751,12 +751,14 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         final userMap = data['user'] ?? {};
+        final String userId = userMap['_id'] ?? userMap['userId'] ?? '';
         final String userRole = userMap['role'] ?? 'Member Teacher';
         final String userName = userMap['fullName'] ?? 'Teacher';
         final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
 
         // Save session data locally so fingerprint authentication can load this specific user
         final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userId', userId);
         await prefs.setString('savedPhone', userPhone);
         await prefs.setString('savedName', userName);
         await prefs.setString('savedRole', userRole);
@@ -777,6 +779,7 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => AdminDashboardScreen(
+                userId: userId,
                 adminName: userName,
                 adminPhone: userPhone,
               ),
@@ -787,6 +790,7 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => TeacherPortalScreen(
+                userId: userId,
                 userName: userName,
                 userRole: userRole,
                 userPhone: userPhone,
