@@ -19,6 +19,8 @@ void main() async {
 
   final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
+  final String userId = prefs.getString('userId') ?? '';
+
   final String userName = prefs.getString('userName') ?? 'Teacher';
 
   final String userRole = prefs.getString('userRole') ?? 'Member Teacher';
