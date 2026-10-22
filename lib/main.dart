@@ -29,6 +29,8 @@ void main() async {
 
     isLoggedIn: isLoggedIn,
 
+    userId: userId,
+
     userName: userName,
 
     userRole: userRole,
