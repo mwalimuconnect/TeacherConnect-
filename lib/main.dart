@@ -2637,15 +2637,22 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
+// ==========================================
+// 3. ADMIN DASHBOARD MODULE
+// ==========================================
 
 class AdminDashboardScreen extends StatefulWidget {
+  final String userId;
   final String adminName;
   final String adminPhone;
+  final String? adminPhotoUrl;
 
   const AdminDashboardScreen({
     Key? key,
+    required this.userId,
     required this.adminName,
     this.adminPhone = '',
+    this.adminPhotoUrl,
   }) : super(key: key);
 
   @override
@@ -2947,6 +2954,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         backgroundColor: Colors.teal,
         elevation: 0,
         actions: [
+          // Profile Avatar in AppBar linking to ProfileScreen
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileScreen(userId: widget.userId),
+                ),
+              ).then((_) => _fetchDashboardStats());
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.white24,
+                backgroundImage: (widget.adminPhotoUrl != null && widget.adminPhotoUrl!.isNotEmpty)
+                    ? NetworkImage(widget.adminPhotoUrl!)
+                    : null,
+                child: (widget.adminPhotoUrl == null || widget.adminPhotoUrl!.isEmpty)
+                    ? const Icon(Icons.person, size: 18, color: Colors.white)
+                    : null,
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: ChoiceChip(
@@ -2962,6 +2993,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => TeacherPortalScreen(
+                      userId: widget.userId,
                       userName: displayName,
                       userRole: 'Administrator',
                       userPhone: widget.adminPhone,
@@ -3001,11 +3033,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       CircleAvatar(
                         radius: 28,
                         backgroundColor: Colors.teal.shade100,
-                        child: const Icon(
-                          Icons.admin_panel_settings,
-                          size: 32,
-                          color: Colors.teal,
-                        ),
+                        backgroundImage: (widget.adminPhotoUrl != null && widget.adminPhotoUrl!.isNotEmpty)
+                            ? NetworkImage(widget.adminPhotoUrl!)
+                            : null,
+                        child: (widget.adminPhotoUrl == null || widget.adminPhotoUrl!.isEmpty)
+                            ? const Icon(
+                                Icons.admin_panel_settings,
+                                size: 32,
+                                color: Colors.teal,
+                              )
+                            : null,
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -3033,6 +3070,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.teal),
+                        tooltip: 'Edit Profile',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProfileScreen(userId: widget.userId),
+                            ),
+                          ).then((_) => _fetchDashboardStats());
+                        },
                       ),
                     ],
                   ),
@@ -3307,7 +3356,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-                                             
+                          
+                                                                                                               
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
