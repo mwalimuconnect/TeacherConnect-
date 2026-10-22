@@ -4660,7 +4660,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   }
 
   // ============================================================================
-  // INSTANT PDF PREVIEW HANDLER (USING URL LAUNCHER)
+  // INSTANT PDF PREVIEW HANDLER (EXTERNAL SYSTEM VIEWER)
   // ============================================================================
   void _showPdfPreviewModal(
     BuildContext context,
@@ -4672,21 +4672,21 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     final Uri uri = Uri.parse(pdfUrl);
 
     try {
+      // Force external application so the phone's native PDF/Browser handler renders it
       bool launched = await launchUrl(
         uri,
-        mode: LaunchMode.inAppWebView,
+        mode: LaunchMode.externalApplication,
       );
 
-      if (!launched) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open preview document.')),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open preview: $e')),
+          SnackBar(content: Text('Error opening preview: $e')),
         );
       }
     }
