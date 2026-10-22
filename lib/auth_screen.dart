@@ -28,6 +28,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _adminPasscodeController = TextEditingController();
+  final TextEditingController _profilePhotoUrlController = TextEditingController();
 
   String _selectedRole = 'Admin';
 
@@ -40,6 +41,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _adminPasscodeController.dispose();
+    _profilePhotoUrlController.dispose();
     super.dispose();
   }
 
@@ -188,6 +190,7 @@ class _AuthScreenState extends State<AuthScreen> {
               'currentSchool': _schoolNameController.text.trim(),
               'phoneNumber': _phoneController.text.trim(),
               'password': _passwordController.text.trim(),
+              'profilePhotoUrl': _profilePhotoUrlController.text.trim(),
               if (_selectedRole == 'Admin')
                 'adminPasscode': _adminPasscodeController.text.trim(),
             };
@@ -204,15 +207,19 @@ class _AuthScreenState extends State<AuthScreen> {
         if (!mounted) return;
 
         final userMap = data['user'] ?? {};
+        final String userId = userMap['id'] ?? userMap['_id'] ?? '';
         final String userRole = userMap['role'] ?? _selectedRole;
         final String userName = userMap['fullName'] ?? _phoneController.text.trim();
         final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
+        final String profilePhotoUrl = userMap['profilePhotoUrl'] ?? _profilePhotoUrlController.text.trim();
 
         // Save session locally so fingerprint login and direct entry work instantly
         final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userId', userId);
         await prefs.setString('savedPhone', userPhone);
         await prefs.setString('savedName', userName);
         await prefs.setString('savedRole', userRole);
+        await prefs.setString('savedPhotoUrl', profilePhotoUrl);
         await prefs.setBool('isLoggedIn', true);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -313,6 +320,16 @@ class _AuthScreenState extends State<AuthScreen> {
                       }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    key: const ValueKey('profilePhotoUrlField'),
+                    controller: _profilePhotoUrlController,
+                    decoration: const InputDecoration(
+                      labelText: 'Profile Photo URL (Optional)',
+                      prefixIcon: Icon(Icons.image),
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
@@ -503,7 +520,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     backgroundColor: const Color(0xFF00897B),
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(50),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
