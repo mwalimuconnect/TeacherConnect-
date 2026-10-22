@@ -4659,254 +4659,123 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-  // ============================================================================
-  // INSTANT PDF PREVIEW HANDLER (EXTERNAL SYSTEM VIEWER)
-  // ============================================================================
-  void _showPdfPreviewModal(
-    BuildContext context,
-    String pdfUrl,
-    String title,
-    double price,
-    VoidCallback onDownloadPressed,
-  ) async {
-    final Uri uri = Uri.parse(pdfUrl);
+// ============================================================================
+// TRUE IN-APP PDF PREVIEW MODAL (USING WEBVIEW)
+// ============================================================================
+void _showPdfPreviewModal(
+  BuildContext context,
+  String pdfUrl,
+  String title,
+  double price,
+  VoidCallback onDownloadPressed,
+) {
+  // Wrap with Google Docs viewer inside the WebView to ensure 100% cross-device rendering
+  final String encodedUrl = Uri.encodeComponent(pdfUrl);
+  final String viewerUrl = 'https://docs.google.com/viewer?url=$encodedUrl&embedded=true';
 
-    try {
-      // Force external application so the phone's native PDF/Browser handler renders it
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+  late final WebViewController controller;
+  bool isLoading = true;
 
-      if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open preview document.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening preview: $e')),
-        );
-      }
-    }
-  }
+  controller = WebViewController()
+    ..setJavaScriptMode(JavaScriptMode.unrestricted)
+    ..setBackgroundColor(Colors.white)
+    ..setNavigationDelegate(
+      NavigationDelegate(
+        onPageFinished: (String url) {
+          // Page loaded successfully
+        },
+      ),
+    )
+    ..loadRequest(Uri.parse(viewerUrl));
 
-  @override
-  Widget build(BuildContext context) {
-    final String currentRole = widget.userRole?.toLowerCase() ?? '';
-    final bool isAdmin =
-        currentRole.contains('admin') || currentRole == 'administrator';
-
-    // Apply Category Filter to all resources
-    final filteredResources = _selectedCategory == 'All'
-        ? _resources
-        : _resources.where((res) {
-            final resCat = (res['category'] ?? '').toString().toLowerCase();
-            final selectedCat = _selectedCategory.toLowerCase();
-
-            if (selectedCat.contains('notes') && resCat.contains('notes')) {
-              return true;
-            }
-            if (selectedCat.contains('exam') && resCat.contains('exam')) {
-              return true;
-            }
-            if (selectedCat.contains('schemes') && resCat.contains('scheme')) {
-              return true;
-            }
-            if (selectedCat.contains('lesson') && resCat.contains('lesson')) {
-              return true;
-            }
-            if (selectedCat.contains('project') && resCat.contains('project')) {
-              return true;
-            }
-
-            return resCat == selectedCat;
-          }).toList();
-
-    return Column(
-      children: [
-        // Upload Button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(45),
-              backgroundColor: Colors.teal,
-            ),
-            icon: const Icon(Icons.upload_file, color: Colors.white),
-            label: const Text(
-              'UPLOAD NEW RESOURCE',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AddResourceScreen(),
-                ),
-              );
-
-              if (result == true) {
-                _fetchResources();
-              }
-            },
-          ),
-        ),
-
-        // Category Filter Chips
-        Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              final isSelected = category == _selectedCategory;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: FilterChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  selectedColor: Colors.teal.shade100,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedCategory = category;
-                    });
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-
-        // Folder Directory Grid View
-        Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage.isNotEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(_errorMessage, textAlign: TextAlign.center),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: _fetchResources,
-                              child: const Text('Retry'),
-                            ),
-                          ],
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // Modal Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Preview: $title',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.teal,
                         ),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _fetchResources,
-                      child: GridView.builder(
-                        padding: const EdgeInsets.all(12.0),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.3,
-                        ),
-                        itemCount: _subjects.length,
-                        itemBuilder: (context, index) {
-                          final subjectName = _subjects[index];
-
-                          final folderResources = filteredResources.where((r) {
-                            final resSubject = (r['subject'] ?? '')
-                                .toString()
-                                .toLowerCase();
-                            return resSubject == subjectName.toLowerCase();
-                          }).toList();
-
-                          final int count = folderResources.length;
-
-                          return InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => SubjectFolderDetailScreen(
-                                    subject: subjectName,
-                                    resources: folderResources,
-                                    isAdmin: isAdmin,
-                                    onDownload: _downloadOrOpenUrl,
-                                    onPreview: (ctx, url, title, price, callback) =>
-                                        _showPdfPreviewModal(
-                                            ctx, url, title, price, callback),
-                                  ),
-                                ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade200),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.08),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.folder,
-                                        color: Colors.teal.shade400,
-                                        size: 38,
-                                      ),
-                                      const Spacer(),
-                                      const Icon(Icons.chevron_right,
-                                          color: Colors.grey),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    subjectName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '$count ${count == 1 ? 'item' : 'items'}',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-        ),
-      ],
-    );
-  }
-}
-                                                                      
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                
+                // WebView Container for In-App Preview
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      children: [
+                        WebViewWidget(controller: controller),
+                        // Optional loading indicator overlay if needed
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Unlock & Download / Download Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onDownloadPressed();
+                    },
+                    child: Text(
+                      price > 0
+                          ? 'Unlock & Download for KES ${price.toStringAsFixed(0)}'
+                          : 'Download Document',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}                                
+                                                                                                              
 // ============================================================================
 // SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & In-App PDF Preview)
 // ============================================================================
