@@ -11,7 +11,6 @@ import 'package:local_auth/local_auth.dart'; // <-- Add this for LocalAuthentica
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:teacherconnect/profile_screen.dart'; // Adjust path if needed
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
