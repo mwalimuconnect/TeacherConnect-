@@ -1958,16 +1958,23 @@ class TeacherPortalTables {
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN
 // =========================================================
+// =========================================================
+// TEACHER PORTAL MAIN SCREEN
+// =========================================================
 class TeacherPortalScreen extends StatefulWidget {
+  final String userId;
   final String userName;
   final String userRole;
   final String userPhone;
+  final String? userPhotoUrl;
 
   const TeacherPortalScreen({
     Key? key,
+    required this.userId,
     required this.userName,
     required this.userRole,
     required this.userPhone,
+    this.userPhotoUrl,
   }) : super(key: key);
 
   @override
@@ -2207,7 +2214,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
-
   void _showPaymentModal(BuildContext context, ListingModel listing) {
     if (isListingUnlocked(listing)) {
       _showContactDetailsModal(context, listing);
@@ -2364,7 +2370,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     final prefs = await SharedPreferences.getInstance();
     
     // ✅ PRESERVE savedPhone, savedName, savedRole so fingerprint login works!
-    // Only update the session flag:
     await prefs.setBool('isLoggedIn', false);
 
     if (!mounted) return;
@@ -2462,6 +2467,30 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           title: const Text('Teacher Portal'),
           backgroundColor: Colors.teal,
           actions: [
+            // AppBar Profile Avatar shortcut
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfileScreen(userId: widget.userId),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white24,
+                  backgroundImage: (widget.userPhotoUrl != null && widget.userPhotoUrl!.isNotEmpty)
+                      ? NetworkImage(widget.userPhotoUrl!)
+                      : null,
+                  child: (widget.userPhotoUrl == null || widget.userPhotoUrl!.isEmpty)
+                      ? const Icon(Icons.person, size: 18, color: Colors.white)
+                      : null,
+                ),
+              ),
+            ),
             if (isAdmin)
               IconButton(
                 icon: const Icon(Icons.admin_panel_settings),
@@ -2471,8 +2500,10 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => AdminDashboardScreen(
+                        userId: widget.userId,
                         adminName: widget.userName,
                         adminPhone: widget.userPhone,
+                        adminPhotoUrl: widget.userPhotoUrl,
                       ),
                     ),
                   );
@@ -2480,6 +2511,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               ),
             IconButton(
               icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
               onPressed: _handleLogout,
             ),
           ],
@@ -2507,11 +2539,17 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     CircleAvatar(
+                      radius: 24,
                       backgroundColor: Colors.white,
-                      child: Text(
-                        widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                        style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
-                      ),
+                      backgroundImage: (widget.userPhotoUrl != null && widget.userPhotoUrl!.isNotEmpty)
+                          ? NetworkImage(widget.userPhotoUrl!)
+                          : null,
+                      child: (widget.userPhotoUrl == null || widget.userPhotoUrl!.isEmpty)
+                          ? Text(
+                              widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
+                              style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold, fontSize: 20),
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -2524,6 +2562,19 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                     ),
                   ],
                 ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person, color: Color(0xFF00897B)),
+                title: const Text('My Profile'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(userId: widget.userId),
+                    ),
+                  );
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.help_outline, color: Color(0xFF00897B)),
@@ -2561,25 +2612,45 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               child: Row(
                 children: [
                   CircleAvatar(
+                    radius: 24,
                     backgroundColor: Colors.teal,
-                    child: Text(
-                      widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    backgroundImage: (widget.userPhotoUrl != null && widget.userPhotoUrl!.isNotEmpty)
+                        ? NetworkImage(widget.userPhotoUrl!)
+                        : null,
+                    child: (widget.userPhotoUrl == null || widget.userPhotoUrl!.isEmpty)
+                        ? Text(
+                            widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.userName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      Text('Role: ${widget.userRole}'),
-                    ],
+                        Text('Role: ${widget.userRole}'),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.teal),
+                    tooltip: 'Edit Profile',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProfileScreen(userId: widget.userId),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -2632,11 +2703,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}                                                                
-                                                                                                                                                                                                                             
-// ==========================================
-// 3. ADMIN DASHBOARD MODULE
-// ==========================================
+}  
+                                                                                                                                                                                                                                                                                                                                                 
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
