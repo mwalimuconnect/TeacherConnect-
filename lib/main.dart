@@ -44,6 +44,8 @@ class MyApp extends StatelessWidget {
 
   final bool isLoggedIn;
 
+  final String userId;
+
   final String userName;
 
   final String userRole;
@@ -55,6 +57,8 @@ class MyApp extends StatelessWidget {
     super.key,
 
     required this.isLoggedIn,
+
+    required this.userId,
 
     required this.userName,
 
