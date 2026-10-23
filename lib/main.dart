@@ -102,8 +102,7 @@ class MyApp extends StatelessWidget {
       ),
 
       home: isLoggedIn
-home: isLoggedIn
-    ? (userRole == 'Administrator' || userRole == 'Assistant Ad'
+       ? (userRole == 'Administrator' 
         ? AdminDashboardScreen(
             userId: userId, // <-- Add this
             adminName: userName,
