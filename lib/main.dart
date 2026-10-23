@@ -271,8 +271,16 @@ class ResourceModel {
 }
                                                                                                 
 // =========================================================
-// 1. REGISTRATION SCREEN
+// 1. MEMBER REGISTRATION SCREEN
 // =========================================================
+class MemberRegistrationScreen extends StatefulWidget {
+  const MemberRegistrationScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MemberRegistrationScreen> createState() =>
+      _MemberRegistrationScreenState();
+}
+
 class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
   final _fullNameController = TextEditingController();
   final _idController = TextEditingController();
