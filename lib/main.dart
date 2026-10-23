@@ -338,40 +338,46 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (!mounted) return;
+if (response.statusCode == 200 || response.statusCode == 201) {
+  if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Registration successful!'),
-            backgroundColor: const Color(0xFF00897B),
-          ),
-        );
+  // 1. Extract userId and user details from backend response
+  final userMap = data['user'] ?? {};
+  final String userId = userMap['id'] ?? userMap['_id'] ?? '';
 
-        if (_selectedRole == 'Admin') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AdminDashboardScreen(
-                userId: userId,
-                adminName: _fullNameController.text.trim(),
-                adminPhone: _phoneController.text.trim(),
-              ),
-            ),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TeacherPortalScreen(
-                userId: widget.userId,
-                userName: _fullNameController.text.trim(),
-                userRole: _selectedRole,
-                userPhone: _phoneController.text.trim(),
-              ),
-            ),
-          );
-        }
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(data['message'] ?? 'Registration successful!'),
+      backgroundColor: const Color(0xFF00897B),
+    ),
+  );
+
+  if (_selectedRole == 'Admin') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminDashboardScreen(
+          userId: userId, // <-- Uses the extracted local variable
+          adminName: _fullNameController.text.trim(),
+          adminPhone: _phoneController.text.trim(),
+        ),
+      ),
+    );
+  } else {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TeacherPortalScreen(
+          userId: userId, // <-- Fixed from widget.userId to local variable
+          userName: _fullNameController.text.trim(),
+          userRole: _selectedRole,
+          userPhone: _phoneController.text.trim(),
+        ),
+      ),
+    );
+  }
+}
+
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
