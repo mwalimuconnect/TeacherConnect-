@@ -102,24 +102,20 @@ class MyApp extends StatelessWidget {
       ),
 
       home: isLoggedIn
-
-          ? ((userRole == 'Administrator' || userRole == 'Assistant Admin')
-
-              ? AdminDashboardScreen(adminName: userName)
-
-              : TeacherPortalScreen(
-                
-                  userId: userId,
-
-                  userName: userName,
-
-                  userRole: userRole,
-
-                  userPhone: userPhone,
-
-                ))
-
-          : const AuthScreen(),
+home: isLoggedIn
+    ? (userRole == 'Administrator' || userRole == 'Assistant Ad'
+        ? AdminDashboardScreen(
+            userId: userId, // <-- Add this
+            adminName: userName,
+            adminPhone: userPhone,
+          )
+        : TeacherPortalScreen(
+            userId: userId, // <-- Add this
+            userName: userName,
+            userRole: userRole,
+            userPhone: userPhone,
+          ))
+    : const AuthScreen(),
 
     );
 
@@ -368,6 +364,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => TeacherPortalScreen(
+                userId: widget.userId,
                 userName: _fullNameController.text.trim(),
                 userRole: _selectedRole,
                 userPhone: _phoneController.text.trim(),
