@@ -353,6 +353,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => AdminDashboardScreen(
+                userId: userId,
                 adminName: _fullNameController.text.trim(),
                 adminPhone: _phoneController.text.trim(),
               ),
