@@ -1257,7 +1257,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
-    // Cloudinary Configuration
+  // Cloudinary Configuration
   final String _cloudinaryCloudName = 'lxxyqoqa';
   final String _cloudinaryUploadPreset = 'ml_default';
   bool _isLoading = true;
@@ -1269,6 +1269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _schoolController = TextEditingController();
   final TextEditingController _countyController = TextEditingController();
   final TextEditingController _subCountyController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController(); // Added for Subject Combination
 
   final TextEditingController _tscNumberController = TextEditingController();
   final TextEditingController _nationalIdController = TextEditingController();
@@ -1289,6 +1290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _schoolController.dispose();
     _countyController.dispose();
     _subCountyController.dispose();
+    _subjectController.dispose();
     _tscNumberController.dispose();
     _nationalIdController.dispose();
     super.dispose();
@@ -1311,6 +1313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _schoolController.text = user['currentSchool'] ?? '';
           _countyController.text = user['county'] ?? '';
           _subCountyController.text = user['subCounty'] ?? '';
+          _subjectController.text = user['subjectCombination'] ?? user['subjects'] ?? user['subject'] ?? '';
 
           _tscNumberController.text = user['tscNumber'] ?? 'Not Provided';
           _nationalIdController.text = user['nationalId'] ?? 'Not Provided';
@@ -1429,6 +1432,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'currentSchool': _schoolController.text.trim(),
           'county': _countyController.text.trim(),
           'subCounty': _subCountyController.text.trim(),
+          'subjectCombination': _subjectController.text.trim(), // Sent to backend
+          'subjects': _subjectController.text.trim(),
           'profilePhotoUrl': _profilePhotoUrl,
         }),
       );
@@ -1615,6 +1620,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 14),
 
+                      // Editable Subject Combination Field
+                      TextFormField(
+                        controller: _subjectController,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject Combination (e.g., ENG/LIT, MATH/CHEM)',
+                          prefixIcon: Icon(Icons.menu_book),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your subject combination' : null,
+                      ),
+                      const SizedBox(height: 14),
+
                       TextFormField(
                         controller: _schoolController,
                         decoration: const InputDecoration(
@@ -1678,8 +1695,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
     );
   }
-}
-                   
+}                         
 
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
