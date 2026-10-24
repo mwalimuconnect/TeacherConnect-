@@ -1261,7 +1261,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
     // Cloudinary Configuration
-  final String _cloudinaryCloudName = 'a846882c';
+  final String _cloudinaryCloudName = 'lxxyqoqa';
   final String _cloudinaryUploadPreset = 'ml_default';
   bool _isLoading = true;
   bool _isSaving = false;
