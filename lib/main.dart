@@ -200,10 +200,22 @@ class ListingModel {
     final String phone = rawPhoneValue != null ? rawPhoneValue.toString().trim() : 'N/A';
 
     // 3. Comprehensive TSC Compliance evaluation logic
-    // Forces compliance to true if a valid TSC number or string exists
     final bool computedCompliance = json['isTscCompliant'] == true || 
                                      json['tscCompliant'] == true || 
                                      (displayTsc != 'N/A' && displayTsc.isNotEmpty);
+
+    // 4. Upgraded Subject Combination extraction prioritizing the standard field
+    final Object? rawSubjectValue = json['subjectCombination'] ?? 
+                                    json['subject'] ?? 
+                                    json['subjects'] ?? 
+                                    userMap['subjectCombination'] ?? 
+                                    userMap['subjects'] ?? 
+                                    userMap['subject'];
+
+    final String rawSubjectStr = rawSubjectValue != null ? rawSubjectValue.toString().trim() : '';
+    final String displaySubject = (rawSubjectStr.isNotEmpty && rawSubjectStr.toLowerCase() != 'n/a') 
+        ? rawSubjectStr 
+        : 'N/A';
 
     return ListingModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
@@ -218,10 +230,7 @@ class ListingModel {
                    json['school'] ?? 
                    userMap['school'] ??
                    'N/A').toString(),
-      subject: (json['subjectCombination'] ?? 
-                json['subject'] ?? 
-                json['subjects'] ?? 
-                'N/A').toString(),
+      subject: displaySubject,
       currentCounty: (json['currentCounty'] ?? 
                      json['county'] ?? 
                      json['currentLocation'] ?? 
@@ -245,31 +254,7 @@ class ListingModel {
     );
   }
 }
-
-class ResourceModel {
-  final String id;
-  final String title;
-  final String category;
-  final double price; // 0.0 for free
-
-  ResourceModel({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.price,
-  });
-
-  factory ResourceModel.fromJson(Map<String, dynamic> json) {
-    return ResourceModel(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
-      title: (json['title'] ?? 'Untitled Resource').toString(),
-      category: (json['category'] ?? 'General').toString(),
-      price: (json['price'] != null)
-          ? double.tryParse(json['price'].toString()) ?? 0.0
-          : 0.0,
-    );
-  }
-}
+       
                                                                                                 
 // =========================================================
 // 1. MEMBER REGISTRATION SCREEN
