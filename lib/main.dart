@@ -2011,9 +2011,6 @@ class TeacherPortalTables {
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN
 // =========================================================
-// =========================================================
-// TEACHER PORTAL MAIN SCREEN
-// =========================================================
 class TeacherPortalScreen extends StatefulWidget {
   final String userId;
   final String userName;
@@ -4026,51 +4023,31 @@ class _ListingDataTableSource extends DataTableSource {
   @override
   DataRow? getRow(int index) {
     if (index >= _listings.length) return null;
-
     final listing = _listings[index];
-    final String tsc = listing.tscNumber ?? 'N/A';
 
     return DataRow.byIndex(
       index: index,
-      color: WidgetStateProperty.resolveWith<Color?>(
-        (Set<WidgetState> states) {
-          if (index.isEven) {
-            return Colors.teal.shade50.withOpacity(0.3);
-          }
-          return null;
-        },
-      ),
       cells: [
-        DataCell(Text(listing.teacherName)),
+        DataCell(Text(listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A')),
         DataCell(Text(listing.category)),
-        DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.teal.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(listing.subject, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ),
-        ),
+        // Subject Combination column mapped correctly
+        DataCell(Text(listing.subject.isNotEmpty ? listing.subject : 'N/A')),
         DataCell(Text(listing.currentCounty)),
-        DataCell(Text(listing.salary.isNotEmpty ? listing.salary : listing.targetCounty)),
-        DataCell(Text(listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')),
+        DataCell(Text(listing.targetCounty.isNotEmpty ? listing.targetCounty : listing.salary)),
+        DataCell(Text(listing.schoolName)),
         DataCell(Text(listing.contactPhone)),
-        // Explicit TSC Number display cell
-        DataCell(Text(tsc)),
-        // Updated Compliance badge label
+        DataCell(Text(listing.tscNumber ?? 'N/A')),
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              listing.isTscCompliant ? 'TSC compliant' : 'Not TSC compliant',
+              listing.isTscCompliant ? 'Compliant' : 'Pending',
               style: TextStyle(
-                color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
+                color: listing.isTscCompliant ? Colors.green.shade800 : Colors.orange.shade800,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -4078,19 +4055,11 @@ class _ListingDataTableSource extends DataTableSource {
           ),
         ),
         DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: listing.isApproved ? Colors.green.shade100 : Colors.orange.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              listing.isApproved ? 'Approved' : 'Pending',
-              style: TextStyle(
-                color: listing.isApproved ? Colors.green.shade900 : Colors.orange.shade900,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+          Text(
+            listing.status.toUpperCase(),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: listing.status == 'approved' ? Colors.teal : Colors.grey,
             ),
           ),
         ),
@@ -4098,18 +4067,20 @@ class _ListingDataTableSource extends DataTableSource {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!listing.isApproved)
+              if (listing.status != 'approved')
                 IconButton(
-                  icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-                  tooltip: 'Approve',
+                  icon: const Icon(Icons.check_circle, color: Colors.green),
+                  tooltip: 'Approve Listing',
                   onPressed: () => onApprove(listing.id),
                 ),
               IconButton(
                 icon: const Icon(Icons.edit, color: Colors.blue),
+                tooltip: 'Edit Listing',
                 onPressed: () => onEdit(listing),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                icon: const Icon(Icons.delete, color: Colors.red),
+                tooltip: 'Delete Listing',
                 onPressed: () => onDelete(listing.id),
               ),
             ],
@@ -4128,7 +4099,8 @@ class _ListingDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-
+                         
+                
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
