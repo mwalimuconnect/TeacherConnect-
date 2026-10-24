@@ -1,4 +1,3 @@
-import 'main.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,41 +16,18 @@ class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final LocalAuthentication _localAuth = LocalAuthentication();
 
-  bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _idNumberController = TextEditingController();
-  final TextEditingController _tscNumberController = TextEditingController();
-  final TextEditingController _schoolNameController = TextEditingController();
+  // Single set of controllers for login
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _adminPasscodeController = TextEditingController();
-  final TextEditingController _profilePhotoUrlController = TextEditingController();
-  final TextEditingController _subjectCombinationController = TextEditingController(); // Added for Subject Combination
-
-  String _selectedRole = 'Admin';
 
   @override
   void dispose() {
-    _fullNameController.dispose();
-    _idNumberController.dispose();
-    _tscNumberController.dispose();
-    _schoolNameController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
-    _adminPasscodeController.dispose();
-    _profilePhotoUrlController.dispose();
-    _subjectCombinationController.dispose(); // Dispose the controller
     super.dispose();
-  }
-
-  void _toggleAuthMode() {
-    _formKey.currentState?.reset();
-    setState(() {
-      _isLogin = !_isLogin;
-    });
   }
 
   /// Handles Biometric (Fingerprint) Authentication flow with saved session lookup
@@ -64,7 +40,6 @@ class _AuthScreenState extends State<AuthScreen> {
       final String? savedRole = prefs.getString('savedRole');
       final String? savedPhotoUrl = prefs.getString('savedPhotoUrl');
 
-      // Check if a valid user session was saved on this device
       if (savedPhone == null || savedPhone.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -119,7 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
               builder: (_) => AdminDashboardScreen(
                 userId: userId,
                 adminName: savedName ?? 'Admin',
-                adminPhone: savedPhone ?? '',
+                adminPhone: savedPhone,
                 adminPhotoUrl: savedPhotoUrl,
               ),
             ),
@@ -132,7 +107,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 userId: userId,
                 userName: savedName ?? 'Member Teacher',
                 userRole: savedRole ?? 'Member Teacher',
-                userPhone: savedPhone ?? '',
+                userPhone: savedPhone,
                 userPhotoUrl: savedPhotoUrl,
               ),
             ),
@@ -150,7 +125,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _handleSubmit() async {
+  Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
     FocusScope.of(context).unfocus();
@@ -158,51 +133,12 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
 
     try {
-      if (!_isLogin && _selectedRole != 'Job Seeker (BOM)' && _tscNumberController.text.trim().isNotEmpty) {
-        final verifyResponse = await http.post(
-          Uri.parse('https://teacher-connect-backend.vercel.app/api/verify-tsc'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'idNumber': _idNumberController.text.trim(),
-            'tscNumber': _tscNumberController.text.trim(),
-          }),
-        );
+      final Uri url = Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/login');
 
-        final verifyData = jsonDecode(verifyResponse.body);
-        if (verifyData['success'] == false) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(verifyData['message'] ?? 'TSC verification failed. Please check your ID and TSC number.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          setState(() => _isLoading = false);
-          return;
-        }
-      }
-
-      final String endpoint = _isLogin ? '/api/auth/login' : '/api/auth/register';
-      final Uri url = Uri.parse('https://teacher-connect-backend.vercel.app$endpoint');
-
-      final Map<String, dynamic> payload = _isLogin
-          ? {
-              'phoneNumber': _phoneController.text.trim(),
-              'password': _passwordController.text.trim(),
-            }
-          : {
-              'fullName': _fullNameController.text.trim(),
-              'idNumber': _idNumberController.text.trim(),
-              'role': _selectedRole,
-              'tscNumber': _tscNumberController.text.trim(),
-              'subjectCombination': _subjectCombinationController.text.trim(), // Included in registration payload
-              'currentSchool': _schoolNameController.text.trim(),
-              'phoneNumber': _phoneController.text.trim(),
-              'password': _passwordController.text.trim(),
-              'profilePhotoUrl': _profilePhotoUrlController.text.trim(),
-              if (_selectedRole == 'Admin')
-                'adminPasscode': _adminPasscodeController.text.trim(),
-            };
+      final Map<String, dynamic> payload = {
+        'phoneNumber': _phoneController.text.trim(),
+        'password': _passwordController.text.trim(),
+      };
 
       final response = await http.post(
         url,
@@ -212,17 +148,16 @@ class _AuthScreenState extends State<AuthScreen> {
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200) {
         if (!mounted) return;
 
         final userMap = data['user'] ?? {};
         final String userId = userMap['id'] ?? userMap['_id'] ?? '';
-        final String userRole = userMap['role'] ?? _selectedRole;
-        final String userName = userMap['fullName'] ?? _phoneController.text.trim();
+        final String userRole = userMap['role'] ?? 'Member Teacher';
+        final String userName = userMap['fullName'] ?? 'Teacher';
         final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
-        final String profilePhotoUrl = userMap['profilePhotoUrl'] ?? _profilePhotoUrlController.text.trim();
+        final String profilePhotoUrl = userMap['profilePhotoUrl'] ?? userMap['profilePhoto'] ?? '';
 
-        // Save session locally so fingerprint login and direct entry work instantly
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('userId', userId);
         await prefs.setString('savedPhone', userPhone);
@@ -232,10 +167,10 @@ class _AuthScreenState extends State<AuthScreen> {
         await prefs.setBool('isLoggedIn', true);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? (_isLogin ? 'Login successful!' : 'Registration successful!')),
-            backgroundColor: const Color(0xFF00897B),
-            duration: const Duration(seconds: 2),
+          const SnackBar(
+            content: Text('Login successful!'),
+            backgroundColor: Color(0xFF00897B),
+            duration: Duration(seconds: 2),
           ),
         );
 
@@ -271,7 +206,7 @@ class _AuthScreenState extends State<AuthScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data['message'] ?? 'Authentication failed'),
+            content: Text(data['message'] ?? 'Invalid login credentials'),
             backgroundColor: Colors.red,
           ),
         );
@@ -289,12 +224,21 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  void _navigateToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MemberRegistrationScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_isLogin ? 'Member Login' : 'Member Registration'),
+        title: const Text('Member Login'),
         backgroundColor: const Color(0xFF00897B),
         centerTitle: true,
       ),
@@ -306,9 +250,9 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  _isLogin ? 'Welcome Back to' : 'Welcome to',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
+                const Text(
+                  'Welcome Back to',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.normal),
                   textAlign: TextAlign.center,
                 ),
                 const Text(
@@ -316,138 +260,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 30),
 
-                if (!_isLogin) ...[
-                  TextFormField(
-                    key: const ValueKey('fullNameField'),
-                    controller: _fullNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                        return 'Please enter your full name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('profilePhotoUrlField'),
-                    controller: _profilePhotoUrlController,
-                    decoration: const InputDecoration(
-                      labelText: 'Profile Photo URL (Optional)',
-                      prefixIcon: Icon(Icons.image),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('idNumberField'),
-                    controller: _idNumberController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'ID / Passport Number',
-                      prefixIcon: Icon(Icons.badge),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                        return 'Please enter your ID number';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    key: const ValueKey('roleDropdownField'),
-                    value: _selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Role',
-                      prefixIcon: Icon(Icons.work),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      'Member Teacher',
-                      'Job Seeker (BOM)',
-                      'Admin',
-                      'Representative',
-                    ]
-                        .map((role) => DropdownMenuItem(value: role, child: Text(role)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedRole = val;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('tscNumberField'),
-                    controller: _tscNumberController,
-                    decoration: InputDecoration(
-                      labelText: _selectedRole == 'Job Seeker (BOM)'
-                          ? 'TSC Number (Optional)'
-                          : 'TSC Number',
-                      prefixIcon: const Icon(Icons.card_membership),
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && _selectedRole != 'Job Seeker (BOM)') {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Please enter your TSC Number';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  // Added Subject Combination Field
-                  TextFormField(
-                    key: const ValueKey('subjectCombinationField'),
-                    controller: _subjectCombinationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Subject Combination (e.g., ENG/LIT, MATH/CHEM)',
-                      prefixIcon: Icon(Icons.menu_book),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                        return 'Please enter your subject combination';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('schoolNameField'),
-                    controller: _schoolNameController,
-                    decoration: InputDecoration(
-                      labelText: _selectedRole == 'Job Seeker (BOM)'
-                          ? 'Current School / Preferred Region (Optional)'
-                          : 'Current School Name',
-                      prefixIcon: const Icon(Icons.domain),
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && _selectedRole == 'Member Teacher') {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Please enter your Current School Name';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                ],
-
+                // Single Phone Number Field
                 TextFormField(
-                  key: const ValueKey('phoneNumberField'),
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
@@ -462,10 +278,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
 
+                // Single Password Field
                 TextFormField(
-                  key: const ValueKey('passwordField'),
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
@@ -491,219 +307,36 @@ class _AuthScreenState extends State<AuthScreen> {
                   },
                 ),
 
-                if (!_isLogin && _selectedRole == 'Admin') ...[
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('adminPasscodeField'),
-                    controller: _adminPasscodeController,
-                    obscureText: true,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.security, color: Colors.red),
-                      labelText: 'Admin Security Passcode',
-                      hintText: 'Enter passcode',
-                      border: OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                        return 'Please enter your ID number';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    key: const ValueKey('roleDropdownField'),
-                    value: _selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Role',
-                      prefixIcon: Icon(Icons.work),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      'Member Teacher',
-                      'Job Seeker (BOM)',
-                      'Admin',
-                      'Representative',
-                    ]
-                        .map((role) => DropdownMenuItem(value: role, child: Text(role)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedRole = val;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('tscNumberField'),
-                    controller: _tscNumberController,
-                    decoration: InputDecoration(
-                      labelText: _selectedRole == 'Job Seeker (BOM)'
-                          ? 'TSC Number (Optional)'
-                          : 'TSC Number',
-                      prefixIcon: const Icon(Icons.card_membership),
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && _selectedRole != 'Job Seeker (BOM)') {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Please enter your TSC Number';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  // Added Subject Combination Field
-                  TextFormField(
-                    key: const ValueKey('subjectCombinationField'),
-                    controller: _subjectCombinationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Subject Combination (e.g., ENG/LIT, MATH/CHEM)',
-                      prefixIcon: Icon(Icons.menu_book),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
-                        return 'Please enter your subject combination';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('schoolNameField'),
-                    controller: _schoolNameController,
-                    decoration: InputDecoration(
-                      labelText: _selectedRole == 'Job Seeker (BOM)'
-                          ? 'Current School / Preferred Region (Optional)'
-                          : 'Current School Name',
-                      prefixIcon: const Icon(Icons.domain),
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && _selectedRole == 'Member Teacher') {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Please enter your Current School Name';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                ],
-
-                TextFormField(
-                  key: const ValueKey('phoneNumberField'),
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Please enter your phone number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                TextFormField(
-                  key: const ValueKey('passwordField'),
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-
-                if (!_isLogin && _selectedRole == 'Admin') ...[
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    key: const ValueKey('adminPasscodeField'),
-                    controller: _adminPasscodeController,
-                    obscureText: true,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.security, color: Colors.red),
-                      labelText: 'Admin Security Passcode',
-                      hintText: 'Enter passcode',
-                      border: OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                    ),
-                    validator: (val) {
-                      if (!_isLogin && _selectedRole == 'Admin') {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Please enter the admin security passcode';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-
-                if (_isLogin) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ForgotPasswordScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          color: Color(0xFF00897B),
-                          fontWeight: FontWeight.bold,
+                // Forgot Password Link
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen(),
                         ),
+                      );
+                    },
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: Color(0xFF00897B),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(height: 20),
 
-                const SizedBox(height: 24),
-
+                // Login Button
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSubmit,
+                  onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00897B),
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(50),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -717,77 +350,75 @@ class _AuthScreenState extends State<AuthScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : Text(
-                          _isLogin ? 'Login' : 'Register',
-                          style: const TextStyle(
+                      : const Text(
+                          'Login',
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                 ),
 
-                // Fingerprint Login Section (Visible only in Login mode)
-                if (_isLogin) ...[
-                  const SizedBox(height: 20),
-                  Row(
-                    children: const [
-                      Expanded(child: Divider(thickness: 1)),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR', style: TextStyle(color: Colors.grey)),
+                const SizedBox(height: 20),
+
+                // Fingerprint Login Section
+                Row(
+                  children: const [
+                    Expanded(child: Divider(thickness: 1)),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('OR', style: TextStyle(color: Colors.grey)),
+                    ),
+                    Expanded(child: Divider(thickness: 1)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Column(
+                    children: [
+                      InkWell(
+                        onTap: _handleBiometricLogin,
+                        borderRadius: BorderRadius.circular(50),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00897B).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF00897B), width: 1.5),
+                          ),
+                          child: const Icon(
+                            Icons.fingerprint,
+                            size: 40,
+                            color: Color(0xFF00897B),
+                          ),
+                        ),
                       ),
-                      Expanded(child: Divider(thickness: 1)),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Login with Fingerprint',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF00897B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Column(
-                      children: [
-                        InkWell(
-                          onTap: _handleBiometricLogin,
-                          borderRadius: BorderRadius.circular(50),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00897B).withOpacity(0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFF00897B), width: 1.5),
-                            ),
-                            child: const Icon(
-                              Icons.fingerprint,
-                              size: 40,
-                              color: Color(0xFF00897B),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Login with Fingerprint',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF00897B),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
 
+                // Navigate to Register Screen Link
                 TextButton(
-                  onPressed: _toggleAuthMode,
+                  onPressed: _navigateToRegister,
                   child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 15, color: Colors.black87),
+                    text: const TextSpan(
+                      style: TextStyle(fontSize: 15, color: Colors.black87),
                       children: [
+                        TextSpan(text: "Don't have an account? "),
                         TextSpan(
-                          text: _isLogin ? "Don't have an account? " : "Already have an account? ",
-                        ),
-                        TextSpan(
-                          text: _isLogin ? 'Register' : 'Login',
-                          style: const TextStyle(
+                          text: 'Register',
+                          style: TextStyle(
                             color: Color(0xFFFF5722),
                             fontWeight: FontWeight.bold,
                           ),
