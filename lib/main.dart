@@ -4937,7 +4937,6 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
 // ==========================================
 // PAGINATED DATA SOURCE FOR MEMBERS
 // ==========================================
-
 class _MemberDataTableSource extends DataTableSource {
   final List<dynamic> _members;
 
@@ -4952,10 +4951,12 @@ class _MemberDataTableSource extends DataTableSource {
     final phone = member['phoneNumber'] ?? member['phone'] ?? 'N/A';
     final tsc = member['tscNumber'] ?? member['tsc'] ?? 'N/A';
     
-    // Extracting subject combination field from member data
-    final subject = member['subjectCombination'] ?? member['subject'] ?? 'N/A';
+    // Verified subject combination extraction mapping all possible formats
+    final subject = member['subjectCombination'] ?? 
+                    member['subjects'] ?? 
+                    member['subject'] ?? 
+                    'N/A';
 
-    // Resolves actual user ID card fields and ignores Mongo '_id'
     final idNum = member['idNumber'] ??
         member['nationalId'] ??
         member['idNo'] ??
@@ -4987,7 +4988,7 @@ class _MemberDataTableSource extends DataTableSource {
         DataCell(Text(phone)),
         DataCell(Text(tsc)),
         DataCell(Text(idNum)),
-        // Subject Combination column cell
+        // Subject Combination Badge Cell
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -5014,8 +5015,8 @@ class _MemberDataTableSource extends DataTableSource {
 
   @override
   int get selectedRowCount => 0;
-}                                                                                     
-
+}
+                                                                   
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
 // ============================================================================
