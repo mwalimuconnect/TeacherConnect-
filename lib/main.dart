@@ -1274,7 +1274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _schoolController = TextEditingController();
   final TextEditingController _countyController = TextEditingController();
   final TextEditingController _subCountyController = TextEditingController();
-  final TextEditingController _subjectController = TextEditingController(); // Added for Subject Combination
+  final TextEditingController _subjectController = TextEditingController();
 
   final TextEditingController _tscNumberController = TextEditingController();
   final TextEditingController _nationalIdController = TextEditingController();
@@ -1285,7 +1285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchUserProfile();
+    _loadLocalAndFetchProfile();
   }
 
   @override
@@ -1301,6 +1301,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  /// Instantly load local data so fields aren't blank, then sync with backend
+  Future<void> _loadLocalAndFetchProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _fullNameController.text = prefs.getString('savedName') ?? '';
+      _phoneController.text = prefs.getString('savedPhone') ?? '';
+      _schoolController.text = prefs.getString('savedSchool') ?? '';
+      _countyController.text = prefs.getString('savedCounty') ?? '';
+      _subCountyController.text = prefs.getString('savedSubCounty') ?? '';
+      _subjectController.text = prefs.getString('savedSubjectCombination') ?? '';
+      _profilePhotoUrl = prefs.getString('savedPhotoUrl') ?? '';
+    });
+
+    await _fetchUserProfile();
+  }
+
   Future<void> _fetchUserProfile() async {
     try {
       final response = await http.get(
@@ -1313,38 +1329,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         final user = data['user'];
         setState(() {
-          _fullNameController.text = user['fullName'] ?? '';
-          _phoneController.text = user['phone'] ?? '';
-          _schoolController.text = user['currentSchool'] ?? '';
-          _countyController.text = user['county'] ?? '';
-          _subCountyController.text = user['subCounty'] ?? '';
-          _subjectController.text = user['subjectCombination'] ?? user['subjects'] ?? user['subject'] ?? '';
+          _fullNameController.text = user['fullName'] ?? _fullNameController.text;
+          _phoneController.text = user['phone'] ?? _phoneController.text;
+          _schoolController.text = user['currentSchool'] ?? _schoolController.text;
+          _countyController.text = user['county'] ?? _countyController.text;
+          _subCountyController.text = user['subCounty'] ?? _subCountyController.text;
+          _subjectController.text = user['subjectCombination'] ?? user['subjects'] ?? user['subject'] ?? _subjectController.text;
 
           _tscNumberController.text = user['tscNumber'] ?? 'Not Provided';
           _nationalIdController.text = user['nationalId'] ?? 'Not Provided';
 
           _role = user['role'] ?? 'Member Teacher';
-          _profilePhotoUrl = user['profilePhotoUrl'] ?? user['profilePhoto'] ?? '';
+          _profilePhotoUrl = user['profilePhotoUrl'] ?? user['profilePhoto'] ?? _profilePhotoUrl;
           _isLoading = false;
         });
+
+        // Update local SharedPreferences with fresh server values
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedName', _fullNameController.text);
+        await prefs.setString('savedPhone', _phoneController.text);
+        await prefs.setString('savedSchool', _schoolController.text);
+        await prefs.setString('savedCounty', _countyController.text);
+        await prefs.setString('savedSubCounty', _subCountyController.text);
+        await prefs.setString('savedSubjectCombination', _subjectController.text);
+        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Failed to load profile'),
-            backgroundColor: Colors.red,
-          ),
-        );
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error connecting to server: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
       setState(() => _isLoading = false);
     }
   }
@@ -1354,7 +1366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 70, // Optimized for mobile network efficiency
+      imageQuality: 70,
     );
 
     if (pickedFile == null) return;
@@ -1362,7 +1374,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isUploadingPhoto = true);
 
     try {
-      // 1. Upload direct to Cloudinary API
       final uri = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudinaryCloudName/image/upload');
       final request = http.MultipartRequest('POST', uri)
         ..fields['upload_preset'] = _cloudinaryUploadPreset
@@ -1378,7 +1389,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final String downloadUrl = responseData['secure_url'];
 
-      // 2. Persist URL to MongoDB Backend
       final backendResponse = await http.put(
         Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/update-photo/${widget.userId}'),
         headers: {'Content-Type': 'application/json'},
@@ -1392,7 +1402,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profilePhotoUrl = downloadUrl;
         });
 
-        // 3. Keep local SharedPreferences session updated
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
 
@@ -1437,7 +1446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'currentSchool': _schoolController.text.trim(),
           'county': _countyController.text.trim(),
           'subCounty': _subCountyController.text.trim(),
-          'subjectCombination': _subjectController.text.trim(), // Sent to backend
+          'subjectCombination': _subjectController.text.trim(),
           'subjects': _subjectController.text.trim(),
           'profilePhotoUrl': _profilePhotoUrl,
         }),
@@ -1446,6 +1455,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
+        // Save all changes locally so they persist permanently across screens and restarts
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedName', _fullNameController.text.trim());
+        await prefs.setString('savedPhone', _phoneController.text.trim());
+        await prefs.setString('savedSchool', _schoolController.text.trim());
+        await prefs.setString('savedCounty', _countyController.text.trim());
+        await prefs.setString('savedSubCounty', _subCountyController.text.trim());
+        await prefs.setString('savedSubjectCombination', _subjectController.text.trim());
+        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1453,11 +1472,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Color(0xFF00897B),
           ),
         );
-
-        final prefs = await SharedPreferences.getInstance();
-await prefs.setString('savedName', _fullNameController.text.trim());
-await prefs.setString('savedPhone', _phoneController.text.trim());
-await prefs.setString('savedPhotoUrl', _profilePhotoUrl); // <--- Add this line here!
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1626,7 +1640,6 @@ await prefs.setString('savedPhotoUrl', _profilePhotoUrl); // <--- Add this line 
                       ),
                       const SizedBox(height: 14),
 
-                      // Editable Subject Combination Field
                       TextFormField(
                         controller: _subjectController,
                         decoration: const InputDecoration(
@@ -1701,8 +1714,8 @@ await prefs.setString('savedPhotoUrl', _profilePhotoUrl); // <--- Add this line 
             ),
     );
   }
-}                         
-
+}
+                                   
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
 // =========================================================
