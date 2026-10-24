@@ -253,8 +253,7 @@ class ListingModel {
       isApproved: json['isApproved'] == true || json['status'] == 'approved',
     );
   }
-}
-       
+}       
                                                                                                 
 // =========================================================
 // 1. MEMBER REGISTRATION SCREEN
@@ -275,6 +274,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _adminPasscodeController = TextEditingController();
+  final _subjectController = TextEditingController(); // Added for Subject Combination
 
   String _selectedRole = 'Admin';
   bool _isLoading = false;
@@ -296,6 +296,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _adminPasscodeController.dispose();
+    _subjectController.dispose(); // Dispose the controller
     super.dispose();
   }
 
@@ -310,6 +311,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
         'tscNumber': _tscController.text.trim(),
         'currentSchool': _schoolController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
+        'subjectCombination': _subjectController.text.trim(), // Included in payload
         'password': _passwordController.text.trim(),
         if (_selectedRole == 'Admin')
           'adminPasscode': _adminPasscodeController.text.trim(),
@@ -466,6 +468,16 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
                 ),
               ),
               const SizedBox(height: 14),
+              // Added Subject Combination Field
+              TextFormField(
+                controller: _subjectController,
+                decoration: const InputDecoration(
+                  labelText: 'Subject Combination (e.g., ENG/LIT)',
+                  prefixIcon: Icon(Icons.menu_book),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
               TextFormField(
                 controller: _schoolController,
                 decoration: const InputDecoration(
@@ -539,7 +551,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
     );
   }
 }
-                                                            
+                                                                                                           
 // =========================================================
 // 2. LOGIN SCREEN (With Biometric Fingerprint & Session Support)
 // =========================================================
