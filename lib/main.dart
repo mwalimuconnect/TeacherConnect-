@@ -1245,7 +1245,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 }
 
 // =========================================
-// PROFILE SCREEN UPDATED WITH PROFILE PHOTO 
+// PROFILE SCREEN WITH CLOUDINARY UPLOAD
 // =========================================
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -1258,9 +1258,15 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
+  // Cloudinary Configuration
+  // TODO: Replace these two variables with your Cloudinary details
+  final String _cloudinaryCloudName = 'YOUR_CLOUDINARY_CLOUD_NAME';
+  final String _cloudinaryUploadPreset = 'YOUR_UNSIGNED_UPLOAD_PRESET';
+
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
 
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -1309,27 +1315,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _schoolController.text = user['currentSchool'] ?? '';
           _countyController.text = user['county'] ?? '';
           _subCountyController.text = user['subCounty'] ?? '';
-          
+
           _tscNumberController.text = user['tscNumber'] ?? 'Not Provided';
           _nationalIdController.text = user['nationalId'] ?? 'Not Provided';
-          
+
           _role = user['role'] ?? 'Member Teacher';
-          _profilePhotoUrl = user['profilePhotoUrl'] ?? '';
+          _profilePhotoUrl = user['profilePhotoUrl'] ?? user['profilePhoto'] ?? '';
           _isLoading = false;
         });
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Failed to load profile'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to load profile'),
+            backgroundColor: Colors.red,
+          ),
         );
         setState(() => _isLoading = false);
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error connecting to server: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Error connecting to server: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Direct Image Upload to Cloudinary & Backend Save
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70, // Optimized for mobile network efficiency
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+
+    try {
+      // 1. Upload direct to Cloudinary API
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudinaryCloudName/image/upload');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = _cloudinaryUploadPreset
+        ..files.add(await http.MultipartFile.fromPath('file', pickedFile.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode != 200) {
+        throw Exception(responseData['error']?['message'] ?? 'Cloudinary upload failed');
+      }
+
+      final String downloadUrl = responseData['secure_url'];
+
+      // 2. Persist URL to MongoDB Backend
+      final backendResponse = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/update-photo/${widget.userId}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'profilePhoto': downloadUrl}),
+      );
+
+      final backendData = jsonDecode(backendResponse.body);
+
+      if (backendResponse.statusCode == 200) {
+        setState(() {
+          _profilePhotoUrl = downloadUrl;
+        });
+
+        // 3. Keep local SharedPreferences session updated
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile photo updated successfully!'),
+            backgroundColor: Color(0xFF00897B),
+          ),
+        );
+      } else {
+        throw Exception(backendData['message'] ?? 'Failed to update user profile photo');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading photo: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+      }
     }
   }
 
@@ -1358,22 +1442,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Color(0xFF00897B)),
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Color(0xFF00897B),
+          ),
         );
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('savedName', _fullNameController.text.trim());
         await prefs.setString('savedPhone', _phoneController.text.trim());
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Failed to update profile'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to update profile'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving profile: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Error saving profile: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -1398,6 +1491,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Avatar & Photo Upload Stack
                       Stack(
                         children: [
                           CircleAvatar(
@@ -1406,10 +1500,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             backgroundImage: (_profilePhotoUrl.isNotEmpty)
                                 ? NetworkImage(_profilePhotoUrl) as ImageProvider
                                 : null,
-                            child: _profilePhotoUrl.isEmpty
+                            child: _profilePhotoUrl.isEmpty && !_isUploadingPhoto
                                 ? const Icon(Icons.person, size: 50, color: Color(0xFF00897B))
                                 : null,
                           ),
+                          if (_isUploadingPhoto)
+                            const Positioned.fill(
+                              child: CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.black45,
+                                child: CircularProgressIndicator(color: Colors.white),
+                              ),
+                            ),
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -1419,11 +1521,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: IconButton(
                                 padding: EdgeInsets.zero,
                                 icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Profile photo upload feature coming soon!')),
-                                  );
-                                },
+                                onPressed: _isUploadingPhoto ? null : _pickAndUploadImage,
                               ),
                             ),
                           ),
@@ -1436,6 +1534,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 24),
 
+                      // Locked Fields Warning Notice
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -1584,6 +1683,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+                   
 
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
