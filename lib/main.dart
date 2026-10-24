@@ -4024,30 +4024,51 @@ class _ListingDataTableSource extends DataTableSource {
   DataRow? getRow(int index) {
     if (index >= _listings.length) return null;
     final listing = _listings[index];
+    final String tsc = listing.tscNumber ?? 'N/A';
 
     return DataRow.byIndex(
       index: index,
+      color: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (index.isEven) {
+            return Colors.teal.shade50.withOpacity(0.3);
+          }
+          return null;
+        },
+      ),
       cells: [
         DataCell(Text(listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A')),
         DataCell(Text(listing.category)),
         // Subject Combination column mapped correctly
-        DataCell(Text(listing.subject.isNotEmpty ? listing.subject : 'N/A')),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              listing.subject.isNotEmpty ? listing.subject : 'N/A',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
         DataCell(Text(listing.currentCounty)),
         DataCell(Text(listing.targetCounty.isNotEmpty ? listing.targetCounty : listing.salary)),
-        DataCell(Text(listing.schoolName)),
+        DataCell(Text(listing.schoolName.isNotEmpty ? listing.schoolName : 'N/A')),
         DataCell(Text(listing.contactPhone)),
-        DataCell(Text(listing.tscNumber ?? 'N/A')),
+        DataCell(Text(tsc)),
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: listing.isTscCompliant ? Colors.green.shade100 : Colors.orange.shade100,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              listing.isTscCompliant ? 'Compliant' : 'Pending',
+              listing.isTscCompliant ? 'TSC compliant' : 'Not TSC compliant',
               style: TextStyle(
-                color: listing.isTscCompliant ? Colors.green.shade800 : Colors.orange.shade800,
+                color: listing.isTscCompliant ? Colors.green.shade900 : Colors.orange.shade900,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -4055,11 +4076,19 @@ class _ListingDataTableSource extends DataTableSource {
           ),
         ),
         DataCell(
-          Text(
-            listing.status.toUpperCase(),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: listing.status == 'approved' ? Colors.teal : Colors.grey,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: listing.isApproved ? Colors.green.shade100 : Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              listing.isApproved ? 'APPROVED' : 'PENDING',
+              style: TextStyle(
+                color: listing.isApproved ? Colors.green.shade900 : Colors.orange.shade900,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
         ),
@@ -4067,9 +4096,9 @@ class _ListingDataTableSource extends DataTableSource {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (listing.status != 'approved')
+              if (!listing.isApproved)
                 IconButton(
-                  icon: const Icon(Icons.check_circle, color: Colors.green),
+                  icon: const Icon(Icons.check_circle_outline, color: Colors.green),
                   tooltip: 'Approve Listing',
                   onPressed: () => onApprove(listing.id),
                 ),
@@ -4079,7 +4108,7 @@ class _ListingDataTableSource extends DataTableSource {
                 onPressed: () => onEdit(listing),
               ),
               IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
                 tooltip: 'Delete Listing',
                 onPressed: () => onDelete(listing.id),
               ),
@@ -4099,7 +4128,7 @@ class _ListingDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-                         
+         
                 
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
