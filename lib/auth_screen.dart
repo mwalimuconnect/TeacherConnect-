@@ -29,6 +29,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _adminPasscodeController = TextEditingController();
   final TextEditingController _profilePhotoUrlController = TextEditingController();
+  final TextEditingController _subjectCombinationController = TextEditingController(); // Added for Subject Combination
 
   String _selectedRole = 'Admin';
 
@@ -42,6 +43,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _passwordController.dispose();
     _adminPasscodeController.dispose();
     _profilePhotoUrlController.dispose();
+    _subjectCombinationController.dispose(); // Dispose the controller
     super.dispose();
   }
 
@@ -193,6 +195,7 @@ class _AuthScreenState extends State<AuthScreen> {
               'idNumber': _idNumberController.text.trim(),
               'role': _selectedRole,
               'tscNumber': _tscNumberController.text.trim(),
+              'subjectCombination': _subjectCombinationController.text.trim(), // Included in registration payload
               'currentSchool': _schoolNameController.text.trim(),
               'phoneNumber': _phoneController.text.trim(),
               'password': _passwordController.text.trim(),
@@ -399,6 +402,176 @@ class _AuthScreenState extends State<AuthScreen> {
                         if (val == null || val.trim().isEmpty) {
                           return 'Please enter your TSC Number';
                         }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  // Added Subject Combination Field
+                  TextFormField(
+                    key: const ValueKey('subjectCombinationField'),
+                    controller: _subjectCombinationController,
+                    decoration: const InputDecoration(
+                      labelText: 'Subject Combination (e.g., ENG/LIT, MATH/CHEM)',
+                      prefixIcon: Icon(Icons.menu_book),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (val) {
+                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
+                        return 'Please enter your subject combination';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    key: const ValueKey('schoolNameField'),
+                    controller: _schoolNameController,
+                    decoration: InputDecoration(
+                      labelText: _selectedRole == 'Job Seeker (BOM)'
+                          ? 'Current School / Preferred Region (Optional)'
+                          : 'Current School Name',
+                      prefixIcon: const Icon(Icons.domain),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (val) {
+                      if (!_isLogin && _selectedRole == 'Member Teacher') {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Please enter your Current School Name';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                TextFormField(
+                  key: const ValueKey('phoneNumberField'),
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                TextFormField(
+                  key: const ValueKey('passwordField'),
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                ),
+
+                if (!_isLogin && _selectedRole == 'Admin') ...[
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    key: const ValueKey('adminPasscodeField'),
+                    controller: _adminPasscodeController,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.security, color: Colors.red),
+                      labelText: 'Admin Security Passcode',
+                      hintText: 'Enter passcode',
+                      border: OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red),
+                      ),
+                    ),
+                    validator: (val) {
+                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
+                        return 'Please enter your ID number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('roleDropdownField'),
+                    value: _selectedRole,
+                    decoration: const InputDecoration(
+                      labelText: 'Role',
+                      prefixIcon: Icon(Icons.work),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      'Member Teacher',
+                      'Job Seeker (BOM)',
+                      'Admin',
+                      'Representative',
+                    ]
+                        .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _selectedRole = val;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    key: const ValueKey('tscNumberField'),
+                    controller: _tscNumberController,
+                    decoration: InputDecoration(
+                      labelText: _selectedRole == 'Job Seeker (BOM)'
+                          ? 'TSC Number (Optional)'
+                          : 'TSC Number',
+                      prefixIcon: const Icon(Icons.card_membership),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (val) {
+                      if (!_isLogin && _selectedRole != 'Job Seeker (BOM)') {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Please enter your TSC Number';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  // Added Subject Combination Field
+                  TextFormField(
+                    key: const ValueKey('subjectCombinationField'),
+                    controller: _subjectCombinationController,
+                    decoration: const InputDecoration(
+                      labelText: 'Subject Combination (e.g., ENG/LIT, MATH/CHEM)',
+                      prefixIcon: Icon(Icons.menu_book),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (val) {
+                      if (!_isLogin && (val == null || val.trim().isEmpty)) {
+                        return 'Please enter your subject combination';
                       }
                       return null;
                     },
