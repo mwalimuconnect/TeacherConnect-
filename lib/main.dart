@@ -1260,9 +1260,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Cloudinary Configuration
-  // TODO: Replace these two variables with your Cloudinary details
-  final String _cloudinaryCloudName = 'a846882c9a07b650a94ececdf26937';
+    // Cloudinary Configuration
+  final String _cloudinaryCloudName = 'a846882c';
   final String _cloudinaryUploadPreset = 'ml_default';
   bool _isLoading = true;
   bool _isSaving = false;
