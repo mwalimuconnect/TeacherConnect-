@@ -1455,8 +1455,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
 
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('savedName', _fullNameController.text.trim());
-        await prefs.setString('savedPhone', _phoneController.text.trim());
+await prefs.setString('savedName', _fullNameController.text.trim());
+await prefs.setString('savedPhone', _phoneController.text.trim());
+await prefs.setString('savedPhotoUrl', _profilePhotoUrl); // <--- Add this line here!
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
