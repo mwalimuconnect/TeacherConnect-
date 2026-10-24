@@ -2029,6 +2029,9 @@ class TeacherPortalTables {
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN
 // =========================================================
+// =========================================================
+// TEACHER PORTAL MAIN SCREEN (Streamlined Header)
+// =========================================================
 class TeacherPortalScreen extends StatefulWidget {
   final String userId;
   final String userName;
@@ -2282,6 +2285,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
+
   void _showPaymentModal(BuildContext context, ListingModel listing) {
     if (isListingUnlocked(listing)) {
       _showContactDetailsModal(context, listing);
@@ -2436,8 +2440,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     if (confirm != true) return;
 
     final prefs = await SharedPreferences.getInstance();
-    
-    // ✅ PRESERVE savedPhone, savedName, savedRole so fingerprint login works!
     await prefs.setBool('isLoggedIn', false);
 
     if (!mounted) return;
@@ -2474,7 +2476,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       child: tableWidget,
     );
   }
-            
+
   Widget _buildAnnouncementBanner() {
     if (activeAnnouncement == null) return const SizedBox.shrink();
 
@@ -2535,7 +2537,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           title: const Text('Teacher Portal'),
           backgroundColor: Colors.teal,
           actions: [
-            // AppBar Profile Avatar shortcut
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -2674,56 +2675,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         ),
         body: Column(
           children: [
-            Container(
-              color: Colors.teal.shade50,
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.teal,
-                    backgroundImage: (widget.userPhotoUrl != null && widget.userPhotoUrl!.isNotEmpty)
-                        ? NetworkImage(widget.userPhotoUrl!)
-                        : null,
-                    child: (widget.userPhotoUrl == null || widget.userPhotoUrl!.isEmpty)
-                        ? Text(
-                            widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.userName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text('Role: ${widget.userRole}'),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.teal),
-                    tooltip: 'Edit Profile',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProfileScreen(userId: widget.userId),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            
             // Announcement banner display
             _buildAnnouncementBanner(),
 
@@ -2771,7 +2722,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}  
+}              
+                      
                                                                                                                                                                                                                                                                                                                                                  
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
