@@ -4911,6 +4911,13 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
+                          // Added Subject Combo header column
+                          DataColumn(
+                            label: Text(
+                              'Subject Combo',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
                           DataColumn(
                             label: Text(
                               'Joined Date',
@@ -4926,7 +4933,7 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
     );
   }
 }
-
+        
 // ==========================================
 // PAGINATED DATA SOURCE FOR MEMBERS
 // ==========================================
@@ -4944,6 +4951,9 @@ class _MemberDataTableSource extends DataTableSource {
     final name = member['fullName'] ?? member['name'] ?? 'N/A';
     final phone = member['phoneNumber'] ?? member['phone'] ?? 'N/A';
     final tsc = member['tscNumber'] ?? member['tsc'] ?? 'N/A';
+    
+    // Extracting subject combination field from member data
+    final subject = member['subjectCombination'] ?? member['subject'] ?? 'N/A';
 
     // Resolves actual user ID card fields and ignores Mongo '_id'
     final idNum = member['idNumber'] ??
@@ -4977,6 +4987,20 @@ class _MemberDataTableSource extends DataTableSource {
         DataCell(Text(phone)),
         DataCell(Text(tsc)),
         DataCell(Text(idNum)),
+        // Subject Combination column cell
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              subject,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
         DataCell(Text(createdAt)),
       ],
     );
@@ -4990,7 +5014,7 @@ class _MemberDataTableSource extends DataTableSource {
 
   @override
   int get selectedRowCount => 0;
-}                                                                           
+}                                                                                     
 
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
