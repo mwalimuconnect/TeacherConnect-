@@ -555,9 +555,6 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 // =========================================================
 // 2. LOGIN SCREEN (With Biometric Fingerprint & Session Support)
 // =========================================================
-// =========================================================
-// 2. LOGIN SCREEN (With Biometric Fingerprint & Session Support)
-// =========================================================
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -954,16 +951,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
-
-
- 
-          
-  
-                
-
-
-             
+}          
                                                                                          
 // =========================================================
 // 3. FORGOT & RESET PASSWORD SCREENS
