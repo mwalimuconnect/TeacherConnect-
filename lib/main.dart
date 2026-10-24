@@ -1262,9 +1262,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Cloudinary Configuration
   // TODO: Replace these two variables with your Cloudinary details
-  final String _cloudinaryCloudName = 'YOUR_CLOUDINARY_CLOUD_NAME';
-  final String _cloudinaryUploadPreset = 'YOUR_UNSIGNED_UPLOAD_PRESET';
-
+  final String _cloudinaryCloudName = 'a846882c9a07b650a94ececdf26937';
+  final String _cloudinaryUploadPreset = 'ml_default';
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
