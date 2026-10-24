@@ -586,8 +586,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final String? savedPhone = prefs.getString('savedPhone');
       final String? savedName = prefs.getString('savedName');
       final String? savedRole = prefs.getString('savedRole');
+      final String? savedPhotoUrl = prefs.getString('savedPhotoUrl');
 
-      // Check if a valid user session was saved on this device
       if (savedPhone == null || savedPhone.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -643,6 +643,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 userId: userId,
                 adminName: savedName ?? 'Admin',
                 adminPhone: savedPhone,
+                adminPhotoUrl: savedPhotoUrl,
               ),
             ),
           );
@@ -655,6 +656,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 userName: savedName ?? 'Member Teacher',
                 userRole: savedRole ?? 'Member Teacher',
                 userPhone: savedPhone,
+                userPhotoUrl: savedPhotoUrl,
               ),
             ),
           );
@@ -699,13 +701,14 @@ class _LoginScreenState extends State<LoginScreen> {
         final String userRole = userMap['role'] ?? 'Member Teacher';
         final String userName = userMap['fullName'] ?? 'Teacher';
         final String userPhone = userMap['phone'] ?? userMap['phoneNumber'] ?? _phoneController.text.trim();
+        final String userPhotoUrl = userMap['profilePhotoUrl'] ?? userMap['profilePhoto'] ?? '';
 
-        // Save session data locally so fingerprint authentication can load this specific user
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('userId', userId);
         await prefs.setString('savedPhone', userPhone);
         await prefs.setString('savedName', userName);
         await prefs.setString('savedRole', userRole);
+        await prefs.setString('savedPhotoUrl', userPhotoUrl);
         await prefs.setBool('isLoggedIn', true);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -726,6 +729,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 userId: userId,
                 adminName: userName,
                 adminPhone: userPhone,
+                adminPhotoUrl: userPhotoUrl,
               ),
             ),
           );
@@ -738,6 +742,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 userName: userName,
                 userRole: userRole,
                 userPhone: userPhone,
+                userPhotoUrl: userPhotoUrl,
               ),
             ),
           );
@@ -810,7 +815,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 30),
 
-            // Phone Number
+            // Phone Number (Single instance)
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
@@ -822,7 +827,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Password
+            // Password (Single instance)
             TextField(
               controller: _passwordController,
               obscureText: _obscurePassword,
@@ -951,7 +956,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}          
+}
                                                                                          
 // =========================================================
 // 3. FORGOT & RESET PASSWORD SCREENS
