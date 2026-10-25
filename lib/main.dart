@@ -6467,329 +6467,215 @@ DropdownButtonFormField<String>(
 }
                                                                                                                                                                
 // ==========================================
-// MANAGE BOM SCHOOL VACANCIES (PAGINATED)
+// MANAGE BOM SCHOOL VACANCIES (PAGINATED TABLE)
 // ==========================================
 class ManageBomVacanciesScreen extends StatefulWidget {
   const ManageBomVacanciesScreen({Key? key}) : super(key: key);
-      @override
 
-  State<ManageBomVacanciesScreen> createState() =>
-
-      _ManageBomVacanciesScreenState();
-
+  @override
+  State<ManageBomVacanciesScreen> createState() => _ManageBomVacanciesScreenState();
 }
 
 class _ManageBomVacanciesScreenState extends State<ManageBomVacanciesScreen> {
+  List<dynamic> _vacancies = [];
+  bool _isLoading = true;
 
-  final ScrollController _scrollController = ScrollController();
-
-  final List<dynamic> _vacancies = [];
-
-  int _currentPage = 1;
-
-  final int _limit = 15;
-
-  bool _isLoadingInitial = true;
-
-  bool _isFetchingMore = false;
-
-  bool _hasMore = true;
+  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
 
   @override
-
   void initState() {
-
     super.initState();
-
     _fetchVacancies();
-
-    _scrollController.addListener(_onScroll);
-
   }
 
-  @override
+  Future<void> _fetchVacancies() async {
+    setState(() => _isLoading = true);
 
-  void dispose() {
-
-    _scrollController.dispose();
-
-    super.dispose();
-
-  }
-
-  void _onScroll() {
-
-    if (_scrollController.position.pixels >=
-
-            _scrollController.position.maxScrollExtent - 200 &&
-
-        !_isFetchingMore &&
-
-        _hasMore) {
-
-      _fetchVacancies(isLoadMore: true);
-
-    }
-
-  }
-
-  Future<void> _fetchVacancies({bool isLoadMore = false}) async {
-
-    if (isLoadMore) {
-
-      setState(() => _isFetchingMore = true);
-
-    } else {
-
-      setState(() {
-
-        _isLoadingInitial = true;
-
-        _currentPage = 1;
-
-        _vacancies.clear();
-
-      });
-
-    }
-
-    final url = Uri.parse(
-
-        'https://teacher-connect-backend.vercel.app/api/bom-vacancies?page=$_currentPage&limit=$_limit');
+    final url = Uri.parse('$_baseUrl/api/bom-vacancies?limit=1000');
 
     try {
-
       final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-
         final decoded = jsonDecode(response.body);
 
         List<dynamic> newItems = [];
-
         if (decoded is List) {
-
           newItems = decoded;
-
         } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-
           newItems = decoded['data'] as List<dynamic>;
-
         }
 
-        setState(() {
-
-          _vacancies.addAll(newItems);
-
-          _hasMore = newItems.length == _limit;
-
-          if (_hasMore) _currentPage++;
-
-        });
-
+        if (mounted) {
+          setState(() {
+            _vacancies = newItems;
+          });
+        }
       }
-
     } catch (e) {
-
       debugPrint('Error fetching BOM vacancies: $e');
-
     } finally {
-
       if (mounted) {
-
-        setState(() {
-
-          _isLoadingInitial = false;
-
-          _isFetchingMore = false;
-
-        });
-
+        setState(() => _isLoading = false);
       }
-
     }
-
   }
 
   Future<void> _deleteVacancy(String id) async {
-
-    final url = Uri.parse(
-
-        'https://teacher-connect-backend.vercel.app/api/admin/bom-vacancies/$id');
+    if (id.isEmpty) return;
+    final url = Uri.parse('$_baseUrl/api/admin/bom-vacancies/$id');
 
     try {
-
       final response = await http.delete(url);
 
-      if (response.statusCode == 200) {
-
+      if (response.statusCode == 200 || response.statusCode == 204) {
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
-
           const SnackBar(content: Text('Vacancy deleted successfully')),
-
         );
-
         _fetchVacancies();
-
       }
-
-    } catch (_) {}
-
+    } catch (e) {
+      debugPrint('Error deleting vacancy: $e');
+    }
   }
 
   @override
-
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
-
         title: const Text('BOM School Vacancies'),
-
         backgroundColor: Colors.teal,
-
       ),
-
-      body: _isLoadingInitial
-
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-
           : _vacancies.isEmpty
-
               ? const Center(child: Text('No BOM vacancies found.'))
-
-              : ListView.builder(
-
-                  controller: _scrollController,
-
-                  padding: const EdgeInsets.all(12),
-
-                  itemCount: _vacancies.length + (_isFetchingMore ? 1 : 0),
-
-                  itemBuilder: (context, index) {
-
-                    if (index == _vacancies.length) {
-
-                      return const Padding(
-
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-
-                        child: Center(child: CircularProgressIndicator()),
-
-                      );
-
-                    }
-
-                    final item = _vacancies[index];
-
-                    final vacancyId = item['_id'] ?? item['id'];
-
-                    return Card(
-
-                      elevation: 2,
-
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-
-                      child: ListTile(
-
-                        leading: const CircleAvatar(
-
-                          backgroundColor: Colors.teal,
-
-                          child: Icon(Icons.school, color: Colors.white),
-
-                        ),
-
-                        title: Text(
-
-                          item['schoolName'] ?? item['title'] ?? 'BOM Vacancy',
-
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-
-                        ),
-
-                        subtitle: Text(
-
-                          'Subject: ${item['subjects'] ?? 'N/A'}\nLocation: ${item['county'] ?? 'N/A'}',
-
-                        ),
-
-                        isThreeLine: true,
-
-                        trailing: IconButton(
-
-                          icon: const Icon(Icons.delete_outline,
-
-                              color: Colors.red),
-
-                          onPressed: () {
-
-                            showDialog(
-
-                              context: context,
-
-                              builder: (ctx) => AlertDialog(
-
-                                title: const Text('Delete Vacancy'),
-
-                                content: const Text(
-
-                                    'Are you sure you want to delete this vacancy?'),
-
-                                actions: [
-
-                                  TextButton(
-
-                                    onPressed: () => Navigator.pop(ctx),
-
-                                    child: const Text('Cancel'),
-
-                                  ),
-
-                                  TextButton(
-
-                                    onPressed: () {
-
-                                      Navigator.pop(ctx);
-
-                                      _deleteVacancy(vacancyId);
-
-                                    },
-
-                                    child: const Text('Delete',
-
-                                        style: TextStyle(color: Colors.red)),
-
-                                  ),
-
-                                ],
-
-                              ),
-
-                            );
-
-                          },
-
-                        ),
-
+              : RefreshIndicator(
+                  onRefresh: _fetchVacancies,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(8.0),
+                    child: PaginatedDataTable(
+                      showCheckboxColumn: false,
+                      rowsPerPage: 10,
+                      headingRowHeight: 56.0,
+                      dataRowMinHeight: 55.0,
+                      dataRowMaxHeight: 65.0,
+                      columns: const [
+                        DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('School Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Subject Combo', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Location / County', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                      source: _BomVacancyDataTableSource(
+                        _vacancies,
+                        onDelete: (id) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Delete Vacancy'),
+                              content: const Text('Are you sure you want to delete this vacancy?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    _deleteVacancy(id);
+                                  },
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-
-                    );
-
-                  },
-
+                    ),
+                  ),
                 ),
-
     );
-
   }
-
 }
 
+// ==========================================
+// BOM VACANCY DATA SOURCE WITH EXACT ALIGNMENT
+// ==========================================
+class _BomVacancyDataTableSource extends DataTableSource {
+  final List<dynamic> _vacancies;
+  final Function(String) onDelete;
 
+  _BomVacancyDataTableSource(this._vacancies, {required this.onDelete});
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= _vacancies.length) return null;
+    final item = _vacancies[index] as Map<String, dynamic>;
+    final vacancyId = item['_id'] ?? item['id'] ?? '';
+    final schoolName = item['schoolName'] ?? item['title'] ?? 'BOM Vacancy';
+    final subjects = item['subjects'] ?? 'N/A';
+    final county = item['county'] ?? 'N/A';
+
+    return DataRow.byIndex(
+      index: index,
+      color: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (index.isEven) {
+            return Colors.teal.shade50.withOpacity(0.3);
+          }
+          return null;
+        },
+      ),
+      cells: [
+        // 1. Row Numbering Column
+        DataCell(Text('${index + 1}')),
+
+        // 2. School Name
+        DataCell(Text(schoolName, style: const TextStyle(fontWeight: FontWeight.bold))),
+
+        // 3. Subject Combination
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              subjects,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+
+        // 4. Location / County
+        DataCell(Text(county)),
+
+        // 5. Actions
+        DataCell(
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: 'Delete Vacancy',
+            onPressed: () => onDelete(vacancyId),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => _vacancies.length;
+
+  @override
+  int get selectedRowCount => 0;
+}
+
+            
 // ==========================================
 // 4. FREE POSTING MODAL
 // ==========================================
