@@ -4412,13 +4412,12 @@ class _PendingApprovalTableSource extends DataTableSource {
 }
                                                 
 // ==========================================
-// PAYMENT HISTORY SCREEN (PAGINATED)
+// PAYMENT HISTORY SCREEN (PAGINATED TABLE)
 // ==========================================
-
 class PaymentHistoryScreen extends StatefulWidget {
-   final String userPhoneNumber;
+  final String userPhoneNumber;
     
-    const PaymentHistoryScreen({
+  const PaymentHistoryScreen({
     Key? key,
     required this.userPhoneNumber,
   }) : super(key: key);
@@ -4428,53 +4427,26 @@ class PaymentHistoryScreen extends StatefulWidget {
 }
 
 class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
-  final ScrollController _scrollController = ScrollController();
-  final List<dynamic> _payments = [];
-  int _currentPage = 1;
-  final int _limit = 15;
-  bool _isLoadingInitial = true;
-  bool _isFetchingMore = false;
-  bool _hasMore = true;
+  List<dynamic> _payments = [];
+  bool _isLoading = true;
+
+  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
 
   @override
   void initState() {
     super.initState();
     _fetchPaymentHistory();
-    _scrollController.addListener(_onScroll);
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isFetchingMore &&
-        _hasMore) {
-      _fetchPaymentHistory(isLoadMore: true);
-    }
-  }
-
-  Future<void> _fetchPaymentHistory({bool isLoadMore = false}) async {
-    if (isLoadMore) {
-      setState(() => _isFetchingMore = true);
-    } else {
-      setState(() {
-        _isLoadingInitial = true;
-        _currentPage = 1;
-        _payments.clear();
-      });
-    }
+  Future<void> _fetchPaymentHistory() async {
+    setState(() => _isLoading = true);
 
     final isAll = widget.userPhoneNumber == 'ALL';
     final baseUrl = isAll
-        ? 'https://teacher-connect-backend.vercel.app/api/admin/payments'
-        : 'https://teacher-connect-backend.vercel.app/api/payments/user/${widget.userPhoneNumber}';
+        ? '$_baseUrl/api/admin/payments'
+        : '$_baseUrl/api/payments/user/${widget.userPhoneNumber}';
 
-    final url = Uri.parse('$baseUrl?page=$_currentPage&limit=$_limit');
+    final url = Uri.parse('$baseUrl?limit=1000'); // Fetch all for table pagination
 
     try {
       final response = await http.get(url);
@@ -4490,20 +4462,17 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           newItems = jsonResponse;
         }
 
-        setState(() {
-          _payments.addAll(newItems);
-          _hasMore = newItems.length == _limit;
-          if (_hasMore) _currentPage++;
-        });
+        if (mounted) {
+          setState(() {
+            _payments = newItems;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching payments: $e');
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoadingInitial = false;
-          _isFetchingMore = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -4511,76 +4480,117 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Payment History")),
-      body: _isLoadingInitial
+      appBar: AppBar(
+        title: const Text("Payment History"),
+        backgroundColor: Colors.teal,
+      ),
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _payments.isEmpty
               ? const Center(child: Text("No transaction history found."))
-              : ListView.builder(
-                  controller: _scrollController,
-                  itemCount: _payments.length + (_isFetchingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _payments.length) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-
-                    final Map<String, dynamic> item =
-                        _payments[index] as Map<String, dynamic>;
-                    final String status =
-                        (item['status'] ?? 'completed').toString().toLowerCase();
-                    final bool isSuccessful =
-                        status == 'completed' || status == 'successful';
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      child: ListTile(
-                        leading: const Icon(Icons.receipt_long,
-                            color: Colors.green),
-                        title: Text(
-                          "Receipt: ${item['mpesaReceiptNumber'] ?? 'N/A'}",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            "Purpose: ${(item['purpose'] ?? 'SWAP_UNLOCK').toString().replaceAll('_', ' ').toUpperCase()}\nPhone: ${item['phoneNumber'] ?? 'N/A'}",
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              "KSh ${item['amount'] ?? 100}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              status.toUpperCase(),
-                              style: TextStyle(
-                                color:
-                                    isSuccessful ? Colors.green : Colors.orange,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+              : RefreshIndicator(
+                  onRefresh: _fetchPaymentHistory,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(8.0),
+                    child: PaginatedDataTable(
+                      showCheckboxColumn: false,
+                      rowsPerPage: 10,
+                      columns: const [
+                        DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Receipt Number', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Purpose', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Phone Number', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Amount (KSh)', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                      source: _PaymentDataTableSource(_payments),
+                    ),
+                  ),
                 ),
     );
   }
 }
+
+// ==========================================
+// PAYMENT DATA SOURCE FOR EXACT CELL ALIGNMENT
+// ==========================================
+class _PaymentDataTableSource extends DataTableSource {
+  final List<dynamic> _payments;
+
+  _PaymentDataTableSource(this._payments);
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= _payments.length) return null;
+    final item = _payments[index] as Map<String, dynamic>;
+    
+    final String status = (item['status'] ?? 'completed').toString().toLowerCase();
+    final bool isSuccessful = status == 'completed' || status == 'successful';
+    final String purpose = (item['purpose'] ?? 'SWAP_UNLOCK').toString().replaceAll('_', ' ').toUpperCase();
+
+    return DataRow.byIndex(
+      index: index,
+      color: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (index.isEven) {
+            return Colors.teal.shade50.withOpacity(0.3);
+          }
+          return null;
+        },
+      ),
+      cells: [
+        // 1. Numbering Column
+        DataCell(Text('${index + 1}')),
+        
+        // 2. Receipt Number
+        DataCell(Text(
+          item['mpesaReceiptNumber'] ?? 'N/A',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+
+        // 3. Purpose
+        DataCell(Text(purpose)),
+
+        // 4. Phone Number
+        DataCell(Text(item['phoneNumber'] ?? 'N/A')),
+
+        // 5. Amount
+        DataCell(Text(
+          "KSh ${item['amount'] ?? 100}",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+
+        // 6. Status Badge
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isSuccessful ? Colors.green.shade100 : Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status.toUpperCase(),
+              style: TextStyle(
+                color: isSuccessful ? Colors.green.shade900 : Colors.orange.shade900,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => _payments.length;
+
+  @override
+  int get selectedRowCount => 0;
+}     
 
 // ==========================================
 // MANAGE BOM JOB SEEKERS (PAGINATED)
