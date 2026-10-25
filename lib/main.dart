@@ -3961,6 +3961,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                       showCheckboxColumn: false,
                       rowsPerPage: 10,
                       columns: const [
+                        DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))), // 👈 Added Numbering Header
                         DataColumn(label: Text('Teacher / User', style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -3984,8 +3985,9 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                 ),
     );
   }
-}
-
+} 
+                                    
+                        
 // ==========================================
 // DATA SOURCE WITH EXACT CELL ALIGNMENT
 // ==========================================
