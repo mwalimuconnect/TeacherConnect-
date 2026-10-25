@@ -1250,6 +1250,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 // =========================================
 // PROFILE SCREEN WITH CLOUDINARY UPLOAD
 // =========================================
+// ==========================================
+// PROFILE SCREEN WITH DROPDOWN SELECTORS
+// ==========================================
 class ProfileScreen extends StatefulWidget {
   final String userId;
 
@@ -1272,12 +1275,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _schoolController = TextEditingController();
-  final TextEditingController _countyController = TextEditingController();
-  final TextEditingController _subCountyController = TextEditingController();
-  final TextEditingController _subjectController = TextEditingController();
-
   final TextEditingController _tscNumberController = TextEditingController();
   final TextEditingController _nationalIdController = TextEditingController();
+
+  // Dropdown Selection States
+  String? _selectedSubject;
+  String? _selectedCounty;
+  String? _selectedSubCounty;
+
+  List<String> _subjects = [
+    'English / Literature',
+    'Kiswahili / History',
+    'Kiswahili / CRE',
+    'Kiswahili / Geography',
+    'Kiswahili / IRE',
+    'History / CRE',
+    'History / IRE',
+    'Geography / CRE',
+    'Geography / Business',
+    'French / English',
+    'German / Any',
+    'Mathematics / Chemistry',
+    'Mathematics / Biology',
+    'Mathematics / Physics',
+    'Physics / Chemistry',
+    'Mathematics / Computer Studies',
+    'Biology / Chemistry',
+    'Business Studies / Mathematics',
+    'Business Studies / Kiswahili',
+    'Business Studies / History',
+    'Business Studies / Computer Studies',
+    'Agriculture / Biology',
+    'Agriculture / Chemistry',
+    'Agriculture / Geography',
+    'Home Science / Biology',
+    'Home Science / Chemistry',
+    'Home Science / History',
+    'Computer / Any',
+    'HomeScience / Any',
+  ];
+
+  final Map<String, List<String>> _countySubCountyData = {
+    'Baringo': ['Baringo Central', 'Baringo North', 'Baringo South', 'Eldama Ravine', 'Mogotio', 'Tiaty'],
+    'Bomet': ['Bomet Central', 'Bomet East', 'Chepalungu', 'Konoin', 'Sotik'],
+    'Bungoma': ['Bungoma Central', 'Bungoma East', 'Bungoma North', 'Bungoma South', 'Bungoma West', 'Cheptais', 'Kimilili', 'Mount Elgon', 'Sirisia', 'Tongaren'],
+    'Busia': ['Bunyala', 'Busia', 'Butula', 'Nambale', 'Samia', 'Teso North', 'Teso South'],
+    'Elgeyo Marakwet': ['Keiyo North', 'Keiyo South', 'Marakwet East', 'Marakwet West'],
+    'Embu': ['Embu East', 'Embu North', 'Embu West', 'Mbeere North', 'Mbeere South'],
+    'Garissa': ['Balambala', 'Dadaab', 'Fafi', 'Garissa', 'Hulugho', 'Ijara', 'Lagdera'],
+    'Homa Bay': ['Homa Bay', 'Kabondo Kasipul', 'Karachuonyo', 'Kasipul', 'Mbita', 'Ndhiwa', 'Rangwe', 'Suba'],
+    'Isiolo': ['Garbatulla', 'Isiolo', 'Merti'],
+    'Kajiado': ['Isinya', 'Kajiado Central', 'Kajiado North', 'Kajiado West', 'Loitokitok', 'Mashuuru'],
+    'Kakamega': ['Butere', 'Kakamega Central', 'Kakamega East', 'Kakamega North', 'Kakamega South', 'Khwisero', 'Likuyani', 'Lugari', 'Matungu', 'Mumias East', 'Mumias West', 'Navakholo'],
+    'Kericho': ['Belgut', 'Bureau', 'Kericho East', 'Kipkelion East', 'Kipkelion West', 'Soin/Sigowet'],
+    'Kiambu': ['Githunguri', 'Juja', 'Kabete', 'Kiambaa', 'Kiambu', 'Kikuyu', 'Lari', 'Limuru', 'Ruiru', 'Thika East', 'Thika West'],
+    'Kilifi': ['Ganze', 'Kaloleni', 'Kilifi North', 'Kilifi South', 'Magarini', 'Malindi', 'Rabai'],
+    'Kirinyaga': ['Kirinyaga Central', 'Kirinyaga East', 'Kirinyaga West', 'Mwea East', 'Mwea West'],
+    'Kisii': ['Gucha', 'Gucha South', 'Kenyenya', 'Kisii Central', 'Kisii South', 'Kitutu Central', 'Marani', 'Masaba South', 'Nyamache', 'Sameta'],
+    'Kisumu': ['Kadibo', 'Kisumu Central', 'Kisumu East', 'Kisumu West', 'Muhoroni', 'Nyando', 'Nyakach'],
+    'Kitui': ['Ikutha', 'Katulani', 'Kitui Central', 'Kitui Rural', 'Kitui West', 'Kyuso', 'Lower Yatta', 'Mwingi Central', 'Mwingi East', 'Mwingi West', 'Nzambani'],
+    'Kwale': ['Kinango', 'Lunga Lunga', 'Matuga', 'Msambweni'],
+    'Laikipia': ['Laikipia Central', 'Laikipia East', 'Laikipia North', 'Laikipia West', 'Nyahururu'],
+    'Lamu': ['Lamu East', 'Lamu West'],
+    'Machakos': ['Athi River', 'Kalama', 'Kangundo', 'Kathiani', 'Machakos', 'Masinga', 'Matungulu', 'Mwala', 'Yatta'],
+    'Makueni': ['Kilungu', 'Makueni', 'Kaiti', 'Kibwezi West', 'Kibwezi East', 'Mukaa'],
+    'Mandera': ['Banissa', 'Kutulo', 'Lafey', 'Mandera Central', 'Mandera East', 'Mandera North', 'Mandera West'],
+    'Marsabit': ['Laisamis', 'Marsabit Central', 'Moyale', 'North Horr'],
+    'Meru': ['Imenti Central', 'Imenti North', 'Imenti South', 'Tigania East', 'Tigania West', 'Igembe Central', 'Igembe North', 'Igembe South', 'Buuri'],
+    'Migori': ['Awendo', 'Kuria East', 'Kuria West', 'Nyatike', 'Rongo', 'Suna East', 'Suna West', 'Uriri'],
+    'Mombasa': ['Changamwe', 'Jomvu', 'Kisauni', 'Likoni', 'Mvita', 'Nyali'],
+    "Murang'a": ['Gatanga', 'Kandara', 'Kangema', 'Kigumo', 'Kiharu', 'Mathioya', "Murang'a South"],
+    'Nairobi': ['Dagoretti', 'Embakasi', 'Kamukunji', 'Kasarani', 'Kibra', "Lang'ata", 'Makadara', 'Mathare', 'NJiru', 'Starehe', 'Westlands'],
+    'Nakuru': ['Gilgil', 'Kuresoi North', 'Kuresoi South', 'Molo', 'Naivasha', 'Nakuru East', 'Nakuru North', 'Nakuru West', 'Njoro', 'Rongai', 'Subukia'],
+    'Nandi': ['Chesumei', 'Nandi Central', 'Nandi East', 'Nandi North', 'Nandi South', 'Tinderet'],
+    'Narok': ['Narok East', 'Narok North', 'Narok South', 'Narok West', 'Trans Mara East', 'Trans Mara West'],
+    'Nyamira': ['Borabu', 'Manga', 'Masaba North', 'Nyamira North', 'Nyamira South'],
+    'Nyandarua': ['Kinangop', 'Ndaragwa', 'Ol Kalou', 'Ol Joro Orok', 'Nipini'],
+    'Nyeri': ['Kieni East', 'Kieni West', 'Mathira East', 'Mathira West', 'Mukurweini', 'Nyeri Central', 'Nyeri South', 'Tetu'],
+    'Samburu': ['Samburu East', 'Samburu North', 'Samburu West'],
+    'Siaya': ['Alego Usonga', 'Bondo', 'Gem', 'Rarieda', 'Ugenya', 'Ugunja'],
+    'Taita Taveta': ['Mwatate', 'Taveta', 'Taita', 'Voi'],
+    'Tana River': ['Bura', 'Garsen', 'Tana Delta', 'Tana North', 'Tana River'],
+    'Tharaka Nithi': ['Tharaka North', 'Tharaka South', 'Chuka', "Igambang'ombe", 'Maara'],
+    'Trans Nzoia': ['Endebess', 'Kiminini', 'Kwanza', 'Saboti', 'Cherangany'],
+    'Turkana': ['Turkana Central', 'Turkana East', 'Turkana North', 'Turkana South', 'Turkana West', 'Loima'],
+    'Uasin Gishu': ['Ainabkoi', 'Kapseret', 'Kesses', 'Moiben', 'Soy', 'Turbo'],
+    'Vihiga': ['Emuhaya', 'Hamisi', 'Luanda', 'Sabatia', 'Vihiga'],
+    'Wajir': ['Buna', 'Eldas', 'Habaswein', 'Tarbaj', 'Wajir East', 'Wajir North', 'Wajir South', 'Wajir West'],
+    'West Pokot': ['Kipkomai', 'Pokot Central', 'Pokot North', 'Pokot South', 'West Pokot'],
+  };
 
   String _role = '';
   String _profilePhotoUrl = '';
@@ -1285,7 +1371,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLocalAndFetchProfile();
+    _fetchUserProfile();
   }
 
   @override
@@ -1293,28 +1379,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fullNameController.dispose();
     _phoneController.dispose();
     _schoolController.dispose();
-    _countyController.dispose();
-    _subCountyController.dispose();
-    _subjectController.dispose();
     _tscNumberController.dispose();
     _nationalIdController.dispose();
     super.dispose();
-  }
-
-  /// Instantly load local data so fields aren't blank, then sync with backend
-  Future<void> _loadLocalAndFetchProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _fullNameController.text = prefs.getString('savedName') ?? '';
-      _phoneController.text = prefs.getString('savedPhone') ?? '';
-      _schoolController.text = prefs.getString('savedSchool') ?? '';
-      _countyController.text = prefs.getString('savedCounty') ?? '';
-      _subCountyController.text = prefs.getString('savedSubCounty') ?? '';
-      _subjectController.text = prefs.getString('savedSubjectCombination') ?? '';
-      _profilePhotoUrl = prefs.getString('savedPhotoUrl') ?? '';
-    });
-
-    await _fetchUserProfile();
   }
 
   Future<void> _fetchUserProfile() async {
@@ -1329,34 +1396,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         final user = data['user'];
         setState(() {
-          _fullNameController.text = user['fullName'] ?? _fullNameController.text;
-          _phoneController.text = user['phone'] ?? _phoneController.text;
-          _schoolController.text = user['currentSchool'] ?? _schoolController.text;
-          _countyController.text = user['county'] ?? _countyController.text;
-          _subCountyController.text = user['subCounty'] ?? _subCountyController.text;
-          _subjectController.text = user['subjectCombination'] ?? user['subjects'] ?? user['subject'] ?? _subjectController.text;
+          _fullNameController.text = user['fullName'] ?? user['name'] ?? '';
+          _phoneController.text = user['phone'] ?? user['phoneNumber'] ?? '';
+          _schoolController.text = user['currentSchool'] ?? user['schoolName'] ?? '';
+          
+          // Safe County and Sub-County dropdown value matching
+          final fetchedCounty = user['county'] ?? user['currentCounty'];
+          if (fetchedCounty != null && _countySubCountyData.containsKey(fetchedCounty)) {
+            _selectedCounty = fetchedCounty;
+          }
+          
+          final fetchedSubCounty = user['subCounty'];
+          if (_selectedCounty != null && (_countySubCountyData[_selectedCounty!]?.contains(fetchedSubCounty) ?? false)) {
+            _selectedSubCounty = fetchedSubCounty;
+          }
+
+          // Safe Subject dropdown value matching
+          final fetchedSubject = user['subjectCombination'] ?? user['subjects'] ?? user['subject'];
+          if (fetchedSubject != null && _subjects.contains(fetchedSubject)) {
+            _selectedSubject = fetchedSubject;
+          } else if (fetchedSubject != null && fetchedSubject.toString().isNotEmpty) {
+            // If custom subject not in list, add it dynamically
+            _subjects.add(fetchedSubject);
+            _selectedSubject = fetchedSubject;
+          } else {
+            _selectedSubject = _subjects.first;
+          }
 
           _tscNumberController.text = user['tscNumber'] ?? 'Not Provided';
-          _nationalIdController.text = user['nationalId'] ?? 'Not Provided';
+          _nationalIdController.text = user['nationalId'] ?? user['nationalID'] ?? 'Not Provided';
 
           _role = user['role'] ?? 'Member Teacher';
-          _profilePhotoUrl = user['profilePhotoUrl'] ?? user['profilePhoto'] ?? _profilePhotoUrl;
+          _profilePhotoUrl = user['profilePhotoUrl'] ?? user['profilePhoto'] ?? '';
           _isLoading = false;
         });
-
-        // Update local SharedPreferences with fresh server values
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('savedName', _fullNameController.text);
-        await prefs.setString('savedPhone', _phoneController.text);
-        await prefs.setString('savedSchool', _schoolController.text);
-        await prefs.setString('savedCounty', _countyController.text);
-        await prefs.setString('savedSubCounty', _subCountyController.text);
-        await prefs.setString('savedSubjectCombination', _subjectController.text);
-        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
       } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to load profile'),
+            backgroundColor: Colors.red,
+          ),
+        );
         setState(() => _isLoading = false);
       }
     } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error connecting to server: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
       setState(() => _isLoading = false);
     }
   }
@@ -1392,12 +1483,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final backendResponse = await http.put(
         Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/update-photo/${widget.userId}'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'profilePhoto': downloadUrl}),
+        body: jsonEncode({'profilePhoto': downloadUrl, 'profilePhotoUrl': downloadUrl}),
       );
 
-      final backendData = jsonDecode(backendResponse.body);
-
-      if (backendResponse.statusCode == 200) {
+      if (backendResponse.statusCode == 200 || backendResponse.statusCode == 201) {
         setState(() {
           _profilePhotoUrl = downloadUrl;
         });
@@ -1413,7 +1502,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       } else {
-        throw Exception(backendData['message'] ?? 'Failed to update user profile photo');
+        throw Exception('Failed to update user profile photo');
       }
     } catch (e) {
       if (!mounted) return;
@@ -1444,27 +1533,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'fullName': _fullNameController.text.trim(),
           'phone': _phoneController.text.trim(),
           'currentSchool': _schoolController.text.trim(),
-          'county': _countyController.text.trim(),
-          'subCounty': _subCountyController.text.trim(),
-          'subjectCombination': _subjectController.text.trim(),
-          'subjects': _subjectController.text.trim(),
+          'county': _selectedCounty ?? '',
+          'subCounty': _selectedSubCounty ?? '',
+          'subjectCombination': _selectedSubject ?? '',
+          'subjects': _selectedSubject ?? '',
+          'subject': _selectedSubject ?? '',
           'profilePhotoUrl': _profilePhotoUrl,
+          'profilePhoto': _profilePhotoUrl,
         }),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        // Save all changes locally so they persist permanently across screens and restarts
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('savedName', _fullNameController.text.trim());
-        await prefs.setString('savedPhone', _phoneController.text.trim());
-        await prefs.setString('savedSchool', _schoolController.text.trim());
-        await prefs.setString('savedCounty', _countyController.text.trim());
-        await prefs.setString('savedSubCounty', _subCountyController.text.trim());
-        await prefs.setString('savedSubjectCombination', _subjectController.text.trim());
-        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
-
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1472,6 +1553,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Color(0xFF00897B),
           ),
         );
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedName', _fullNameController.text.trim());
+        await prefs.setString('savedPhone', _phoneController.text.trim());
+        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1640,14 +1726,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      TextFormField(
-                        controller: _subjectController,
+                      // 👈 Dropdown for Subject Combination
+                      DropdownButtonFormField<String>(
+                        value: _subjects.contains(_selectedSubject) ? _selectedSubject : null,
+                        isExpanded: true,
+                        menuMaxHeight: 380,
                         decoration: const InputDecoration(
-                          labelText: 'Subject Combination (e.g., ENG/LIT, MATH/CHEM)',
+                          labelText: 'Subject Combination',
                           prefixIcon: Icon(Icons.menu_book),
                           border: OutlineInputBorder(),
                         ),
-                        validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your subject combination' : null,
+                        items: _subjects.map((sub) {
+                          return DropdownMenuItem(
+                            value: sub,
+                            child: Text(sub, overflow: TextOverflow.ellipsis),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedSubject = val;
+                          });
+                        },
+                        validator: (val) => val == null || val.isEmpty ? 'Please select your subject combination' : null,
                       ),
                       const SizedBox(height: 14),
 
@@ -1661,27 +1761,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 14),
 
+                      // 👈 Dropdowns for County and Sub-County Side-by-Side
                       Row(
                         children: [
                           Expanded(
-                            child: TextFormField(
-                              controller: _countyController,
+                            child: DropdownButtonFormField<String>(
                               decoration: const InputDecoration(
                                 labelText: 'County',
-                                prefixIcon: Icon(Icons.location_city),
                                 border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
                               ),
+                              isExpanded: true,
+                              value: _selectedCounty,
+                              hint: const Text('County', overflow: TextOverflow.ellipsis),
+                              items: _countySubCountyData.keys.map((String county) {
+                                return DropdownMenuItem<String>(
+                                  value: county,
+                                  child: Text(county, overflow: TextOverflow.ellipsis),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedCounty = newValue;
+                                  _selectedSubCounty = null; // Reset sub-county when county changes
+                                });
+                              },
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: TextFormField(
-                              controller: _subCountyController,
+                            child: DropdownButtonFormField<String>(
                               decoration: const InputDecoration(
                                 labelText: 'Sub-County',
-                                prefixIcon: Icon(Icons.map),
                                 border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
                               ),
+                              isExpanded: true,
+                              value: _selectedSubCounty,
+                              hint: Text(
+                                _selectedCounty == null ? 'Select County' : 'Sub-County',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              disabledHint: const Text('Select County', overflow: TextOverflow.ellipsis),
+                              items: (_selectedCounty == null
+                                      ? <String>[]
+                                      : _countySubCountyData[_selectedCounty] ?? [])
+                                  .map((String subCounty) {
+                                return DropdownMenuItem<String>(
+                                  value: subCounty,
+                                  child: Text(subCounty, overflow: TextOverflow.ellipsis),
+                                );
+                              }).toList(),
+                              onChanged: _selectedCounty == null
+                                  ? null
+                                  : (String? newValue) {
+                                      setState(() {
+                                        _selectedSubCounty = newValue;
+                                      });
+                                    },
                             ),
                           ),
                         ],
@@ -1715,7 +1852,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-                                   
+                                         
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
 // =========================================================
