@@ -4019,6 +4019,9 @@ class _ListingDataTableSource extends DataTableSource {
         },
       ),
       cells: [
+        // 1. Row Number cell matching the '#' column header
+        DataCell(Text('${index + 1}')),
+        
         DataCell(Text(listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A')),
         DataCell(Text(listing.category)),
         // Subject Combination column mapped correctly
