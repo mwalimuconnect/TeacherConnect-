@@ -6679,6 +6679,9 @@ class _BomVacancyDataTableSource extends DataTableSource {
 // ==========================================
 // 4. FREE POSTING MODAL
 // ==========================================
+// ==========================================
+// 4. FREE POSTING MODAL
+// ==========================================
 
 class DynamicPostListingModal extends StatefulWidget {
   final String userName;
@@ -7153,52 +7156,47 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       _loadFallbackSubjects();
     }
   }
-void _loadFallbackSubjects() {
-  if (mounted) {
-    setState(() {
-      _subjects = [
-        // Languages & Humanities
-        'English / Literature',
-        'Kiswahili / History',
-        'Kiswahili / CRE',
-        'Kiswahili / Geography',
-        'Kiswahili / IRE',
-        'History / CRE',
-        'History / IRE',
-        'Geography / CRE',
-        'Geography / Business',
-        'French / English',
-        'German / Any',
 
-        // Sciences & Mathematics (STEM)
-        'Mathematics / Chemistry',
-        'Mathematics / Biology',
-        'Mathematics / Physics',
-        'Physics / Chemistry',
-        'Mathematics / Computer Studies',
-        'Biology / Chemistry',
-
-        // Technical, Applied & Business Studies
-        'Business Studies / Mathematics',
-        'Business Studies / Kiswahili',
-        'Business Studies / History',
-        'Business Studies / Computer Studies',
-        'Agriculture / Biology',
-        'Agriculture / Chemistry',
-        'Agriculture / Geography',
-        'Home Science / Biology',
-        'Home Science / Chemistry',
-        'Home Science / History',
-        'Computer / Any',
-        'HomeScience / Any',
-      ];
-      selectedSubject = _subjects.first;
-      _isLoadingSubjects = false;
-    });
+  void _loadFallbackSubjects() {
+    if (mounted) {
+      setState(() {
+        _subjects = [
+          'English / Literature',
+          'Kiswahili / History',
+          'Kiswahili / CRE',
+          'Kiswahili / Geography',
+          'Kiswahili / IRE',
+          'History / CRE',
+          'History / IRE',
+          'Geography / CRE',
+          'Geography / Business',
+          'French / English',
+          'German / Any',
+          'Mathematics / Chemistry',
+          'Mathematics / Biology',
+          'Mathematics / Physics',
+          'Physics / Chemistry',
+          'Mathematics / Computer Studies',
+          'Biology / Chemistry',
+          'Business Studies / Mathematics',
+          'Business Studies / Kiswahili',
+          'Business Studies / History',
+          'Business Studies / Computer Studies',
+          'Agriculture / Biology',
+          'Agriculture / Chemistry',
+          'Agriculture / Geography',
+          'Home Science / Biology',
+          'Home Science / Chemistry',
+          'Home Science / History',
+          'Computer / Any',
+          'HomeScience / Any',
+        ];
+        selectedSubject = _subjects.first;
+        _isLoadingSubjects = false;
+      });
+    }
   }
-}
-
-  @override
+    @override
   void dispose() {
     _nameController.dispose();
     _schoolController.dispose();
@@ -7228,6 +7226,16 @@ void _loadFallbackSubjects() {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please fill in Phone, TSC Number, and Target County for TSC Swap.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    } else if (selectedType == 'Seeking BOM Job') {
+      if (_phoneController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please provide a contact phone number for schools to reach you.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -7308,7 +7316,7 @@ void _loadFallbackSubjects() {
     }
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
@@ -7354,7 +7362,7 @@ void _loadFallbackSubjects() {
             DropdownButtonFormField<String>(
               value: _subjects.contains(selectedSubject) ? selectedSubject : null,
               isExpanded: true,
-              menuMaxHeight: 380, // Enables scrolling through all 29 subject combinations
+              menuMaxHeight: 380,
               decoration: const InputDecoration(
                 labelText: 'Subject Combination',
                 border: OutlineInputBorder(),
@@ -7373,7 +7381,6 @@ void _loadFallbackSubjects() {
             ),
             const SizedBox(height: 12),
    
-              
             // ==========================================
             // CURRENT LOCATION (HORIZONTAL ROW)
             // ==========================================
@@ -7439,7 +7446,10 @@ void _loadFallbackSubjects() {
               ],
             ),
 
-            if (selectedType == 'TSC Swap') ...[
+            // ==========================================
+            // CONDITIONAL FIELDS FOR TSC SWAP & SEEKING BOM JOB
+            // ==========================================
+            if (selectedType == 'TSC Swap' || selectedType == 'Seeking BOM Job') ...[
               const SizedBox(height: 12),
               TextField(
                 controller: _phoneController,
@@ -7453,11 +7463,14 @@ void _loadFallbackSubjects() {
               const SizedBox(height: 12),
               TextField(
                 controller: _schoolController,
-                decoration: const InputDecoration(
-                  labelText: 'Current School Name',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: selectedType == 'TSC Swap' ? 'Current School Name' : 'Previous School / Qualifications',
+                  border: const OutlineInputBorder(),
                 ),
               ),
+            ],
+
+            if (selectedType == 'TSC Swap') ...[
               const SizedBox(height: 12),
               TextField(
                 controller: _tscController,
@@ -7468,9 +7481,9 @@ void _loadFallbackSubjects() {
                 ),
               ),
               const SizedBox(height: 12),            
-// ==========================================
-// TARGET LOCATION (HORIZONTAL ROW)
-// ==========================================
+              // ==========================================
+              // TARGET LOCATION (HORIZONTAL ROW)
+              // ==========================================
               Row(
                 children: [
                   Expanded(
@@ -7528,9 +7541,8 @@ void _loadFallbackSubjects() {
                   ),
                 ],
               ),
-            ],
-
-            if (selectedType == 'BOM Vacancy') ...[
+            ], 
+ if (selectedType == 'BOM Vacancy') ...[
               const SizedBox(height: 12),
               TextField(
                 controller: _schoolController,
@@ -7574,7 +7586,7 @@ void _loadFallbackSubjects() {
       ),
     );
   }
-}                           
+}
                                           
 //=============================
 // class HelpSupportScreen
