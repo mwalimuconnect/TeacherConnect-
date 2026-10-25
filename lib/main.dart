@@ -4593,59 +4593,31 @@ class _PaymentDataTableSource extends DataTableSource {
 }     
 
 // ==========================================
-// MANAGE BOM JOB SEEKERS (PAGINATED)
+// MANAGE BOM JOB SEEKERS (PAGINATED TABLE)
 // ==========================================
 class ManageJobSeekersScreen extends StatefulWidget {
   const ManageJobSeekersScreen({Key? key}) : super(key: key);
 
-        @override
+  @override
   State<ManageJobSeekersScreen> createState() => _ManageJobSeekersScreenState();
 }
 
 class _ManageJobSeekersScreenState extends State<ManageJobSeekersScreen> {
-  final ScrollController _scrollController = ScrollController();
-  final List<dynamic> _seekers = [];
-  int _currentPage = 1;
-  final int _limit = 15;
-  bool _isLoadingInitial = true;
-  bool _isFetchingMore = false;
-  bool _hasMore = true;
+  List<dynamic> _seekers = [];
+  bool _isLoading = true;
+
+  final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
 
   @override
   void initState() {
     super.initState();
     _fetchSeekers();
-    _scrollController.addListener(_onScroll);
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  Future<void> _fetchSeekers() async {
+    setState(() => _isLoading = true);
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isFetchingMore &&
-        _hasMore) {
-      _fetchSeekers(isLoadMore: true);
-    }
-  }
-
-  Future<void> _fetchSeekers({bool isLoadMore = false}) async {
-    if (isLoadMore) {
-      setState(() => _isFetchingMore = true);
-    } else {
-      setState(() {
-        _isLoadingInitial = true;
-        _currentPage = 1;
-        _seekers.clear();
-      });
-    }
-
-    final url = Uri.parse(
-        'https://teacher-connect-backend.vercel.app/api/job-seekers?page=$_currentPage&limit=$_limit');
+    final url = Uri.parse('$_baseUrl/api/job-seekers?limit=1000');
 
     try {
       final response = await http.get(url).timeout(const Duration(seconds: 10));
@@ -4660,39 +4632,38 @@ class _ManageJobSeekersScreenState extends State<ManageJobSeekersScreen> {
           newItems = decoded['data'] as List<dynamic>;
         }
 
-        setState(() {
-          _seekers.addAll(newItems);
-          _hasMore = newItems.length == _limit;
-          if (_hasMore) _currentPage++;
-        });
+        if (mounted) {
+          setState(() {
+            _seekers = newItems;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching job seekers: $e');
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoadingInitial = false;
-          _isFetchingMore = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
 
   Future<void> _deleteSeeker(String id) async {
-    final url = Uri.parse(
-        'https://teacher-connect-backend.vercel.app/api/admin/job-seekers/$id');
+    if (id.isEmpty) return;
+    final url = Uri.parse('$_baseUrl/api/admin/job-seekers/$id');
 
     try {
       final response = await http.delete(url);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Job seeker deleted successfully')),
         );
         _fetchSeekers();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error deleting job seeker: $e');
+    }
   }
 
   @override
@@ -4702,77 +4673,135 @@ class _ManageJobSeekersScreenState extends State<ManageJobSeekersScreen> {
         title: const Text('BOM Job Seekers'),
         backgroundColor: Colors.teal,
       ),
-      body: _isLoadingInitial
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _seekers.isEmpty
               ? const Center(child: Text('No job seekers found.'))
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _seekers.length + (_isFetchingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _seekers.length) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-
-                    final item = _seekers[index];
-                    final seekerId = item['_id'] ?? item['id'];
-
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.blueGrey,
-                          child: Icon(Icons.person, color: Colors.white),
-                        ),
-                        title: Text(
-                          item['teacherName'] ?? item['name'] ?? 'Job Seeker',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          'Qualification: ${item['qualification'] ?? 'N/A'}\nSubject Combo: ${item['subjects'] ?? 'N/A'}',
-                        ),
-                        isThreeLine: true,
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.red),
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Delete Job Seeker'),
-                                content: const Text(
-                                    'Are you sure you want to remove this job seeker profile?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(ctx);
-                                      _deleteSeeker(seekerId);
-                                    },
-                                    child: const Text('Delete',
-                                        style: TextStyle(color: Colors.red)),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+              : RefreshIndicator(
+                  onRefresh: _fetchSeekers,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(8.0),
+                    child: PaginatedDataTable(
+                      showCheckboxColumn: false,
+                      rowsPerPage: 10,
+                      headingRowHeight: 56.0,
+                      dataRowMinHeight: 55.0,
+                      dataRowMaxHeight: 65.0,
+                      columns: const [
+                        DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Teacher / Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Qualification', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Subject Combo', style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                      source: _JobSeekerDataTableSource(
+                        _seekers,
+                        onDelete: (id) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Delete Job Seeker'),
+                              content: const Text('Are you sure you want to remove this job seeker profile?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    _deleteSeeker(id);
+                                  },
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
     );
   }
 }
 
+// ==========================================
+// JOB SEEKER DATA SOURCE WITH EXACT ALIGNMENT
+// ==========================================
+class _JobSeekerDataTableSource extends DataTableSource {
+  final List<dynamic> _seekers;
+  final Function(String) onDelete;
+
+  _JobSeekerDataTableSource(this._seekers, {required this.onDelete});
+
+  @override
+  DataRow? getRow(int index) {
+    if (index >= _seekers.length) return null;
+    final item = _seekers[index] as Map<String, dynamic>;
+    final seekerId = item['_id'] ?? item['id'] ?? '';
+    final name = item['teacherName'] ?? item['name'] ?? 'Job Seeker';
+    final qualification = item['qualification'] ?? 'N/A';
+    final subjects = item['subjects'] ?? 'N/A';
+
+    return DataRow.byIndex(
+      index: index,
+      color: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (index.isEven) {
+            return Colors.teal.shade50.withOpacity(0.3);
+          }
+          return null;
+        },
+      ),
+      cells: [
+        // 1. Numbering Column
+        DataCell(Text('${index + 1}')),
+
+        // 2. Teacher Name
+        DataCell(Text(name, style: const TextStyle(fontWeight: FontWeight.bold))),
+
+        // 3. Qualification
+        DataCell(Text(qualification)),
+
+        // 4. Subject Combination
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              subjects,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+
+        // 5. Actions
+        DataCell(
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: 'Delete Seeker',
+            onPressed: () => onDelete(seekerId),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => _seekers.length;
+
+  @override
+  int get selectedRowCount => 0;
+}
+
+        
 // ==========================================
 // TOTAL MEMBERS SCREEN (PAGINATED DATATABLE)
 // ==========================================
