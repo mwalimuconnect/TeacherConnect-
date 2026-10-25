@@ -2040,9 +2040,7 @@ class TeacherPortalTables {
   }
 }
 
-// =========================================================
-// TEACHER PORTAL MAIN SCREEN
-// =========================================================
+
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN (Streamlined Header)
 // =========================================================
@@ -5001,6 +4999,7 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
                                                                    
+
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
 // ============================================================================
@@ -5186,6 +5185,153 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       }
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final String currentRole = widget.userRole?.toLowerCase() ?? '';
+    final bool userIsAdmin =
+        currentRole.contains('admin') || currentRole == 'administrator';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Teacher Resources'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          // Category Filter Chips
+          Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _categories.length,
+              itemBuilder: (context, index) {
+                final category = _categories[index];
+                final isSelected = _selectedCategory == category;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    selectedColor: Colors.teal,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontSize: 12,
+                    ),
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          const Divider(height: 1),
+
+          // Subject Folders Grid View
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                : _errorMessage.isNotEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(_errorMessage,
+                              style: const TextStyle(color: Colors.red)),
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(12.0),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.2,
+                        ),
+                        itemCount: _subjects.length,
+                        itemBuilder: (context, index) {
+                          final subject = _subjects[index];
+
+                          // Filter resources belonging to this subject and selected category
+                          final subjectResources = _resources.where((res) {
+                            final resSubject = res['subject']?.toString().toLowerCase() ?? '';
+                            final resCategory = res['category']?.toString() ?? '';
+                            
+                            final matchesSubject = resSubject == subject.toLowerCase() ||
+                                resSubject.contains(subject.toLowerCase());
+                            final matchesCategory = _selectedCategory == 'All' ||
+                                resCategory == _selectedCategory;
+
+                            return matchesSubject && matchesCategory;
+                          }).toList();
+
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SubjectFolderDetailScreen(
+                                    subject: subject,
+                                    resources: subjectResources,
+                                    isAdmin: userIsAdmin, // Passes Admin status accurately!
+                                    onDownload: (res) => _downloadOrOpenUrl(res),
+                                    onPreview: (ctx, url, title, price, onProceed) {
+                                      // Default preview wrapper fallback handler if needed
+                                      _downloadOrOpenUrl(url);
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.teal.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.teal.shade200),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.folder,
+                                      size: 40, color: Colors.teal),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    subject,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${subjectResources.length} files',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+    
 
   // ============================================================================
   // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
