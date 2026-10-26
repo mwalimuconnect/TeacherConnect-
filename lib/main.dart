@@ -6842,10 +6842,7 @@ class _BomVacancyDataTableSource extends DataTableSource {
 
             
 // ==========================================
-// 4. FREE POSTING MODAL
-// ==========================================
-// ==========================================
-// 4. FREE POSTING MODAL
+// 4. FREE POSTING MODAL (UPDATED)
 // ==========================================
 
 class DynamicPostListingModal extends StatefulWidget {
@@ -6882,411 +6879,55 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
   late TextEditingController _tscController;
   late TextEditingController _phoneController;
   late TextEditingController _salaryController;
-
-  final Map<String, List<String>> _countySubCountyData = {
-    'Baringo': [
-      'Baringo Central',
-      'Baringo North',
-      'Baringo South',
-      'Eldama Ravine',
-      'Mogotio',
-      'Tiaty'
-    ],
-    'Bomet': [
-      'Bomet Central',
-      'Bomet East',
-      'Chepalungu',
-      'Konoin',
-      'Sotik'
-    ],
-    'Bungoma': [
-      'Bungoma Central',
-      'Bungoma East',
-      'Bungoma North',
-      'Bungoma South',
-      'Bungoma West',
-      'Cheptais',
-      'Kimilili',
-      'Mount Elgon',
-      'Sirisia',
-      'Tongaren'
-    ],
-    'Busia': [
-      'Bunyala',
-      'Busia',
-      'Butula',
-      'Nambale',
-      'Samia',
-      'Teso North',
-      'Teso South'
-    ],
-    'Elgeyo Marakwet': [
-      'Keiyo North',
-      'Keiyo South',
-      'Marakwet East',
-      'Marakwet West'
-    ],
-    'Embu': [
-      'Embu East',
-      'Embu North',
-      'Embu West',
-      'Mbeere North',
-      'Mbeere South'
-    ],
-    'Garissa': [
-      'Balambala',
-      'Dadaab',
-      'Fafi',
-      'Garissa',
-      'Hulugho',
-      'Ijara',
-      'Lagdera'
-    ],
-    'Homa Bay': [
-      'Homa Bay',
-      'Kabondo Kasipul',
-      'Karachuonyo',
-      'Kasipul',
-      'Mbita',
-      'Ndhiwa',
-      'Rangwe',
-      'Suba'
-    ],
-    'Isiolo': [
-      'Garbatulla',
-      'Isiolo',
-      'Merti'
-    ],
-    'Kajiado': [
-      'Isinya',
-      'Kajiado Central',
-      'Kajiado North',
-      'Kajiado West',
-      'Loitokitok',
-      'Mashuuru'
-    ],
-    'Kakamega': [
-      'Butere',
-      'Kakamega Central',
-      'Kakamega East',
-      'Kakamega North',
-      'Kakamega South',
-      'Khwisero',
-      'Likuyani',
-      'Lugari',
-      'Matungu',
-      'Mumias East',
-      'Mumias West',
-      'Navakholo'
-    ],
-    'Kericho': [
-      'Belgut',
-      'Bureau',
-      'Kericho East',
-      'Kipkelion East',
-      'Kipkelion West',
-      'Soin/Sigowet'
-    ],
-    'Kiambu': [
-      'Githunguri',
-      'Juja',
-      'Kabete',
-      'Kiambaa',
-      'Kiambu',
-      'Kikuyu',
-      'Lari',
-      'Limuru',
-      'Ruiru',
-      'Thika East',
-      'Thika West'
-    ],
-    'Kilifi': [
-      'Ganze',
-      'Kaloleni',
-      'Kilifi North',
-      'Kilifi South',
-      'Magarini',
-      'Malindi',
-      'Rabai'
-    ],
-    'Kirinyaga': [
-      'Kirinyaga Central',
-      'Kirinyaga East',
-      'Kirinyaga West',
-      'Mwea East',
-      'Mwea West'
-    ],
-    'Kisii': [
-      'Gucha',
-      'Gucha South',
-      'Kenyenya',
-      'Kisii Central',
-      'Kisii South',
-      'Kitutu Central',
-      'Marani',
-      'Masaba South',
-      'Nyamache',
-      'Sameta'
-    ],
-    'Kisumu': [
-      'Kadibo',
-      'Kisumu Central',
-      'Kisumu East',
-      'Kisumu West',
-      'Muhoroni',
-      'Nyando',
-      'Nyakach'
-    ],
-    'Kitui': [
-      'Ikutha',
-      'Katulani',
-      'Kitui Central',
-      'Kitui Rural',
-      'Kitui West',
-      'Kyuso',
-      'Lower Yatta',
-      'Mwingi Central',
-      'Mwingi East',
-      'Mwingi West',
-      'Nzambani'
-    ],
-    'Kwale': [
-      'Kinango',
-      'Lunga Lunga',
-      'Matuga',
-      'Msambweni'
-    ],
-    'Laikipia': [
-      'Laikipia Central',
-      'Laikipia East',
-      'Laikipia North',
-      'Laikipia West',
-      'Nyahururu'
-    ],
-    'Lamu': [
-      'Lamu East',
-      'Lamu West'
-    ],
-    'Machakos': [
-      'Athi River',
-      'Kalama',
-      'Kangundo',
-      'Kathiani',
-      'Machakos',
-      'Masinga',
-      'Matungulu',
-      'Mwala',
-      'Yatta'
-    ],
-    'Makueni': [
-      'Kilungu',
-      'Makueni',
-      'Kaiti',
-      'Kibwezi West',
-      'Kibwezi East',
-      'Mukaa'
-    ],
-    'Mandera': [
-      'Banissa',
-      'Kutulo',
-      'Lafey',
-      'Mandera Central',
-      'Mandera East',
-      'Mandera North',
-      'Mandera West'
-    ],
-    'Marsabit': [
-      'Laisamis',
-      'Marsabit Central',
-      'Moyale',
-      'North Horr'
-    ],
-    'Meru': [
-      'Imenti Central',
-      'Imenti North',
-      'Imenti South',
-      'Tigania East',
-      'Tigania West',
-      'Igembe Central',
-      'Igembe North',
-      'Igembe South',
-      'Buuri'
-    ],
-    'Migori': [
-      'Awendo',
-      'Kuria East',
-      'Kuria West',
-      'Nyatike',
-      'Rongo',
-      'Suna East',
-      'Suna West',
-      'Uriri'
-    ],
-    'Mombasa': [
-      'Changamwe',
-      'Jomvu',
-      'Kisauni',
-      'Likoni',
-      'Mvita',
-      'Nyali'
-    ],
-    "Murang'a": [
-      'Gatanga',
-      'Kandara',
-      'Kangema',
-      'Kigumo',
-      'Kiharu',
-      'Mathioya',
-      "Murang'a South"
-    ],
-    'Nairobi': [
-      'Dagoretti',
-      'Embakasi',
-      'Kamukunji',
-      'Kasarani',
-      'Kibra',
-      "Lang'ata",
-      'Makadara',
-      'Mathare',
-      'NJiru',
-      'Starehe',
-      'Westlands'
-    ],
-    'Nakuru': [
-      'Gilgil',
-      'Kuresoi North',
-      'Kuresoi South',
-      'Molo',
-      'Naivasha',
-      'Nakuru East',
-      'Nakuru North',
-      'Nakuru West',
-      'Njoro',
-      'Rongai',
-      'Subukia'
-    ],
-    'Nandi': [
-      'Chesumei',
-      'Nandi Central',
-      'Nandi East',
-      'Nandi North',
-      'Nandi South',
-      'Tinderet'
-    ],
-    'Narok': [
-      'Narok East',
-      'Narok North',
-      'Narok South',
-      'Narok West',
-      'Trans Mara East',
-      'Trans Mara West'
-    ],
-    'Nyamira': [
-      'Borabu',
-      'Manga',
-      'Masaba North',
-      'Nyamira North',
-      'Nyamira South'
-    ],
-    'Nyandarua': [
-      'Kinangop',
-      'Ndaragwa',
-      'Ol Kalou',
-      'Ol Joro Orok',
-      'Nipini'
-    ],
-    'Nyeri': [
-      'Kieni East',
-      'Kieni West',
-      'Mathira East',
-      'Mathira West',
-      'Mukurweini',
-      'Nyeri Central',
-      'Nyeri South',
-      'Tetu'
-    ],
-    'Samburu': [
-      'Samburu East',
-      'Samburu North',
-      'Samburu West'
-    ],
-    'Siaya': [
-      'Alego Usonga',
-      'Bondo',
-      'Gem',
-      'Rarieda',
-      'Ugenya',
-      'Ugunja'
-    ],
-    'Taita Taveta': [
-      'Mwatate',
-      'Taveta',
-      'Taita',
-      'Voi'
-    ],
-    'Tana River': [
-      'Bura',
-      'Garsen',
-      'Tana Delta',
-      'Tana North',
-      'Tana River'
-    ],
-    'Tharaka Nithi': [
-      'Tharaka North',
-      'Tharaka South',
-      'Chuka',
-      "Igambang'ombe",
-      'Maara'
-    ],
-    'Trans Nzoia': [
-      'Endebess',
-      'Kiminini',
-      'Kwanza',
-      'Saboti',
-      'Cherangany'
-    ],
-    'Turkana': [
-      'Turkana Central',
-      'Turkana East',
-      'Turkana North',
-      'Turkana South',
-      'Turkana West',
-      'Loima'
-    ],
-    'Uasin Gishu': [
-      'Ainabkoi',
-      'Kapseret',
-      'Kesses',
-      'Moiben',
-      'Soy',
-      'Turbo'
-    ],
-    'Vihiga': [
-      'Emuhaya',
-      'Hamisi',
-      'Luanda',
-      'Sabatia',
-      'Vihiga'
-    ],
-    'Wajir': [
-      'Buna',
-      'Eldas',
-      'Habaswein',
-      'Tarbaj',
-      'Wajir East',
-      'Wajir North',
-      'Wajir South',
-      'Wajir West'
-    ],
-    'West Pokot': [
-      'Kipkomai',
-      'Pokot Central',
-      'Pokot North',
-      'Pokot South',
-      'West Pokot'
-    ],
-  };
-
+    final Map<String, List<String>> _countySubCountyData = {
+    'Baringo': ['Baringo Central', 'Baringo North', 'Baringo South', 'Eldama Ravine', 'Mogotio', 'Tiaty'],
+    'Bomet': ['Bomet Central', 'Bomet East', 'Chepalungu', 'Konoin', 'Sotik'],
+    'Bungoma': ['Bungoma Central', 'Bungoma East', 'Bungoma North', 'Bungoma South', 'Bungoma West', 'Cheptais', 'Kimilili', 'Mount Elgon', 'Sirisia', 'Tongaren'],
+    'Busia': ['Bunyala', 'Busia', 'Butula', 'Nambale', 'Samia', 'Teso North', 'Teso South'],
+    'Elgeyo Marakwet': ['Keiyo North', 'Keiyo South', 'Marakwet East', 'Marakwet West'],
+    'Embu': ['Embu East', 'Embu North', 'Embu West', 'Mbeere North', 'Mbeere South'],
+    'Garissa': ['Balambala', 'Dadaab', 'Fafi', 'Garissa', 'Hulugho', 'Ijara', 'Lagdera'],
+    'Homa Bay': ['Homa Bay', 'Kabondo Kasipul', 'Karachuonyo', 'Kasipul', 'Mbita', 'Ndhiwa', 'Rangwe', 'Suba'],
+    'Isiolo': ['Garbatulla', 'Isiolo', 'Merti'],
+    'Kajiado': ['Isinya', 'Kajiado Central', 'Kajiado North', 'Kajiado West', 'Loitokitok', 'Mashuuru'],
+    'Kakamega': ['Butere', 'Kakamega Central', 'Kakamega East', 'Kakamega North', 'Kakamega South', 'Khwisero', 'Likuyani', 'Lugari', 'Matungu', 'Mumias East', 'Mumias West', 'Navakholo'],
+    'Kericho': ['Belgut', 'Bureau', 'Kericho East', 'Kipkelion East', 'Kipkelion West', 'Soin/Sigowet'],
+    'Kiambu': ['Githunguri', 'Juja', 'Kabete', 'Kiambaa', 'Kiambu', 'Kikuyu', 'Lari', 'Limuru', 'Ruiru', 'Thika East', 'Thika West'],
+    'Kilifi': ['Ganze', 'Kaloleni', 'Kilifi North', 'Kilifi South', 'Magarini', 'Malindi', 'Rabai'],
+    'Kirinyaga': ['Kirinyaga Central', 'Kirinyaga East', 'Kirinyaga West', 'Mwea East', 'Mwea West'],
+    'Kisii': ['Gucha', 'Gucha South', 'Kenyenya', 'Kisii Central', 'Kisii South', 'Kitutu Central', 'Marani', 'Masaba South', 'Nyamache', 'Sameta'],
+    'Kisumu': ['Kadibo', 'Kisumu Central', 'Kisumu East', 'Kisumu West', 'Muhoroni', 'Nyando', 'Nyakach'],
+    'Kitui': ['Ikutha', 'Katulani', 'Kitui Central', 'Kitui Rural', 'Kitui West', 'Kyuso', 'Lower Yatta', 'Mwingi Central', 'Mwingi East', 'Mwingi West', 'Nzambani'],
+    'Kwale': ['Kinango', 'Lunga Lunga', 'Matuga', 'Msambweni'],
+    'Laikipia': ['Laikipia Central', 'Laikipia East', 'Laikipia North', 'Laikipia West', 'Nyahururu'],
+    'Lamu': ['Lamu East', 'Lamu West'],
+    'Machakos': ['Athi River', 'Kalama', 'Kangundo', 'Kathiani', 'Machakos', 'Masinga', 'Matungulu', 'Mwala', 'Yatta'],
+    'Makueni': ['Kilungu', 'Makueni', 'Kaiti', 'Kibwezi West', 'Kibwezi East', 'Mukaa'],
+    'Mandera': ['Banissa', 'Kutulo', 'Lafey', 'Mandera Central', 'Mandera East', 'Mandera North', 'Mandera West'],
+    'Marsabit': ['Laisamis', 'Marsabit Central', 'Moyale', 'North Horr'],
+    'Meru': ['Imenti Central', 'Imenti North', 'Imenti South', 'Tigania East', 'Tigania West', 'Igembe Central', 'Igembe North', 'Igembe South', 'Buuri'],
+    'Migori': ['Awendo', 'Kuria East', 'Kuria West', 'Nyatike', 'Rongo', 'Suna East', 'Suna West', 'Uriri'],
+    'Mombasa': ['Changamwe', 'Jomvu', 'Kisauni', 'Likoni', 'Mvita', 'Nyali'],
+    "Murang'a": ['Gatanga', 'Kandara', 'Kangema', 'Kigumo', 'Kiharu', 'Mathioya', "Murang'a South"],
+    'Nairobi': ['Dagoretti', 'Embakasi', 'Kamukunji', 'Kasarani', 'Kibra', "Lang'ata", 'Makadara', 'Mathare', 'NJiru', 'Starehe', 'Westlands'],
+    'Nakuru': ['Gilgil', 'Kuresoi North', 'Kuresoi South', 'Molo', 'Naivasha', 'Nakuru East', 'Nakuru North', 'Nakuru West', 'Njoro', 'Rongai', 'Subukia'],
+    'Nandi': ['Chesumei', 'Nandi Central', 'Nandi East', 'Nandi North', 'Nandi South', 'Tinderet'],
+    'Narok': ['Narok East', 'Narok North', 'Narok South', 'Narok West', 'Trans Mara East', 'Trans Mara West'],
+    'Nyamira': ['Borabu', 'Manga', 'Masaba North', 'Nyamira North', 'Nyamira South'],
+    'Nyandarua': ['Kinangop', 'Ndaragwa', 'Ol Kalou', 'Ol Joro Orok', 'Nipini'],
+    'Nyeri': ['Kieni East', 'Kieni West', 'Mathira East', 'Mathira West', 'Mukurweini', 'Nyeri Central', 'Nyeri South', 'Tetu'],
+    'Samburu': ['Samburu East', 'Samburu North', 'Samburu West'],
+    'Siaya': ['Alego Usonga', 'Bondo', 'Gem', 'Rarieda', 'Ugenya', 'Ugunja'],
+    'Taita Taveta': ['Mwatate', 'Taveta', 'Taita', 'Voi'],
+    'Tana River': ['Bura', 'Garsen', 'Tana Delta', 'Tana North', 'Tana River'],
+    'Tharaka Nithi': ['Tharaka North', 'Tharaka South', 'Chuka', "Igambang'ombe", 'Maara'],
+    'Trans Nzoia': ['Endebess', 'Kiminini', 'Kwanza', 'Saboti', 'Cherangany'],
+    'Turkana': ['Turkana Central', 'Turkana East', 'Turkana North', 'Turkana South', 'Turkana West', 'Loima'],
+    'Uasin Gishu': ['Ainabkoi', 'Kapseret', 'Kesses', 'Moiben', 'Soy', 'Turbo'],
+    'Vihiga': ['Emuhaya', 'Hamisi', 'Luanda', 'Sabatia', 'Vihiga'],
+    'Wajir': ['Buna', 'Eldas', 'Habaswein', 'Tarbaj', 'Wajir East', 'Wajir North', 'Wajir South', 'Wajir West'],
+    'West Pokot': ['Kipkomai', 'Pokot Central', 'Pokot North', 'Pokot South', 'West Pokot'],
+  };          
   @override
   void initState() {
     super.initState();
@@ -7361,7 +7002,8 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       });
     }
   }
-    @override
+
+  @override
   void dispose() {
     _nameController.dispose();
     _schoolController.dispose();
@@ -7373,39 +7015,27 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
 
   Future<void> _handleSubmit() async {
     if (_nameController.text.trim().isEmpty ||
+        _tscController.text.trim().isEmpty ||
+        _phoneController.text.trim().isEmpty ||
         _selectedCounty == null ||
         _selectedSubCounty == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill in all required fields (Name, County, Sub-County).'),
+          content: Text('Please fill in all required fields (Name, TSC Number, Phone, County, Sub-County).'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    if (selectedType == 'TSC Swap') {
-      if (_phoneController.text.trim().isEmpty ||
-          _tscController.text.trim().isEmpty ||
-          _selectedTargetCounty == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please fill in Phone, TSC Number, and Target County for TSC Swap.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-    } else if (selectedType == 'Seeking BOM Job') {
-      if (_phoneController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please provide a contact phone number for schools to reach you.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
+    if (selectedType == 'TSC Swap' && _selectedTargetCounty == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a Target County for TSC Swap.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
     }
 
     setState(() => isSubmitting = true);
@@ -7524,6 +7154,27 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
               ),
             ),
             const SizedBox(height: 12),
+            // ALWAYS VISIBLE TSC NUMBER FIELD
+            TextField(
+              controller: _tscController,
+              keyboardType: TextInputType.text,
+              decoration: const InputDecoration(
+                labelText: 'TSC Number',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.badge),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.phone),
+              ),
+            ),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _subjects.contains(selectedSubject) ? selectedSubject : null,
               isExpanded: true,
@@ -7545,7 +7196,6 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
               },
             ),
             const SizedBox(height: 12),
-   
             // ==========================================
             // CURRENT LOCATION (HORIZONTAL ROW)
             // ==========================================
@@ -7610,41 +7260,20 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
                 ),
               ],
             ),
-
-            // ==========================================
-            // CONDITIONAL FIELDS FOR TSC SWAP & SEEKING BOM JOB
-            // ==========================================
-            if (selectedType == 'TSC Swap' || selectedType == 'Seeking BOM Job') ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
-                ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _schoolController,
+              decoration: InputDecoration(
+                labelText: selectedType == 'TSC Swap' 
+                    ? 'Current School Name' 
+                    : selectedType == 'Seeking BOM Job' 
+                        ? 'Previous School / Qualifications' 
+                        : 'School Name',
+                border: const OutlineInputBorder(),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _schoolController,
-                decoration: InputDecoration(
-                  labelText: selectedType == 'TSC Swap' ? 'Current School Name' : 'Previous School / Qualifications',
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ],
+            ),
 
             if (selectedType == 'TSC Swap') ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _tscController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'TSC Number',
-                  border: OutlineInputBorder(),
-                ),
-              ),
               const SizedBox(height: 12),            
               // ==========================================
               // TARGET LOCATION (HORIZONTAL ROW)
@@ -7707,15 +7336,8 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
                 ],
               ),
             ], 
- if (selectedType == 'BOM Vacancy') ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _schoolController,
-                decoration: const InputDecoration(
-                  labelText: 'School Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+
+            if (selectedType == 'BOM Vacancy') ...[
               const SizedBox(height: 12),
               TextField(
                 controller: _salaryController,
@@ -7751,7 +7373,7 @@ class _DynamicPostListingModalState extends State<DynamicPostListingModal> {
       ),
     );
   }
-}
+}                        
                                           
 //=============================
 // class HelpSupportScreen
