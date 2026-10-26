@@ -2911,10 +2911,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'totalSupportTickets': 0,
   };
 
-  @override
+    @override
   void initState() {
     super.initState();
     _fetchDashboardStats();
+    
+    // Add this here so admins check for updates too!
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkForAppUpdate(context);
+    });
   }
 
   Future<void> _fetchDashboardStats() async {
