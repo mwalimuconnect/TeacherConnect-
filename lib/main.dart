@@ -2293,6 +2293,123 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     }
   }
 
+  void _showMyListingsBottomSheet(BuildContext context) {
+    // Filter listings matching the current teacher's phone number or name
+    final userPosts = [
+      ...tscSwaps,
+      ...bomJobs,
+      ...seekingBom,
+    ].where((item) => 
+      (item.contactPhone.isNotEmpty && item.contactPhone == widget.userPhone) ||
+      (item.teacherName.isNotEmpty && item.teacherName.toLowerCase().trim() == widget.userName.toLowerCase().trim())
+    ).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'My Active Posts',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: userPosts.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'You have not posted any listings yet under this phone/name.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: userPosts.length,
+                        itemBuilder: (context, index) {
+                          final post = userPosts[index];
+                          return Card(
+                            elevation: 2,
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            child: ListTile(
+                              title: Text(
+                                post.category, 
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF009688))
+                              ),
+                              subtitle: Text(
+                                'Subjects: ${post.subjectCombination}\nCounty: ${post.currentCounty}',
+                              ),
+                              isThreeLine: true,
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                tooltip: 'Remove Post',
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dCtx) => AlertDialog(
+                                      title: const Text('Delete Listing'),
+                                      content: const Text('Are you sure you want to permanently delete this listing?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dCtx, false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dCtx, true),
+                                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+
+                                  if (confirm == true) {
+                                    try {
+                                      final res = await http.delete(
+                                        Uri.parse('$_baseUrl/api/listings/${post.id}'),
+                                      );
+                                      if (res.statusCode == 200 || res.statusCode == 204) {
+                                        Navigator.pop(ctx);
+                                        _fetchListings(); // Refresh portal listings
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Listing deleted successfully.')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Failed to delete: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    }
+  
   Future<void> _fetchActiveAnnouncement() async {
     try {
       final response = await http.get(Uri.parse('$_baseUrl/api/announcement/active'));
