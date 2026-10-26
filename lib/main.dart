@@ -5102,19 +5102,20 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
 // ==========================================
 class _MemberDataTableSource extends DataTableSource {
   final List<dynamic> _members;
+  final BuildContext _context; // Added context for navigation
 
-  _MemberDataTableSource(this._members);
+  _MemberDataTableSource(this._members, this._context);
 
   @override
   DataRow? getRow(int index) {
     if (index >= _members.length) return null;
 
     final member = _members[index];
+    final memberId = member['_id'] ?? member['id'] ?? '';
     final name = member['fullName'] ?? member['name'] ?? 'N/A';
     final phone = member['phoneNumber'] ?? member['phone'] ?? 'N/A';
     final tsc = member['tscNumber'] ?? member['tsc'] ?? 'N/A';
     
-    // Verified subject combination extraction mapping all possible formats
     final subject = member['subjectCombination'] ?? 
                     member['subjects'] ?? 
                     member['subject'] ?? 
@@ -5123,7 +5124,6 @@ class _MemberDataTableSource extends DataTableSource {
     final idNum = member['idNumber'] ??
         member['nationalId'] ??
         member['idNo'] ??
-        member['id'] ??
         'N/A';
 
     final createdAt = member['createdAt'] != null
@@ -5142,10 +5142,27 @@ class _MemberDataTableSource extends DataTableSource {
       ),
       cells: [
         DataCell(Text('${index + 1}')),
+        // Clickable Name Cell opening the Profile Screen
         DataCell(
-          Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+          GestureDetector(
+            onTap: () {
+              if (memberId.isNotEmpty) {
+                Navigator.push(
+                  _context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(userId: memberId),
+                  ),
+                );
+              }
+            },
+            child: Text(
+              name,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF00897B), // Teal highlight to show it's clickable
+                decoration: TextDecoration.underline,
+              ),
+            ),
           ),
         ),
         DataCell(Text(phone)),
