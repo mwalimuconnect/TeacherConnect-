@@ -2180,6 +2180,9 @@ class TeacherPortalTables {
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN (Streamlined Header)
 // =========================================================
+// =========================================================
+// TEACHER PORTAL MAIN SCREEN (Streamlined Header)
+// =========================================================
 class TeacherPortalScreen extends StatefulWidget {
   final String userId;
   final String userName;
@@ -2217,7 +2220,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
   final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
 
-    @override
+  @override
   void initState() {
     super.initState();
     _fetchListings();
@@ -2353,7 +2356,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF009688))
                               ),
                               subtitle: Text(
-                                'Subjects: ${post.subjectCombination}\nCounty: ${post.currentCounty}',
+                                'Subjects: ${post.subjects}\nCounty: ${post.county}',
                               ),
                               isThreeLine: true,
                               trailing: IconButton(
@@ -2408,8 +2411,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         );
       },
     );
-    }
-  
+  }
   Future<void> _fetchActiveAnnouncement() async {
     try {
       final response = await http.get(Uri.parse('$_baseUrl/api/announcement/active'));
@@ -2432,7 +2434,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     return isAdmin || listing.isPaid;
   }
 
-  // Helper method to format display text based on payment status and category
   String _getDisplayName(ListingModel listing) {
     if (isListingUnlocked(listing)) {
       return listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A';
@@ -2448,7 +2449,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     }
   }
 
-  // Helper modal to view full contact details when unlocked or accessed by Admin
   void _showContactDetailsModal(BuildContext context, ListingModel listing) {
     final String currentLoc = listing.subCounty.isNotEmpty
         ? '${listing.currentCounty} (${listing.subCounty})'
@@ -2705,7 +2705,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         );
       },
     );
-
     if (confirm != true) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -2806,6 +2805,12 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           title: const Text('Teacher Portal'),
           backgroundColor: Colors.teal,
           actions: [
+            // "My Posts" button added here for members to view & delete their listings
+            IconButton(
+              icon: const Icon(Icons.assignment_ind),
+              tooltip: 'My Posts',
+              onPressed: () => _showMyListingsBottomSheet(context),
+            ),
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -2944,9 +2949,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         ),
         body: Column(
           children: [
-            // Announcement banner display
             _buildAnnouncementBanner(),
-
             Expanded(
               child: TabBarView(
                 children: [
@@ -2991,9 +2994,9 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ),
     );
   }
-}              
-                      
-                                                                                                                                                                                                                                                                                                                                                 
+}
+         
+                                                                                                                                                                                                                                                                                                                                                                                                       
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
