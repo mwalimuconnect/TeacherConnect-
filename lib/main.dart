@@ -2181,6 +2181,9 @@ class TeacherPortalTables {
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN (Streamlined Header)
 // =========================================================
+// =========================================================
+// TEACHER PORTAL MAIN SCREEN (Streamlined Header)
+// =========================================================
 class TeacherPortalScreen extends StatefulWidget {
   final String userId;
   final String userName;
@@ -2357,47 +2360,62 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                                 'Subjects: ${post.subject}\nCounty: ${post.currentCounty}',
                               ),
                               isThreeLine: true,
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                tooltip: 'Remove Post',
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (dCtx) => AlertDialog(
-                                      title: const Text('Delete Listing'),
-                                      content: const Text('Are you sure you want to permanently delete this listing?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(dCtx, false),
-                                          child: const Text('Cancel'),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Edit Button
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, color: Colors.teal),
+                                    tooltip: 'Edit Post',
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _showEditPostDialog(context, post);
+                                    },
+                                  ),
+                                  // Delete Button
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                    tooltip: 'Remove Post',
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (dCtx) => AlertDialog(
+                                          title: const Text('Delete Listing'),
+                                          content: const Text('Are you sure you want to permanently delete this listing?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(dCtx, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(dCtx, true),
+                                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                            ),
+                                          ],
                                         ),
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(dCtx, true),
-                                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                                        ),
-                                      ],
-                                    ),
-                                  );
+                                      );
 
-                                  if (confirm == true) {
-                                    try {
-                                      final res = await http.delete(
-                                        Uri.parse('$_baseUrl/api/listings/${post.id}'),
-                                      );
-                                      if (res.statusCode == 200 || res.statusCode == 204) {
-                                        Navigator.pop(ctx);
-                                        _fetchListings(); // Refresh portal listings
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Listing deleted successfully.')),
-                                        );
+                                      if (confirm == true) {
+                                        try {
+                                          final res = await http.delete(
+                                            Uri.parse('$_baseUrl/api/listings/${post.id}'),
+                                          );
+                                          if (res.statusCode == 200 || res.statusCode == 204) {
+                                            Navigator.pop(ctx);
+                                            _fetchListings();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Listing deleted successfully.')),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Failed to delete: $e')),
+                                          );
+                                        }
                                       }
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Failed to delete: $e')),
-                                      );
-                                    }
-                                  }
-                                },
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           );
@@ -2410,6 +2428,104 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
+  void _showEditPostDialog(BuildContext context, ListingModel post) {
+    final TextEditingController nameController = TextEditingController(text: post.teacherName);
+    final TextEditingController schoolController = TextEditingController(text: post.schoolName);
+    final TextEditingController phoneController = TextEditingController(text: post.contactPhone);
+    final TextEditingController tscController = TextEditingController(text: post.tscNumber);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Edit Listing',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Full Name', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: tscController,
+                  decoration: const InputDecoration(labelText: 'TSC Number', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneController,
+                  decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: schoolController,
+                  decoration: const InputDecoration(labelText: 'School / Qualifications', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                    onPressed: () async {
+                      try {
+                        final response = await http.put(
+                          Uri.parse('$_baseUrl/api/listings/${post.id}'),
+                          headers: {'Content-Type': 'application/json'},
+                          body: jsonEncode({
+                            'teacherName': nameController.text.trim(),
+                            'tscNumber': tscController.text.trim(),
+                            'contactPhone': phoneController.text.trim(),
+                            'schoolName': schoolController.text.trim(),
+                          }),
+                        );
+
+                        if (!ctx.mounted) return;
+
+                        if (response.statusCode == 200) {
+                          Navigator.pop(ctx);
+                          _fetchListings();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Listing updated successfully!'), backgroundColor: Colors.green),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to update: ${response.body}'), backgroundColor: Colors.red),
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+                    child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _fetchActiveAnnouncement() async {
     try {
       final response = await http.get(Uri.parse('$_baseUrl/api/announcement/active'));
@@ -2552,8 +2668,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
-
-  void _showPaymentModal(BuildContext context, ListingModel listing) {
+   void _showPaymentModal(BuildContext context, ListingModel listing) {
     if (isListingUnlocked(listing)) {
       _showContactDetailsModal(context, listing);
       return;
@@ -2703,6 +2818,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         );
       },
     );
+
     if (confirm != true) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -2803,7 +2919,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           title: const Text('Teacher Portal'),
           backgroundColor: Colors.teal,
           actions: [
-            // "My Posts" button added here for members to view & delete their listings
             IconButton(
               icon: const Icon(Icons.assignment_ind),
               tooltip: 'My Posts',
@@ -2983,7 +3098,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
               ),
             ),
           ],
-        ),
+        ),         
         floatingActionButton: FloatingActionButton(
           onPressed: () => _showPostDialog(context),
           backgroundColor: Colors.teal,
@@ -2993,8 +3108,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     );
   }
 }
-         
-                                                                                                                                                                                                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                                                                                                                                               
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
