@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:teacherconnect/auth_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:teacherconnect/services/upload_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:local_auth/local_auth.dart'; // <-- Add this for LocalAuthentication & AuthenticationOptions
@@ -1247,9 +1248,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 }
 
-// =========================================
-// PROFILE SCREEN WITH CLOUDINARY UPLOAD
-// =========================================
+
 // ==========================================
 // PROFILE SCREEN WITH DROPDOWN SELECTORS
 // ==========================================
@@ -2218,11 +2217,15 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
   final String _baseUrl = 'https://teacher-connect-backend.vercel.app';
 
-  @override
+    @override
   void initState() {
     super.initState();
     _fetchListings();
     _fetchActiveAnnouncement();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkForAppUpdate(context);
+    });
   }
 
   Future<void> _fetchListings() async {
@@ -8098,4 +8101,84 @@ class _AdminSupportTicketsScreenState extends State<AdminSupportTicketsScreen> {
                     ),
     );
   }
+}
+
+// ==========================================
+// APP VERSION CHECK HELPER FUNCTIONS
+// ==========================================
+Future<void> checkForAppUpdate(BuildContext context) async {
+  try {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    String currentVersion = packageInfo.version; // e.g., "1.0.3"
+
+    final response = await http.get(
+      Uri.parse('https://teacher-connect-backend.vercel.app/api/app-version'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      String latestVersion = data['latestVersion'] ?? currentVersion;
+      bool forceUpdate = data['forceUpdate'] ?? false;
+      String storeUrl = data['storeUrl'] ?? 'https://play.google.com/store/apps/details?id=com.teacherconnect.app';
+
+      if (_isVersionOlder(currentVersion, latestVersion)) {
+        if (!context.mounted) return;
+        _showUpdateDialog(context, latestVersion, storeUrl, forceUpdate);
+      }
+    }
+  } catch (e) {
+    debugPrint("App update check failed: $e");
+  }
+}
+
+bool _isVersionOlder(String current, String latest) {
+  List<int> c = current.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+  List<int> l = latest.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+  for (int i = 0; i < l.length; i++) {
+    if (i >= c.length || l[i] > c[i]) return true;
+    if (l[i] < c[i]) return false;
+  }
+  return false;
+}
+
+void _showUpdateDialog(BuildContext context, String version, String storeUrl, bool forceUpdate) {
+  showDialog(
+    context: context,
+    barrierDismissible: !forceUpdate,
+    builder: (BuildContext dialogContext) {
+      return PopScope(
+        canPop: !forceUpdate,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: const [
+              Icon(Icons.system_update, color: Colors.teal),
+              SizedBox(width: 10),
+              Text('Update Available!'),
+            ],
+          ),
+          content: Text(
+            'A new version ($version) of TeacherConnect is ready. Please update your app to continue.',
+          ),
+          actions: [
+            if (!forceUpdate)
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Later', style: TextStyle(color: Colors.grey)),
+              ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              onPressed: () async {
+                final Uri url = Uri.parse(storeUrl);
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: const Text('Update Now', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
