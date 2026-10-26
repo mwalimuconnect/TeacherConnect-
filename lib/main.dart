@@ -2354,7 +2354,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF009688))
                               ),
                               subtitle: Text(
-                                'Subjects: ${post.subjects}\nCounty: ${post.county}',
+                                'Subjects: ${post.subject}\nCounty: ${post.county}',
                               ),
                               isThreeLine: true,
                               trailing: IconButton(
