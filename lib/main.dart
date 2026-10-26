@@ -4993,7 +4993,8 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final memberDataSource = _MemberDataTableSource(_members);
+    // Pass context to the data source for row tapping / profile navigation
+    final memberDataSource = _MemberDataTableSource(_members, context);
 
     return Scaffold(
       appBar: AppBar(
@@ -5074,7 +5075,6 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
-                          // Added Subject Combo header column
                           DataColumn(
                             label: Text(
                               'Subject Combo',
@@ -5102,7 +5102,7 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
 // ==========================================
 class _MemberDataTableSource extends DataTableSource {
   final List<dynamic> _members;
-  final BuildContext _context; // Added context for navigation
+  final BuildContext _context;
 
   _MemberDataTableSource(this._members, this._context);
 
@@ -5124,6 +5124,7 @@ class _MemberDataTableSource extends DataTableSource {
     final idNum = member['idNumber'] ??
         member['nationalId'] ??
         member['idNo'] ??
+        member['id'] ??
         'N/A';
 
     final createdAt = member['createdAt'] != null
@@ -5159,7 +5160,7 @@ class _MemberDataTableSource extends DataTableSource {
               name,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF00897B), // Teal highlight to show it's clickable
+                color: Color(0xFF00897B),
                 decoration: TextDecoration.underline,
               ),
             ),
@@ -5196,6 +5197,8 @@ class _MemberDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
+
+          
                                                              
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
