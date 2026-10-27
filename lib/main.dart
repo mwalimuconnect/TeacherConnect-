@@ -7978,7 +7978,9 @@ Future<void> checkForAppUpdate(BuildContext context) async {
       final data = jsonDecode(response.body);
       String latestVersion = data['latestVersion'] ?? currentVersion;
       bool forceUpdate = data['forceUpdate'] ?? false;
-      String storeUrl = data['storeUrl'] ?? 'https://play.google.com/store/apps/details?id=com.teacherconnect.app';
+      
+      // Point directly to your GitHub release APK instead of Google Play Store
+      String storeUrl = 'https://github.com/mwalimuconnect/TeacherConnect-/releases/download/v1.0.1/app-release.apk';
 
       if (_isVersionOlder(currentVersion, latestVersion)) {
         if (!context.mounted) return;
@@ -8041,3 +8043,4 @@ void _showUpdateDialog(BuildContext context, String version, String storeUrl, bo
     },
   );
 }
+
