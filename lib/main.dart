@@ -3738,7 +3738,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       onTap: () => _showPostAnnouncementDialog(context),
                     ),
                     const Divider(height: 1),
-                    // NEW: Manage Identity Rights Action Tile
+                    // Manage Identity Rights Action Tile (WITHOUT const)
                     _buildActionTile(
                       icon: Icons.security,
                       title: 'Manage Member Identity Rights',
@@ -3746,7 +3746,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const AdminMemberIdentityManagementScreen(),
+                            builder: (context) => AdminMemberIdentityManagementScreen(),
                           ),
                         ).then((_) => _fetchDashboardStats());
                       },
@@ -3851,6 +3851,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
+
                                                                                                                                                                             
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
