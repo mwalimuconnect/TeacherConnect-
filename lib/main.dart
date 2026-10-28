@@ -6551,50 +6551,50 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
   }
 
   void _loadCompleteFallbackSubjects() {
-  if (mounted) {
-    setState(() {
-      _subjects = [
-        // Languages & Humanities
-        'English / Literature',
-        'Kiswahili / History',
-        'Kiswahili / CRE',
-        'Kiswahili / Geography',
-        'Kiswahili / IRE',
-        'History / CRE',
-        'History / IRE',
-        'Geography / CRE',
-        'Geography / Business',
-        'French / English',
-        'German / Any',
+    if (mounted) {
+      setState(() {
+        _subjects = [
+          // Languages & Humanities
+          'English / Literature',
+          'Kiswahili / History',
+          'Kiswahili / CRE',
+          'Kiswahili / Geography',
+          'Kiswahili / IRE',
+          'History / CRE',
+          'History / IRE',
+          'Geography / CRE',
+          'Geography / Business',
+          'French / English',
+          'German / Any',
 
-        // Sciences & Mathematics (STEM)
-        'Mathematics / Chemistry',
-        'Mathematics / Biology',
-        'Mathematics / Physics',
-        'Physics / Chemistry',
-        'Mathematics / Computer Studies',
-        'Biology / Chemistry',
+          // Sciences & Mathematics (STEM)
+          'Mathematics / Chemistry',
+          'Mathematics / Biology',
+          'Mathematics / Physics',
+          'Physics / Chemistry',
+          'Mathematics / Computer Studies',
+          'Biology / Chemistry',
 
-        // Technical, Applied & Business Studies
-        'Business Studies / Mathematics',
-        'Business Studies / Kiswahili',
-        'Business Studies / History',
-        'Business Studies / Computer Studies',
-        'Agriculture / Biology',
-        'Agriculture / Chemistry',
-        'Agriculture / Geography',
-        'Home Science / Biology',
-        'Home Science / Chemistry',
-        'Home Science / History',
-        'Computer / Any',
-        'HomeScience / Any',
-      ];
-      if (_subjects.isNotEmpty) {
-        _selectedSubject = _subjects.first;
-      }
-      _isLoadingSubjects = false;
-    });
-  }
+          // Technical, Applied & Business Studies
+          'Business Studies / Mathematics',
+          'Business Studies / Kiswahili',
+          'Business Studies / History',
+          'Business Studies / Computer Studies',
+          'Agriculture / Biology',
+          'Agriculture / Chemistry',
+          'Agriculture / Geography',
+          'Home Science / Biology',
+          'Home Science / Chemistry',
+          'Home Science / History',
+          'Computer / Any',
+          'HomeScience / Any',
+        ];
+        if (_subjects.isNotEmpty) {
+          _selectedSubject = _subjects.first;
+        }
+        _isLoadingSubjects = false;
+      });
+    }
   }
       
   // Step A: Pick File Logic
@@ -6699,7 +6699,7 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Resource uploaded successfully!')),
           );
-          Navigator.pop(context, true); // Return back to resources list
+          Navigator.pop(context, true); // Return back to resources list with refresh flag
         }
       } else {
         if (mounted) {
@@ -6750,20 +6750,23 @@ class _AddResourceScreenState extends State<AddResourceScreen> {
               const SizedBox(height: 16),
 
               // Subject Dropdown
-DropdownButtonFormField<String>(
-  value: _subjects.contains(_selectedSubject) ? _selectedSubject : (_subjects.isNotEmpty ? _subjects.first : null),
-  isExpanded: true,
-  menuMaxHeight: 380, // Enables scrolling for all 28+ subject combinations
-  decoration: const InputDecoration(
-    labelText: 'Subject',
-    border: OutlineInputBorder(),
-  ),
-  items: _subjects.map((sub) => DropdownMenuItem(
-    value: sub,
-    child: Text(sub, overflow: TextOverflow.ellipsis),
-  )).toList(),
-  onChanged: (val) => setState(() => _selectedSubject = val),
-),
+              DropdownButtonFormField<String>(
+                value: _subjects.contains(_selectedSubject) ? _selectedSubject : (_subjects.isNotEmpty ? _subjects.first : null),
+                isExpanded: true,
+                menuMaxHeight: 380, // Enables scrolling for all 28+ subject combinations
+                decoration: const InputDecoration(
+                  labelText: 'Subject',
+                  border: OutlineInputBorder(),
+                ),
+                items: _subjects.map((sub) => DropdownMenuItem(
+                  value: sub,
+                  child: Text(sub, overflow: TextOverflow.ellipsis),
+                )).toList(),
+                onChanged: (val) => setState(() => _selectedSubject = val),
+              ),
+              
+              const SizedBox(height: 16), // Added proper spacing here!
+
               // Form Level Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedForm,
@@ -6814,6 +6817,7 @@ DropdownButtonFormField<String>(
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                     ],
                   ),
                 ),
