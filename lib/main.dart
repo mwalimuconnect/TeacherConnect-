@@ -1248,10 +1248,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 }
 
-
-// ==========================================
-// PROFILE SCREEN WITH DROPDOWN SELECTORS
-// ==========================================
 // ==========================================
 // PROFILE SCREEN WITH DROPDOWN SELECTORS & ADMIN PERMISSION GATING
 // ==========================================
@@ -2191,11 +2187,6 @@ class TeacherPortalTables {
   }
 }
 
-
-
-// =========================================================
-// TEACHER PORTAL MAIN SCREEN (Streamlined Header)
-// =========================================================
 // =========================================================
 // TEACHER PORTAL MAIN SCREEN (Streamlined Header)
 // =========================================================
@@ -3127,6 +3118,9 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
+// ==========================================
+// 3. ADMIN DASHBOARD MODULE
+// ==========================================
 
 class AdminDashboardScreen extends StatefulWidget {
   final String userId;
@@ -3158,12 +3152,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'totalSupportTickets': 0,
   };
 
-    @override
+  @override
   void initState() {
     super.initState();
     _fetchDashboardStats();
     
-    // Add this here so admins check for updates too!
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkForAppUpdate(context);
     });
@@ -3345,9 +3338,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Navigator.of(dialogContext).pop();
 
                 final prefs = await SharedPreferences.getInstance();
-                
-                // ✅ PRESERVE savedPhone, savedName, and savedRole for fingerprint login!
-                // Only mark active session as logged out:
                 await prefs.setBool('isLoggedIn', false);
 
                 if (!mounted) return;
@@ -3446,7 +3436,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         backgroundColor: Colors.teal,
         elevation: 0,
         actions: [
-          // Profile Avatar in AppBar linking to ProfileScreen
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -3552,7 +3541,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             const SizedBox(height: 4),
                             Text(
                               widget.adminPhone.isNotEmpty
-                                  ? 'Role: Administrator • ${widget.adminPhone}'
+                                  ? 'Role: Administrator — ${widget.adminPhone}'
                                   : 'Role: Administrator',
                               style: const TextStyle(
                                 fontSize: 13,
@@ -3685,7 +3674,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               userPhoneNumber: widget.adminPhone,
                             ),
                           ),
-                        ).then((_) => _fetchDashboardStats());
+                         ).then((_) => _fetchDashboardStats());
                       },
                     ),
                     _buildStatCard(
@@ -3747,6 +3736,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       icon: Icons.campaign,
                       title: 'Post Broadcast Announcement',
                       onTap: () => _showPostAnnouncementDialog(context),
+                    ),
+                    const Divider(height: 1),
+                    // NEW: Manage Identity Rights Action Tile
+                    _buildActionTile(
+                      icon: Icons.security,
+                      title: 'Manage Member Identity Rights',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AdminMemberIdentityManagementScreen(),
+                          ),
+                        ).then((_) => _fetchDashboardStats());
+                      },
                     ),
                     const Divider(height: 1),
                     _buildActionTile(
@@ -3848,8 +3851,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 }
-                          
-                                                                                                               
+                                                                                                                                                                            
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
