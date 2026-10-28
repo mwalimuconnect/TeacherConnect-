@@ -1252,6 +1252,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 // ==========================================
 // PROFILE SCREEN WITH DROPDOWN SELECTORS
 // ==========================================
+// ==========================================
+// PROFILE SCREEN WITH DROPDOWN SELECTORS & ADMIN PERMISSION GATING
+// ==========================================
 class ProfileScreen extends StatefulWidget {
   final String userId;
 
@@ -1270,6 +1273,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
+
+  // Identity Permission State
+  bool _canEditTsc = false;
 
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -1399,6 +1405,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _phoneController.text = user['phone'] ?? user['phoneNumber'] ?? '';
           _schoolController.text = user['currentSchool'] ?? user['schoolName'] ?? '';
           
+          // Capture identity edit permission flag
+          _canEditTsc = user['canEditTsc'] ?? false;
+          
           // Safe County and Sub-County dropdown value matching
           final fetchedCounty = user['county'] ?? user['currentCounty'];
           if (fetchedCounty != null && _countySubCountyData.containsKey(fetchedCounty)) {
@@ -1415,15 +1424,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (fetchedSubject != null && _subjects.contains(fetchedSubject)) {
             _selectedSubject = fetchedSubject;
           } else if (fetchedSubject != null && fetchedSubject.toString().isNotEmpty) {
-            // If custom subject not in list, add it dynamically
             _subjects.add(fetchedSubject);
             _selectedSubject = fetchedSubject;
           } else {
             _selectedSubject = _subjects.first;
           }
 
-          _tscNumberController.text = user['tscNumber'] ?? 'Not Provided';
-          _nationalIdController.text = user['nationalId'] ?? user['nationalID'] ?? 'Not Provided';
+          _tscNumberController.text = user['tscNumber'] ?? '';
+          _nationalIdController.text = user['nationalId'] ?? user['nationalID'] ?? '';
 
           _role = user['role'] ?? 'Member Teacher';
           _profilePhotoUrl = user['profilePhotoUrl'] ?? user['profilePhoto'] ?? '';
@@ -1531,6 +1539,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'userId': widget.userId,
           'fullName': _fullNameController.text.trim(),
           'phone': _phoneController.text.trim(),
+          'nationalId': _nationalIdController.text.trim(),
+          'tscNumber': _tscNumberController.text.trim(),
           'currentSchool': _schoolController.text.trim(),
           'county': _selectedCounty ?? '',
           'subCounty': _selectedSubCounty ?? '',
@@ -1552,6 +1562,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Color(0xFF00897B),
           ),
         );
+        
+        // After successful save, refresh user profile to update locking state cleanly
+        await _fetchUserProfile();
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('savedName', _fullNameController.text.trim());
@@ -1640,22 +1653,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Locked Fields Warning Notice
+                      // Dynamic Banner Notice based on Permission State
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
+                          color: _canEditTsc ? Colors.green.shade50 : Colors.amber.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.amber.shade200),
+                          border: Border.all(
+                            color: _canEditTsc ? Colors.green.shade200 : Colors.amber.shade200,
+                          ),
                         ),
                         child: Row(
-                          children: const [
-                            Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                            SizedBox(width: 8),
+                          children: [
+                            Icon(
+                              _canEditTsc ? Icons.lock_open : Icons.info_outline,
+                              color: _canEditTsc ? Colors.green : Colors.amber,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'National ID and TSC numbers are permanently locked for identity verification and compliance.',
-                                style: TextStyle(fontSize: 12, color: Colors.black87),
+                                _canEditTsc
+                                    ? 'Admin has granted you permission to update your ID and TSC numbers. Fields will automatically lock upon saving.'
+                                    : 'National ID and TSC numbers are permanently locked for identity verification and compliance.',
+                                style: const TextStyle(fontSize: 12, color: Colors.black87),
                               ),
                             ),
                           ],
@@ -1665,27 +1686,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       TextFormField(
                         controller: _nationalIdController,
-                        enabled: false,
+                        enabled: _canEditTsc, // Unlocked only if admin granted rights
                         decoration: InputDecoration(
                           labelText: 'National ID / Passport Number',
-                          prefixIcon: const Icon(Icons.badge, color: Colors.grey),
-                          suffixIcon: const Icon(Icons.lock, color: Colors.grey, size: 18),
+                          prefixIcon: Icon(
+                            Icons.badge,
+                            color: _canEditTsc ? const Color(0xFF00897B) : Colors.grey,
+                          ),
+                          suffixIcon: Icon(
+                            _canEditTsc ? Icons.lock_open : Icons.lock,
+                            color: _canEditTsc ? Colors.green : Colors.grey,
+                            size: 18,
+                          ),
                           filled: true,
-                          fillColor: Colors.grey.shade100,
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      TextFormField(
-                        controller: _tscNumberController,
-                        enabled: false,
-                        decoration: InputDecoration(
-                          labelText: 'TSC Number',
-                          prefixIcon: const Icon(Icons.card_membership, color: Colors.grey),
-                          suffixIcon: const Icon(Icons.lock, color: Colors.grey, size: 18),
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
+                          fillColor: _canEditTsc ? Colors.white : Colors.grey.shade100,
                           border: const OutlineInputBorder(),
                         ),
                       ),
@@ -1725,7 +1739,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // 👈 Dropdown for Subject Combination
+                      // Dropdown for Subject Combination
                       DropdownButtonFormField<String>(
                         value: _subjects.contains(_selectedSubject) ? _selectedSubject : null,
                         isExpanded: true,
@@ -1760,7 +1774,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // 👈 Dropdowns for County and Sub-County Side-by-Side
+                      // Dropdowns for County and Sub-County Side-by-Side
                       Row(
                         children: [
                           Expanded(
@@ -1851,7 +1865,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-                                         
+         
+                                                                         
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
 // =========================================================
