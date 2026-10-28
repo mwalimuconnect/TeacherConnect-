@@ -3118,9 +3118,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
-// ==========================================
-// 3. ADMIN DASHBOARD MODULE
-// ==========================================
 
 class AdminDashboardScreen extends StatefulWidget {
   final String userId;
@@ -3852,6 +3849,190 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
+// ==========================================
+// ADMIN MEMBER IDENTITY MANAGEMENT SCREEN
+// ==========================================
+
+class AdminMemberIdentityManagementScreen extends StatefulWidget {
+  const AdminMemberIdentityManagementScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AdminMemberIdentityManagementScreen> createState() => _AdminMemberIdentityManagementScreenState();
+}
+
+class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentityManagementScreen> {
+  bool _isLoading = true;
+  List<dynamic> _members = [];
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMembers();
+  }
+
+  Future<void> _fetchMembers() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _members = data['members'] ?? [];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load members (${response.statusCode})';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Network error: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleIdentityEditPermission(String memberId, bool currentStatus, int index) async {
+    final bool newStatus = !currentStatus;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
+      final response = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$memberId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'canEditTsc': newStatus}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        setState(() {
+          _members[index]['canEditTsc'] = newStatus;
+        });
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Permission updated successfully'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to update permission'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating permission: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Manage Identity Rights'),
+        backgroundColor: Colors.teal,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+          : _errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _fetchMembers,
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                          child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _members.isEmpty
+                  ? const Center(child: Text('No registered members found.'))
+                  : ListView.builder(
+                      itemCount: _members.length,
+                      padding: const EdgeInsets.all(12),
+                      itemBuilder: (context, index) {
+                        final member = _members[index];
+                        final String memberId = member['id'] ?? member['_id'] ?? '';
+                        final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
+                        final String tsc = member['tscNumber'] ?? 'N/A';
+                        final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
+                        final bool canEdit = member['canEditTsc'] ?? false;
+
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
+                              child: Icon(
+                                canEdit ? Icons.lock_open : Icons.lock,
+                                color: canEdit ? Colors.green : Colors.grey,
+                              ),
+                            ),
+                            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
+                            isThreeLine: true,
+                            trailing: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: canEdit ? Colors.orange : Colors.teal,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
+                              child: Text(
+                                canEdit ? 'Revoke' : 'Grant Edit',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+    );
+  }
+}
                                                                                                                                                                             
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
