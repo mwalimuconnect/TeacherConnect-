@@ -5711,11 +5711,9 @@ class _MemberDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-
-          
-                                                             
+                                                                     
 // ============================================================================
-// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
+// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH MULTI-BRANCH SUB-FOLDERS)
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
@@ -5737,33 +5735,14 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Schemes of Work',
     'Lesson Plans',
     'Exams & Marking Schemes',
-    'Setbooks & Notes',
+    'Subject Notes',
     'Projects',
   ];
-
-  List<String> _subjects = [
-    'English',
-    'Literature',
-    'Kiswahili',
-    'Mathematics',
-    'Biology',
-    'Chemistry',
-    'Physics',
-    'History',
-    'Geography',
-    'CRE',
-    'Business Studies',
-    'Agriculture',
-    'Computer Studies',
-    'Home Science',
-  ];
-  bool _isLoadingSubjects = true;
 
   @override
   void initState() {
     super.initState();
     _fetchResources();
-    _fetchDynamicSubjects();
   }
 
   Future<void> _fetchResources() async {
@@ -5799,32 +5778,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
         setState(() {
           _errorMessage = 'Network error: $e';
           _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _fetchDynamicSubjects() async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/subjects'),
-      );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        final List<dynamic> data = jsonResponse['data'];
-        if (mounted && data != null && data.isNotEmpty) {
-          setState(() {
-            _subjects = List<String>.from(data);
-            _isLoadingSubjects = false;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Error fetching dynamic subjects: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingSubjects = false;
         });
       }
     }
@@ -5899,6 +5852,362 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       }
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    List<dynamic> filteredResources = _resources;
+    if (_selectedCategory != 'All') {
+      filteredResources = _resources.where((res) {
+        final cat = res['category']?.toString().toLowerCase() ?? '';
+        return cat.contains(_selectedCategory.toLowerCase());
+      }).toList();
+    }
+
+    final List> subjects = [
+      {'name': 'English / Literature', 'subtitle': 'Language, Grammar & Setbooks'},
+      {'name': 'Kiswahili / Fasihi', 'subtitle': 'Sarufi, Insha & Fasihi Setbooks'},
+      {'name': 'Exams & Marking Schemes', 'subtitle': 'Papers & Confidential Answers'}, // Added branch folder
+      {'name': 'Mathematics', 'subtitle': 'Algebra, Calculus & Geometry'},
+      {'name': 'Biology', 'subtitle': 'Practicals, Notes & Exams'},
+      {'name': 'Chemistry', 'subtitle': 'Formulations, Notes & Practical Guides'},
+      {'name': 'Physics', 'subtitle': 'Mechanics, Electricity & Revision'},
+      {'name': 'History', 'subtitle': 'Government, World Wars & Local History'},
+      {'name': 'Geography', 'subtitle': 'Maps, Physical & Economic Geography'},
+      {'name': 'CRE', 'subtitle': 'Christian Religious Education Notes'},
+      {'name': 'Business Studies', 'subtitle': 'Accounting, Economics & Commerce'},
+      {'name': 'Agriculture', 'subtitle': 'Crop Production & Animal Health'},
+    ];
+
+    return Scaffold(
+      body: Column(
+        children: [
+          // Category Filter Horizontal Scroll
+          Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _categories.length,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemBuilder: (context, index) {
+                final category = _categories[index];
+                final isSelected = _selectedCategory == category;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    selectedColor: Colors.teal.shade700,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Main Content Grid
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                : _errorMessage.isNotEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(_errorMessage,
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center),
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 1.3,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: subjects.length,
+                        itemBuilder: (context, index) {
+                          final subjectInfo = subjects[index];
+                          final subjectName = subjectInfo['name']!;
+                          final subtitle = subjectInfo['subtitle']!;
+
+                          final itemCount = filteredResources.where((res) {
+                            final sub = res['subject']?.toString().toLowerCase() ?? '';
+                            final cat = res['category']?.toString().toLowerCase() ?? '';
+                            if (subjectName == 'Exams & Marking Schemes') {
+                              return cat.contains('exam');
+                            }
+                            return sub.contains(subjectName.toLowerCase().split(' ')[0]);
+                          }).length;
+
+                          return InkWell(
+                            onTap: () {
+                              if (subjectName == 'English / Literature') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GenericSubFolderScreen(
+                                      parentTitle: 'English / Literature Folders',
+                                      subFolders: const [
+                                        {'title': 'English Language', 'subtitle': 'Grammar, functional writing & papers', 'keyword': 'english'},
+                                        {'title': 'Literature', 'subtitle': 'Setbooks, excerpts, notes & revision', 'keyword': 'literature'},
+                                      ],
+                                      allResources: filteredResources,
+                                      onDownload: _downloadOrOpenUrl,
+                                    ),
+                                  ),
+                                );
+                              } else if (subjectName == 'Kiswahili / Fasihi') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GenericSubFolderScreen(
+                                      parentTitle: 'Kiswahili / Fasihi Folders',
+                                      subFolders: const [
+                                        {'title': 'Kiswahili (Lugha & Sarufi)', 'subtitle': 'Sarufi, Insha, Vyombo & Lugha', 'keyword': 'kiswahili'},
+                                        {'title': 'Fasihi', 'subtitle': 'Riwaya, Tamthilia, Ushairi & Miongozo', 'keyword': 'fasihi'},
+                                      ],
+                                      allResources: filteredResources,
+                                      onDownload: _downloadOrOpenUrl,
+                                    ),
+                                  ),
+                                );
+                              } else if (subjectName == 'Exams & Marking Schemes') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GenericSubFolderScreen(
+                                      parentTitle: 'Exams & Marking Schemes Folders',
+                                      subFolders: const [
+                                        {'title': 'Exams & Question Papers', 'subtitle': 'Assessment tests, CATs & Term exams', 'keyword': 'exam'},
+                                        {'title': 'Marking Schemes', 'subtitle': 'Answers, scoring guides & rubrics', 'keyword': 'marking'},
+                                      ],
+                                      allResources: filteredResources,
+                                      onDownload: _downloadOrOpenUrl,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                final folderItems = filteredResources.where((res) {
+                                  final sub = res['subject']?.toString().toLowerCase() ?? '';
+                                  return sub.contains(subjectName.toLowerCase());
+                                }).toList();
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FolderDetailItemListScreen(
+                                      folderTitle: subjectName,
+                                      resources: folderItems,
+                                      onDownload: _downloadOrOpenUrl,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.15),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                                border: Border.all(color: Colors.teal.shade100),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Icon(Icons.folder, color: Colors.teal.shade700, size: 32),
+                                      const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        subjectName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$itemCount items',
+                                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// GENERIC SUB-FOLDER SCREEN (Handles multi-branch sub-folders)
+// ============================================================================
+class GenericSubFolderScreen extends StatelessWidget {
+  final String parentTitle;
+  final List> subFolders;
+  final List<dynamic> allResources;
+  final Function(dynamic) onDownload;
+
+  const GenericSubFolderScreen({
+    Key? key,
+    required this.parentTitle,
+    required this.subFolders,
+    required this.allResources,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(parentTitle),
+        backgroundColor: Colors.teal,
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: subFolders.length,
+        itemBuilder: (context, index) {
+          final sub = subFolders[index];
+          final title = sub['title']!;
+          final subtitle = sub['subtitle']!;
+          final keyword = sub['keyword']!;
+
+          final filteredList = allResources.where((res) {
+            final titleText = res['title']?.toString().toLowerCase() ?? '';
+            final catText = res['category']?.toString().toLowerCase() ?? '';
+            return titleText.contains(keyword) || catText.contains(keyword);
+          }).toList();
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                leading: const Icon(Icons.folder_special, size: 40, color: Colors.teal),
+                title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: Text('$subtitle\n(${filteredList.length} items available)'),
+                isThreeLine: true,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FolderDetailItemListScreen(
+                        folderTitle: title,
+                        resources: filteredList,
+                        onDownload: onDownload,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// FOLDER ITEM LIST SCREEN: Displays documents inside the folder
+// ============================================================================
+class FolderDetailItemListScreen extends StatelessWidget {
+  final String folderTitle;
+  final List<dynamic> resources;
+  final Function(dynamic) onDownload;
+
+  const FolderDetailItemListScreen({
+    Key? key,
+    required this.folderTitle,
+    required this.resources,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(folderTitle),
+        backgroundColor: Colors.teal,
+      ),
+      body: resources.isEmpty
+          ? const Center(
+              child: Text(
+                'No resources found in this folder yet.',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+          : ListView.builder(
+              itemCount: resources.length,
+              padding: const EdgeInsets.all(12),
+              itemBuilder: (context, index) {
+                final item = resources[index];
+                final title = item['title'] ?? 'Untitled';
+                final category = item['category'] ?? 'General';
+                final form = item['form'] ?? 'General';
+                final price = item['price'] ?? 50;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: ListTile(
+                    leading: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 36),
+                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Category: $category • Form: $form\nPrice: KES $price'),
+                    isThreeLine: true,
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      icon: const Icon(Icons.download, size: 16),
+                      label: const Text('View/Get'),
+                      onPressed: () => onDownload(item),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+        
   
   // ============================================================================
   // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
