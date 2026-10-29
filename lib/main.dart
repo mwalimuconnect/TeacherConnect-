@@ -3900,7 +3900,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-
 // ==========================================
 // ADMIN MEMBER IDENTITY MANAGEMENT SCREEN
 // ==========================================
@@ -3922,7 +3921,6 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     _fetchAdminMembers();
   }
 
-  // 1. Method to fetch/refresh the list of members from the backend
   Future<void> _fetchAdminMembers() async {
     setState(() {
       _isLoading = true;
@@ -3968,44 +3966,43 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     }
   }
 
-  // 2. Method to toggle or grant/revoke identity edit permissions
   Future<void> _toggleIdentityEditPermission(String userId, bool targetStatus, int index) async {
-  try {
-    final response = await http.put(
-      Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$userId'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'canEditTsc': targetStatus}), // Sends exact true or false intended
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200 && data['success'] == true) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(data['message'] ?? 'Identity rights updated successfully.'),
-          backgroundColor: const Color(0xFF00897B),
-        ),
+    try {
+      final response = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$userId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'canEditTsc': targetStatus}),
       );
-      await _fetchAdminMembers(); // Refresh list to show updated state
-    } else {
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Identity rights updated successfully.'),
+            backgroundColor: const Color(0xFF00897B),
+          ),
+        );
+        await _fetchAdminMembers();
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to update identity rights.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(data['message'] ?? 'Failed to update identity rights.'),
+          content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );
     }
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
   }
 
   @override
@@ -4039,51 +4036,52 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
               : _members.isEmpty
                   ? const Center(child: Text('No registered members found.'))
                   : ListView.builder(
-  itemCount: _members.length,
-  padding: const EdgeInsets.all(12),
-  itemBuilder: (context, index) {
-    final member = _members[index];
-    final String memberId = member['id'] ?? member['_id'] ?? '';
-    final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
-    final String tsc = member['tscNumber'] ?? 'N/A';
-    final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
-    
-    // Safely parse the boolean status from backend
-    final rawCanEdit = member['canEditTsc'];
-    final bool canEdit = rawCanEdit == true || rawCanEdit == 'true' || rawCanEdit == 1;
+                      itemCount: _members.length,
+                      padding: const EdgeInsets.all(12),
+                      itemBuilder: (context, index) {
+                        final member = _members[index];
+                        final String memberId = member['id'] ?? member['_id'] ?? '';
+                        final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
+                        final String tsc = member['tscNumber'] ?? 'N/A';
+                        final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
+                        
+                        final rawCanEdit = member['canEditTsc'];
+                        final bool canEdit = rawCanEdit == true || rawCanEdit == 'true' || rawCanEdit == 1;
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
-          child: Icon(
-            canEdit ? Icons.lock_open : Icons.lock,
-            color: canEdit ? Colors.green : Colors.grey,
-          ),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
-        isThreeLine: true,
-        trailing: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: canEdit ? Colors.orange : Colors.teal,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          ),
-          // EXPLICIT ACTION: If canEdit is true, target is false (lock). If false, target is true (unlock).
-          onPressed: () => _toggleIdentityEditPermission(memberId, canEdit ? false : true, index),
-          child: Text(
-            canEdit ? 'Revoke' : 'Grant Edit',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
+                              child: Icon(
+                                canEdit ? Icons.lock_open : Icons.lock,
+                                color: canEdit ? Colors.green : Colors.grey,
+                              ),
+                            ),
+                            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
+                            isThreeLine: true,
+                            trailing: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: canEdit ? Colors.orange : Colors.teal,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              onPressed: () => _toggleIdentityEditPermission(memberId, canEdit ? false : true, index),
+                              child: Text(
+                                canEdit ? 'Revoke' : 'Grant Edit',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
     );
-  },
-)
+  }
+}
             
                                                                                                                                                                             
 // ==========================================
