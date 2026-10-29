@@ -5711,11 +5711,9 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
                                                                      
+
 // ============================================================================
-// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH MULTI-BRANCH SUB-FOLDERS)
-// ============================================================================
-// ============================================================================
-// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & PDF PREVIEW)
+// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & DYNAMIC PAPERS)
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
@@ -5737,11 +5735,11 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Schemes of Work',
     'Lesson Plans',
     'Exams & Marking Schemes',
-    'Subject Notes', // Updated category label
+    'Subject Notes',
     'Projects',
   ];
 
-  List<String> _subjects = [
+  final List<String> _subjects = [
     'English / Literature',
     'Kiswahili / Fasihi',
     'Exams & Marking Schemes',
@@ -5757,13 +5755,11 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Computer Studies',
     'Home Science',
   ];
-  bool _isLoadingSubjects = true;
 
   @override
   void initState() {
     super.initState();
     _fetchResources();
-    _fetchDynamicSubjects();
   }
 
   Future<void> _fetchResources() async {
@@ -5799,32 +5795,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
         setState(() {
           _errorMessage = 'Network error: $e';
           _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _fetchDynamicSubjects() async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/subjects'),
-      );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        final List<dynamic> data = jsonResponse['data'];
-        if (mounted && data != null && data.isNotEmpty) {
-          setState(() {
-            // Keep the custom structured parents if API returns flat list, or use API items
-            _isLoadingSubjects = false;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Error fetching dynamic subjects: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingSubjects = false;
         });
       }
     }
@@ -5908,9 +5878,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
         final cat = res['category']?.toString().toLowerCase() ?? '';
         return cat.contains(_selectedCategory.toLowerCase());
       }).toList();
-    }
 
-    // Map subjects to custom subtitles
     final Map<String, String> subjectSubtitles = {
       'English / Literature': 'Language, Grammar & Literature & Setbooks',
       'Kiswahili / Fasihi': 'Sarufi, Insha, Fasihi & Setbooks',
@@ -5928,7 +5896,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       'Home Science': 'Foods, Nutrition & Clothing',
     };
 
-    // Define which subjects are Sciences/Practicals (Paper 1, 2, 3) vs Humanities/Technicals (Paper 1, 2)
     final List<String> scienceSubjects = [
       'Mathematics',
       'Biology',
@@ -5942,7 +5909,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     return Scaffold(
       body: Column(
         children: [
-          // Category Filter Horizontal Scroll
           Container(
             height: 50,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -5973,8 +5939,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
               },
             ),
           ),
-
-          // Main Grid Content
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Colors.teal))
@@ -5998,7 +5962,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                         itemCount: _subjects.length,
                         itemBuilder: (context, index) {
                           final subjectName = _subjects[index];
-                          final subtitle = subjectSubtitles[subjectName] ?? 'Revision materials & notes';
 
                           final itemCount = filteredResources.where((res) {
                             final sub = res['subject']?.toString().toLowerCase() ?? '';
@@ -6057,7 +6020,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                   ),
                                 );
                               } else {
-                                // Dynamic Paper sub-folders for Sciences vs Humanities/Technicals
                                 final bool isScience = scienceSubjects.contains(subjectName);
                                 final List> paperSubFolders = isScience
                                     ? [
@@ -6143,8 +6105,143 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       ),
     );
   }
-}          
-           
+}
+// ============================================================================
+// GENERIC SUB-FOLDER SCREEN
+// ============================================================================
+class GenericSubFolderScreen extends StatelessWidget {
+  final String parentTitle;
+  final List> subFolders;
+  final List<dynamic> allResources;
+  final Function(dynamic) onDownload;
+
+  const GenericSubFolderScreen({
+    Key? key,
+    required this.parentTitle,
+    required this.subFolders,
+    required this.allResources,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(parentTitle),
+        backgroundColor: Colors.teal,
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: subFolders.length,
+        itemBuilder: (context, index) {
+          final sub = subFolders[index];
+          final title = sub['title']!;
+          final subtitle = sub['subtitle']!;
+          final keyword = sub['keyword']!;
+
+          final filteredList = allResources.where((res) {
+            final titleText = res['title']?.toString().toLowerCase() ?? '';
+            final catText = res['category']?.toString().toLowerCase() ?? '';
+            return titleText.contains(keyword) || catText.contains(keyword);
+          }).toList();
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                leading: const Icon(Icons.folder_special, size: 40, color: Colors.teal),
+                title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: Text('$subtitle\n(${filteredList.length} items available)'),
+                isThreeLine: true,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FolderDetailItemListScreen(
+                        folderTitle: title,
+                        resources: filteredList,
+                        onDownload: onDownload,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// FOLDER ITEM LIST SCREEN
+// ============================================================================
+class FolderDetailItemListScreen extends StatelessWidget {
+  final String folderTitle;
+  final List<dynamic> resources;
+  final Function(dynamic) onDownload;
+
+  const FolderDetailItemListScreen({
+    Key? key,
+    required this.folderTitle,
+    required this.resources,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(folderTitle),
+        backgroundColor: Colors.teal,
+      ),
+      body: resources.isEmpty
+          ? const Center(
+              child: Text(
+                'No resources found in this folder yet.',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+          : ListView.builder(
+              itemCount: resources.length,
+              padding: const EdgeInsets.all(12),
+              itemBuilder: (context, index) {
+                final item = resources[index];
+                final title = item['title'] ?? 'Untitled';
+                final category = item['category'] ?? 'General';
+                final form = item['form'] ?? 'General';
+                final price = item['price'] ?? 50;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: ListTile(
+                    leading: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 36),
+                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Category: $category • Form: $form\nPrice: KES $price'),
+                    isThreeLine: true,
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      icon: const Icon(Icons.download, size: 16),
+                      label: const Text('View/Get'),
+                      onPressed: () => onDownload(item),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}                                                      
   // ============================================================================
   // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
   // ============================================================================
