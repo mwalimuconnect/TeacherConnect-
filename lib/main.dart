@@ -3170,7 +3170,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
-
 class AdminDashboardScreen extends StatefulWidget {
   final String userId;
   final String adminName;
@@ -3901,10 +3900,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
+
 // ==========================================
 // ADMIN MEMBER IDENTITY MANAGEMENT SCREEN
 // ==========================================
-
 class AdminMemberIdentityManagementScreen extends StatefulWidget {
   const AdminMemberIdentityManagementScreen({Key? key}) : super(key: key);
 
@@ -3920,10 +3919,11 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
   @override
   void initState() {
     super.initState();
-    _fetchMembers();
+    _fetchAdminMembers();
   }
 
-  Future<void> _fetchMembers() async {
+  // 1. Method to fetch/refresh the list of members from the backend
+  Future<void> _fetchAdminMembers() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -3943,13 +3943,20 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          _members = data['members'] ?? [];
-          _isLoading = false;
-        });
+        if (data['success'] == true) {
+          setState(() {
+            _members = data['members'] ?? [];
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = 'Failed to load members.';
+            _isLoading = false;
+          });
+        }
       } else {
         setState(() {
-          _errorMessage = 'Failed to load members (${response.statusCode})';
+          _errorMessage = 'Failed to load members (${response.statusCode}).';
           _isLoading = false;
         });
       }
@@ -3961,83 +3968,14 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     }
   }
 
-  Future<void> _toggleIdentityEdit(String userId, bool currentCanEdit) async {
-  // If currentCanEdit is true, we want to revoke (send false).
-  // If currentCanEdit is false, we want to grant (send true).
-  final bool targetStatus = !currentCanEdit;
-
-  try {
-    final response = await http.put(
-      Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$userId'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'canEditTsc': targetStatus}),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200 && data['success'] == true) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          // Display the exact message returned by your backend route
-          content: Text(data['message'] ?? 'Identity rights updated successfully.'),
-          backgroundColor: const Color(0xFF00897B),
-        ),
-      );
-      _fetchAdminMembers(); // Refresh list to show correct button state
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(data['message'] ?? 'Failed to update identity rights.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-  }
-
-    // 1. Method to fetch/refresh the list of members from the backend
-  Future<void> _fetchAdminMembers() async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          setState(() {
-            // Assuming your member list state variable is named _members or membersList
-            _members = List<Map<String, dynamic>>.from(data['members']);
-            _isLoading = false;
-          });
-        }
-      } else {
-        throw Exception('Failed to load admin members');
-      }
-    } catch (e) {
-      debugPrint('Error fetching members: $e');
-      setState(() => _isLoading = false);
-    }
-  }
-
   // 2. Method to toggle or grant/revoke identity edit permissions
-  Future<void> _toggleIdentityEditPermission(String memberId, bool currentCanEdit, int index) async {
+  Future<void> _toggleIdentityEditPermission(String userId, bool currentCanEdit, int index) async {
+    // CRITICAL: Send the opposite of the current status to toggle properly
     final bool targetStatus = !currentCanEdit;
 
     try {
       final response = await http.put(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$memberId'),
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$userId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'canEditTsc': targetStatus}),
       );
@@ -4052,7 +3990,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
             backgroundColor: const Color(0xFF00897B),
           ),
         );
-        // Refresh the list to reflect the updated button state immediately
+        // Refresh the list immediately to fetch fresh states from MongoDB
         await _fetchAdminMembers();
       } else {
         if (!mounted) return;
@@ -4073,13 +4011,14 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
       );
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Identity Rights'),
         backgroundColor: Colors.teal,
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.teal))
@@ -4090,10 +4029,10 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                        Text(_errorMessage!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: _fetchMembers,
+                          onPressed: _fetchAdminMembers,
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
                           child: const Text('Retry', style: TextStyle(color: Colors.white)),
                         ),
@@ -4112,7 +4051,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                         final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
                         final String tsc = member['tscNumber'] ?? 'N/A';
                         final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
-                        final bool canEdit = member['canEditTsc'] ?? false;
+                        final bool canEdit = member['canEditTsc'] == true;
 
                         return Card(
                           elevation: 2,
@@ -4148,6 +4087,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     );
   }
 }
+            
                                                                                                                                                                             
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
