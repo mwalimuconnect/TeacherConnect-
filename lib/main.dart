@@ -1271,9 +1271,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 }
 
-// ==========================================
-// PROFILE SCREEN WITH DROPDOWN SELECTORS & ADMIN PERMISSION GATING
-// ==========================================
+
 // ==========================================
 // PROFILE SCREEN WITH DROPDOWN SELECTORS & ADMIN PERMISSION GATING
 // ==========================================
@@ -1549,69 +1547,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSaving = true);
+  setState(() => _isSaving = true);
 
-    try {
-      final response = await http.put(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'userId': widget.userId,
-          'fullName': _fullNameController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'nationalId': _nationalIdController.text.trim(),
-          'tscNumber': _tscNumberController.text.trim(),
-          'currentSchool': _schoolController.text.trim(),
-          'county': _selectedCounty ?? '',
-          'subCounty': _selectedSubCounty ?? '',
-          'subjectCombination': _selectedSubject ?? '',
-          'subjects': _selectedSubject ?? '',
-          'subject': _selectedSubject ?? '',
-          'profilePhotoUrl': _profilePhotoUrl,
-          'profilePhoto': _profilePhotoUrl,
-        }),
+  try {
+    final response = await http.put(
+      Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': widget.userId,
+        'fullName': _fullNameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'nationalId': _nationalIdController.text.trim(),
+        'tscNumber': _tscNumberController.text.trim(),
+        'currentSchool': _schoolController.text.trim(),
+        'county': _selectedCounty ?? '',
+        'subCounty': _selectedSubCounty ?? '',
+        'subjectCombination': _selectedSubject ?? '',
+        'subjects': _selectedSubject ?? '',
+        'subject': _selectedSubject ?? '',
+        'profilePhotoUrl': _profilePhotoUrl,
+        'profilePhoto': _profilePhotoUrl,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && data['success'] == true) {
+      if (!mounted) return;
+
+      // Update local permission state so the UI reflects the secure auto-lock
+      setState(() {
+        _canEditTsc = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile updated successfully! Identity fields are now secured.'),
+          backgroundColor: Color(0xFF00897B),
+        ),
       );
 
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && data['success'] == true) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Color(0xFF00897B),
-          ),
-        );
-        
-        // After successful save, refresh user profile to update locking state cleanly
-        await _fetchUserProfile();
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('savedName', _fullNameController.text.trim());
-        await prefs.setString('savedPhone', _phoneController.text.trim());
-        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Failed to update profile'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
+      // Save updated data locally in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('savedName', _fullNameController.text.trim());
+      await prefs.setString('savedPhone', _phoneController.text.trim());
+      await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
+    } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error saving profile: $e'),
+          content: Text(data['message'] ?? 'Failed to update profile'),
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error saving profile: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (mounted) setState(() => _isSaving = false);
+  }
   }
 
   @override
