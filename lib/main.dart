@@ -1274,6 +1274,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 // ==========================================
 // PROFILE SCREEN WITH DROPDOWN SELECTORS & ADMIN PERMISSION GATING
 // ==========================================
+// ==========================================
+// PROFILE SCREEN WITH DROPDOWN SELECTORS & ADMIN PERMISSION GATING
+// ==========================================
 class ProfileScreen extends StatefulWidget {
   final String userId;
 
@@ -1703,13 +1706,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // National ID Field (Gated by canEditTsc)
                       TextFormField(
                         controller: _nationalIdController,
-                        enabled: _canEditTsc, // Unlocked only if admin granted rights
+                        enabled: _canEditTsc,
                         decoration: InputDecoration(
                           labelText: 'National ID / Passport Number',
                           prefixIcon: Icon(
                             Icons.badge,
+                            color: _canEditTsc ? const Color(0xFF00897B) : Colors.grey,
+                          ),
+                          suffixIcon: Icon(
+                            _canEditTsc ? Icons.lock_open : Icons.lock,
+                            color: _canEditTsc ? Colors.green : Colors.grey,
+                            size: 18,
+                          ),
+                          filled: true,
+                          fillColor: _canEditTsc ? Colors.white : Colors.grey.shade100,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // TSC Number Field (Gated by canEditTsc)
+                      TextFormField(
+                        controller: _tscNumberController,
+                        enabled: _canEditTsc,
+                        decoration: InputDecoration(
+                          labelText: 'TSC Number',
+                          prefixIcon: Icon(
+                            Icons.card_membership,
                             color: _canEditTsc ? const Color(0xFF00897B) : Colors.grey,
                           ),
                           suffixIcon: Icon(
@@ -1884,8 +1910,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-         
-                                                                         
+                          
+                              
+                                                                                  
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
 // =========================================================
