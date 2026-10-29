@@ -4051,8 +4051,8 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                         final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
                         final String tsc = member['tscNumber'] ?? 'N/A';
                         final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
-                        final bool canEdit = member['canEditTsc'] == true;
-
+                        final rawCanEdit = member['canEditTsc'];
+                        final bool canEdit = rawCanEdit == true || rawCanEdit == 'true' || rawCanEdit == 1;
                         return Card(
                           elevation: 2,
                           margin: const EdgeInsets.symmetric(vertical: 6),
