@@ -4004,6 +4004,75 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     );
   }
   }
+
+    // 1. Method to fetch/refresh the list of members from the backend
+  Future<void> _fetchAdminMembers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            // Assuming your member list state variable is named _members or membersList
+            _members = List<Map<String, dynamic>>.from(data['members']);
+            _isLoading = false;
+          });
+        }
+      } else {
+        throw Exception('Failed to load admin members');
+      }
+    } catch (e) {
+      debugPrint('Error fetching members: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // 2. Method to toggle or grant/revoke identity edit permissions
+  Future<void> _toggleIdentityEditPermission(String memberId, bool currentCanEdit, int index) async {
+    final bool targetStatus = !currentCanEdit;
+
+    try {
+      final response = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$memberId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'canEditTsc': targetStatus}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Identity rights updated successfully.'),
+            backgroundColor: const Color(0xFF00897B),
+          ),
+        );
+        // Refresh the list to reflect the updated button state immediately
+        await _fetchAdminMembers();
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to update identity rights.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
