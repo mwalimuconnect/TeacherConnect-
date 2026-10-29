@@ -1271,7 +1271,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 }
 
-
 // ==========================================
 // PROFILE SCREEN WITH DROPDOWN SELECTORS & ADMIN PERMISSION GATING
 // ==========================================
@@ -1294,7 +1293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
 
-  // Identity Permission State
+  // Identity Permission State (Controls both National ID and TSC Number fields)
   bool _canEditTsc = false;
 
   final TextEditingController _fullNameController = TextEditingController();
@@ -1409,7 +1408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-    Future<void> _fetchUserProfile() async {
+  Future<void> _fetchUserProfile() async {
     try {
       final response = await http.get(
         Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile?userId=${widget.userId}'),
@@ -1425,9 +1424,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _phoneController.text = user['phone'] ?? user['phoneNumber'] ?? '';
           _schoolController.text = user['currentSchool'] ?? user['schoolName'] ?? '';
           
-          // ROBUST BOOLEAN PARSING FOR PERMISSION FLAG
+          // Robust boolean parsing for identity edit permission flag
           final rawCanEdit = user['canEditTsc'];
-          _canEditTsc = rawCanEdit == true || rawCanEdit == 'true' || rawCanEdit == 1;
+          _canEditTsc = rawCanEdit == true || rawCanEdit.toString().toLowerCase() == 'true' || rawCanEdit == 1 || rawCanEdit == '1';
           
           // Safe County and Sub-County dropdown value matching
           final fetchedCounty = user['county'] ?? user['currentCounty'];
@@ -1478,9 +1477,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       setState(() => _isLoading = false);
     }
-    } 
-    /// Direct Image Upload to Cloudinary & Backend Save
-    Future<void> _pickAndUploadImage() async {
+  }
+
+  /// Direct Image Upload to Cloudinary & Backend Save
+  Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
@@ -1545,76 +1545,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
-  
 
   Future<void> _updateProfile() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isSaving = true);
+    setState(() => _isSaving = true);
 
-  try {
-    final response = await http.put(
-      Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'userId': widget.userId,
-        'fullName': _fullNameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'nationalId': _nationalIdController.text.trim(),
-        'tscNumber': _tscNumberController.text.trim(),
-        'currentSchool': _schoolController.text.trim(),
-        'county': _selectedCounty ?? '',
-        'subCounty': _selectedSubCounty ?? '',
-        'subjectCombination': _selectedSubject ?? '',
-        'subjects': _selectedSubject ?? '',
-        'subject': _selectedSubject ?? '',
-        'profilePhotoUrl': _profilePhotoUrl,
-        'profilePhoto': _profilePhotoUrl,
-      }),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200 && data['success'] == true) {
-      if (!mounted) return;
-
-      // Update local permission state so the UI reflects the secure auto-lock
-      setState(() {
-        _canEditTsc = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully! Identity fields are now secured.'),
-          backgroundColor: Color(0xFF00897B),
-        ),
+    try {
+      final response = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': widget.userId,
+          'fullName': _fullNameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'currentSchool': _schoolController.text.trim(),
+          'county': _selectedCounty ?? '',
+          'subCounty': _selectedSubCounty ?? '',
+          'subjectCombination': _selectedSubject ?? '',
+          'subjects': _selectedSubject ?? '',
+          'subject': _selectedSubject ?? '',
+          'tscNumber': _tscNumberController.text.trim(),
+          'nationalId': _nationalIdController.text.trim(),
+          'profilePhotoUrl': _profilePhotoUrl,
+          'profilePhoto': _profilePhotoUrl,
+        }),
       );
 
-      // Save updated data locally in SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('savedName', _fullNameController.text.trim());
-      await prefs.setString('savedPhone', _phoneController.text.trim());
-      await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
-    } else {
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Color(0xFF00897B),
+          ),
+        );
+
+        // If the backend automatically re-locks after saving, update local state
+        setState(() {
+          if (data['user'] != null && data['user']['canEditTsc'] == false) {
+            _canEditTsc = false;
+          }
+        });
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedName', _fullNameController.text.trim());
+        await prefs.setString('savedPhone', _phoneController.text.trim());
+        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to update profile'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(data['message'] ?? 'Failed to update profile'),
+          content: Text('Error saving profile: $e'),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error saving profile: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } finally {
-    if (mounted) setState(() => _isSaving = false);
-  }
   }
 
   @override
@@ -1678,15 +1677,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Dynamic Banner Notice based on Permission State
+                      // Dynamic Status Notice Banner
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: _canEditTsc ? Colors.green.shade50 : Colors.amber.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _canEditTsc ? Colors.green.shade200 : Colors.amber.shade200,
-                          ),
+                          border: Border.all(color: _canEditTsc ? Colors.green.shade200 : Colors.amber.shade200),
                         ),
                         child: Row(
                           children: [
@@ -1699,9 +1696,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Expanded(
                               child: Text(
                                 _canEditTsc
-                                    ? 'Admin has granted you permission to update your ID and TSC numbers. Fields will automatically lock upon saving.'
-                                    : 'National ID and TSC numbers are permanently locked for identity verification and compliance.',
-                                style: const TextStyle(fontSize: 12, color: Colors.black87),
+                                    ? 'Identity edit permission is currently UNLOCKED. You can update your National ID and TSC Number below.'
+                                    : 'National ID and TSC numbers are currently locked. Request permission from an Admin to edit them.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black87,
+                                  fontWeight: _canEditTsc ? FontWeight.bold : FontWeight.normal,
+                                ),
                               ),
                             ),
                           ],
@@ -1709,16 +1710,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // National ID Field (Gated by canEditTsc)
+                      // National ID Field (Gated by _canEditTsc)
                       TextFormField(
                         controller: _nationalIdController,
                         enabled: _canEditTsc,
                         decoration: InputDecoration(
                           labelText: 'National ID / Passport Number',
-                          prefixIcon: Icon(
-                            Icons.badge,
-                            color: _canEditTsc ? const Color(0xFF00897B) : Colors.grey,
-                          ),
+                          prefixIcon: const Icon(Icons.badge, color: Colors.grey),
                           suffixIcon: Icon(
                             _canEditTsc ? Icons.lock_open : Icons.lock,
                             color: _canEditTsc ? Colors.green : Colors.grey,
@@ -1728,19 +1726,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fillColor: _canEditTsc ? Colors.white : Colors.grey.shade100,
                           border: const OutlineInputBorder(),
                         ),
+                        validator: (val) {
+                          if (_canEditTsc && (val == null || val.trim().isEmpty)) {
+                            return 'Please enter your National ID';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 14),
 
-                      // TSC Number Field (Gated by canEditTsc)
+                      // TSC Number Field (Gated by _canEditTsc)
                       TextFormField(
                         controller: _tscNumberController,
                         enabled: _canEditTsc,
                         decoration: InputDecoration(
                           labelText: 'TSC Number',
-                          prefixIcon: Icon(
-                            Icons.card_membership,
-                            color: _canEditTsc ? const Color(0xFF00897B) : Colors.grey,
-                          ),
+                          prefixIcon: const Icon(Icons.card_membership, color: Colors.grey),
                           suffixIcon: Icon(
                             _canEditTsc ? Icons.lock_open : Icons.lock,
                             color: _canEditTsc ? Colors.green : Colors.grey,
@@ -1750,6 +1751,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fillColor: _canEditTsc ? Colors.white : Colors.grey.shade100,
                           border: const OutlineInputBorder(),
                         ),
+                        validator: (val) {
+                          if (_canEditTsc && (val == null || val.trim().isEmpty)) {
+                            return 'Please enter your TSC Number';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 24),
                       const Divider(),
@@ -1912,9 +1919,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
     );
   }
-}
-                          
-                              
+}                                                            
                                                                                   
 // =========================================================
 // 1. TEACHER PORTAL TABLES (GROUPED BY SUBJECT COMBINATION)
