@@ -5714,6 +5714,14 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH MULTI-BRANCH SUB-FOLDERS)
 // ============================================================================
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
+
+// ============================================================================
+// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH MULTI-BRANCH SUB-FOLDERS)
+// ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
 
@@ -5865,7 +5873,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     final List> subjects = [
       {'name': 'English / Literature', 'subtitle': 'Language, Grammar & Setbooks'},
       {'name': 'Kiswahili / Fasihi', 'subtitle': 'Sarufi, Insha & Fasihi Setbooks'},
-      {'name': 'Exams & Marking Schemes', 'subtitle': 'Papers & Confidential Answers'}, // Added branch folder
+      {'name': 'Exams & Marking Schemes', 'subtitle': 'Papers & Confidential Answers'},
       {'name': 'Mathematics', 'subtitle': 'Algebra, Calculus & Geometry'},
       {'name': 'Biology', 'subtitle': 'Practicals, Notes & Exams'},
       {'name': 'Chemistry', 'subtitle': 'Formulations, Notes & Practical Guides'},
@@ -5880,7 +5888,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     return Scaffold(
       body: Column(
         children: [
-          // Category Filter Horizontal Scroll
           Container(
             height: 50,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -5911,8 +5918,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
               },
             ),
           ),
-
-          // Main Content Grid
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Colors.teal))
@@ -6071,7 +6076,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 }
 
 // ============================================================================
-// GENERIC SUB-FOLDER SCREEN (Handles multi-branch sub-folders)
+// GENERIC SUB-FOLDER SCREEN
 // ============================================================================
 class GenericSubFolderScreen extends StatelessWidget {
   final String parentTitle;
@@ -6142,7 +6147,7 @@ class GenericSubFolderScreen extends StatelessWidget {
 }
 
 // ============================================================================
-// FOLDER ITEM LIST SCREEN: Displays documents inside the folder
+// FOLDER ITEM LIST SCREEN
 // ============================================================================
 class FolderDetailItemListScreen extends StatelessWidget {
   final String folderTitle;
@@ -6207,7 +6212,6 @@ class FolderDetailItemListScreen extends StatelessWidget {
   }
 }
         
-  
   // ============================================================================
   // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
   // ============================================================================
