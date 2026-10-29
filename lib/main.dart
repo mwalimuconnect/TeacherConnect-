@@ -3908,7 +3908,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
 
 // ==========================================
-// ADMIN MEMBER IDENTITY MANAGEMENT SCREEN
+// ADMIN MEMBER IDENTITY MANAGEMENT SCREEN (WITH PULL-TO-REFRESH)
 // ==========================================
 
 class AdminMemberIdentityManagementScreen extends StatefulWidget {
@@ -3968,7 +3968,6 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
   }
 
   Future<void> _toggleIdentityEditPermission(String memberId, bool currentStatus, int index) async {
-    // Explicitly determine target status (if currently true, target is false, and vice versa)
     final bool targetStatus = !currentStatus;
 
     try {
@@ -3988,7 +3987,6 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
 
       if (response.statusCode == 200 && data['success'] == true) {
         setState(() {
-          // Update local array state immediately based on confirmed target status
           _members[index]['canEditTsc'] = targetStatus;
         });
 
@@ -4026,9 +4024,9 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
         title: const Text('Manage Identity Rights'),
         backgroundColor: Colors.teal,
       ),
-      body: _isLoading
+      body: _isLoading && _members.isEmpty
           ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-          : _errorMessage != null
+          : _errorMessage != null && _members.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -4046,60 +4044,71 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                     ),
                   ),
                 )
-              : _members.isEmpty
-                  ? const Center(child: Text('No registered members found.'))
-                  : ListView.builder(
-                      itemCount: _members.length,
-                      padding: const EdgeInsets.all(12),
-                      itemBuilder: (context, index) {
-                        final member = _members[index];
-                        final String memberId = member['id'] ?? member['_id'] ?? '';
-                        final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
-                        final String tsc = member['tscNumber'] ?? 'N/A';
-                        final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
-                        
-                        // AGGRESSIVE BOOLEAN PARSING: Catches boolean, string, or number variants from MongoDB
-                        final rawCanEdit = member['canEditTsc'];
-                        final bool canEdit = rawCanEdit == true || 
-                                             rawCanEdit.toString().toLowerCase() == 'true' || 
-                                             rawCanEdit == 1 || 
-                                             rawCanEdit == '1';
+              : RefreshIndicator(
+                  onRefresh: _fetchMembers,
+                  color: Colors.teal,
+                  child: _members.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: const [
+                            SizedBox(height: 250),
+                            Center(child: Text('No registered members found.')),
+                          ],
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: _members.length,
+                          padding: const EdgeInsets.all(12),
+                          itemBuilder: (context, index) {
+                            final member = _members[index];
+                            final String memberId = member['id'] ?? member['_id'] ?? '';
+                            final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
+                            final String tsc = member['tscNumber'] ?? 'N/A';
+                            final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
+                            
+                            final rawCanEdit = member['canEditTsc'];
+                            final bool canEdit = rawCanEdit == true || 
+                                                 rawCanEdit.toString().toLowerCase() == 'true' || 
+                                                 rawCanEdit == 1 || 
+                                                 rawCanEdit == '1';
 
-                        return Card(
-                          elevation: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
-                              child: Icon(
-                                canEdit ? Icons.lock_open : Icons.lock,
-                                color: canEdit ? Colors.green : Colors.grey,
+                            return Card(
+                              elevation: 2,
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
+                                  child: Icon(
+                                    canEdit ? Icons.lock_open : Icons.lock,
+                                    color: canEdit ? Colors.green : Colors.grey,
+                                  ),
+                                ),
+                                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
+                                isThreeLine: true,
+                                trailing: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: canEdit ? Colors.orange : Colors.teal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  ),
+                                  onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
+                                  child: Text(
+                                    canEdit ? 'Revoke' : 'Grant Edit',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
                               ),
-                            ),
-                            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
-                            isThreeLine: true,
-                            trailing: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: canEdit ? Colors.orange : Colors.teal,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
-                              child: Text(
-                                canEdit ? 'Revoke' : 'Grant Edit',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                            );
+                          },
+                        ),
+                ),
     );
   }
 }
-                                                                                                                                                                                       
+ 
+                                                                                                                                                                                                 
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
