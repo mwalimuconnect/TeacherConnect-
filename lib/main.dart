@@ -4037,54 +4037,54 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
               : _members.isEmpty
                   ? const Center(child: Text('No registered members found.'))
                   : ListView.builder(
-                      itemCount: _members.length,
-                      padding: const EdgeInsets.all(12),
-                      itemBuilder: (context, index) {
-                        final member = _members[index];
-                        final String memberId = member['id'] ?? member['_id'] ?? '';
-                        final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
-                        final String tsc = member['tscNumber'] ?? 'N/A';
-                        final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
-                        
-                        final rawCanEdit = member['canEditTsc'];
-                        final bool canEdit = rawCanEdit == true || rawCanEdit == 'true' || rawCanEdit == 1;
+  itemCount: _members.length,
+  padding: const EdgeInsets.all(12),
+  itemBuilder: (context, index) {
+    final member = _members[index];
+    final String memberId = member['id'] ?? member['_id'] ?? '';
+    final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
+    final String tsc = member['tscNumber'] ?? 'N/A';
+    final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
+    
+    // ULTRA-ROBUST BOOLEAN CHECK: Catches boolean true, string "true", number 1, or string "1"
+    final rawCanEdit = member['canEditTsc'];
+    final bool canEdit = rawCanEdit == true || 
+                         rawCanEdit.toString().toLowerCase() == 'true' || 
+                         rawCanEdit == 1 || 
+                         rawCanEdit == '1';
 
-                        return Card(
-                          elevation: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
-                              child: Icon(
-                                canEdit ? Icons.lock_open : Icons.lock,
-                                color: canEdit ? Colors.green : Colors.grey,
-                              ),
-                            ),
-                            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
-                            isThreeLine: true,
-                            trailing: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: canEdit ? Colors.orange : Colors.teal,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                              onPressed: () => _toggleIdentityEditPermission(memberId, canEdit ? false : true, index),
-                              child: Text(
-                                canEdit ? 'Revoke' : 'Grant Edit',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
+          child: Icon(
+            canEdit ? Icons.lock_open : Icons.lock,
+            color: canEdit ? Colors.green : Colors.grey,
+          ),
+        ),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
+        isThreeLine: true,
+        trailing: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: canEdit ? Colors.orange : Colors.teal,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+          onPressed: () => _toggleIdentityEditPermission(memberId, canEdit ? false : true, index),
+          child: Text(
+            canEdit ? 'Revoke' : 'Grant Edit',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
     );
-  }
-}
-            
-                                                                                                                                                                            
+  },
+)
+                                                                                                                                                                                       
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
