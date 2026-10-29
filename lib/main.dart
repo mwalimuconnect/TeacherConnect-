@@ -959,9 +959,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
                                                                                          
-// =========================================================
-// 3. FORGOT & RESET PASSWORD SCREENS
-// =========================================================
+
+// ==========================================
+// 3. FORGOT & RESET PASSWORD SCREENS (DIRECT VERIFICATION)
+// ==========================================
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -972,67 +973,44 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _phoneController = TextEditingController();
+  final _idController = TextEditingController();
+  final _tscController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _idController.dispose();
+    _tscController.dispose();
     super.dispose();
   }
 
-  Future<void> _requestResetToken() async {
-    FocusScope.of(context).unfocus();
-    setState(() => _isLoading = true);
+  void _proceedToReset() {
+    final phone = _phoneController.text.trim();
+    final idNo = _idController.text.trim();
+    final tsc = _tscController.text.trim();
 
-    try {
-      final payload = {'identifier': _phoneController.text.trim()};
-
-      final response = await http.post(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(payload),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Reset code generated successfully!'),
-            backgroundColor: Color(0xFF00897B),
-          ),
-        );
-
-        // Navigate to Reset Password Screen with the phone number
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ResetPasswordScreen(
-              identifier: _phoneController.text.trim(),
-            ),
-          ),
-        );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Failed to send reset code'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
+    if (phone.isEmpty || idNo.isEmpty || tsc.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error connecting to server: $e'),
+        const SnackBar(
+          content: Text('Please fill in Phone Number, National ID, and TSC Number.'),
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      return;
     }
+
+    // Navigate to Reset Password Screen carrying the verification credentials
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ResetPasswordScreen(
+          phone: phone,
+          nationalId: idNo,
+          tscNumber: tsc,
+        ),
+      ),
+    );
   }
 
   @override
@@ -1040,11 +1018,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Forgot Password'),
+        title: const Text('Verify Identity'),
         backgroundColor: const Color(0xFF00897B),
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1055,7 +1033,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Enter your registered phone number below. We will generate a verification code for you to reset your password.',
+              'Enter your registered account credentials below to verify your identity before setting a new password.',
               style: TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 24),
@@ -1065,6 +1043,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.phone),
                 labelText: 'Phone Number',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _idController,
+              keyboardType: TextInputType.text,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.badge),
+                labelText: 'National ID / Passport Number',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _tscController,
+              keyboardType: TextInputType.text,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.card_membership),
+                labelText: 'TSC Number',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1078,13 +1076,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: _isLoading ? null : _requestResetToken,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Send Reset Code',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
+                onPressed: _proceedToReset,
+                child: const Text(
+                  'Continue to New Password',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
               ),
             ),
           ],
@@ -1095,35 +1091,61 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 }
 
 class ResetPasswordScreen extends StatefulWidget {
-  final String identifier;
-  const ResetPasswordScreen({Key? key, required this.identifier}) : super(key: key);
+  final String phone;
+  final String nationalId;
+  final String tscNumber;
+
+  const ResetPasswordScreen({
+    Key? key,
+    required this.phone,
+    required this.nationalId,
+    required this.tscNumber,
+  }) : super(key: key);
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  final _tokenController = TextEditingController();
   final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _tokenController.dispose();
     _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-    Future<void> _submitNewPassword() async {
+  Future<void> _submitNewPassword() async {
+    final newPassword = _newPasswordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (newPassword.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter and confirm your new password.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
       final payload = {
-        'identifier': widget.identifier,
-        'token': _tokenController.text.trim(),
-        'newPassword': _newPasswordController.text.trim(),
+        'phoneNumber': widget.phone,
+        'idNumber': widget.nationalId,
+        'tscNumber': widget.tscNumber,
+        'newPassword': newPassword,
       };
 
       final response = await http.post(
@@ -1132,9 +1154,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         body: jsonEncode(payload),
       );
 
+      // Guard against HTML error pages returned by server crashes/404s
+      if (response.body.trim().startsWith('<')) {
+        throw Exception('Server error (${response.statusCode}): Invalid endpoint or server crash.');
+      }
+
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && data['success'] == true) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1146,14 +1173,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         // Pop back to Login Screen
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
           (route) => false,
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data['message'] ?? 'Invalid or expired code'),
+            content: Text(data['message'] ?? 'Verification failed. Credentials do not match records.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1162,7 +1189,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error connecting to server: $e'),
+          content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1180,46 +1207,42 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         backgroundColor: const Color(0xFF00897B),
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Enter Verification Code',
+              'Create New Password',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Enter the 6-digit reset code generated for ${widget.identifier} and your new password.',
-              style: const TextStyle(fontSize: 14, color: Colors.black54),
+            const Text(
+              'Enter your secure new password below to finalize your account recovery.',
+              style: TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 24),
-            TextField(
-              controller: _tokenController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.security),
-                labelText: 'Reset Code / Token',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
             TextField(
               controller: _newPasswordController,
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() => _obscurePassword = !_obscurePassword);
-                  },
+                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
                 labelText: 'New Password',
                 border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _confirmPasswordController,
+              obscureText: _obscurePassword,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.lock_outline),
+                labelText: 'Confirm New Password',
+                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 24),
