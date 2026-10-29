@@ -1409,7 +1409,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchUserProfile() async {
+    Future<void> _fetchUserProfile() async {
     try {
       final response = await http.get(
         Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/profile?userId=${widget.userId}'),
@@ -1425,8 +1425,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _phoneController.text = user['phone'] ?? user['phoneNumber'] ?? '';
           _schoolController.text = user['currentSchool'] ?? user['schoolName'] ?? '';
           
-          // Capture identity edit permission flag
-          _canEditTsc = user['canEditTsc'] ?? false;
+          // ROBUST BOOLEAN PARSING FOR PERMISSION FLAG
+          final rawCanEdit = user['canEditTsc'];
+          _canEditTsc = rawCanEdit == true || rawCanEdit == 'true' || rawCanEdit == 1;
           
           // Safe County and Sub-County dropdown value matching
           final fetchedCounty = user['county'] ?? user['currentCounty'];
@@ -1477,74 +1478,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       setState(() => _isLoading = false);
     }
-  }
-
-  /// Direct Image Upload to Cloudinary & Backend Save
-  Future<void> _pickAndUploadImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-    );
-
-    if (pickedFile == null) return;
-
-    setState(() => _isUploadingPhoto = true);
-
-    try {
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudinaryCloudName/image/upload');
-      final request = http.MultipartRequest('POST', uri)
-        ..fields['upload_preset'] = _cloudinaryUploadPreset
-        ..files.add(await http.MultipartFile.fromPath('file', pickedFile.path));
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      final responseData = jsonDecode(response.body);
-
-      if (response.statusCode != 200) {
-        throw Exception(responseData['error']?['message'] ?? 'Cloudinary upload failed');
-      }
-
-      final String downloadUrl = responseData['secure_url'];
-
-      final backendResponse = await http.put(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/auth/update-photo/${widget.userId}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'profilePhoto': downloadUrl, 'profilePhotoUrl': downloadUrl}),
-      );
-
-      if (backendResponse.statusCode == 200 || backendResponse.statusCode == 201) {
-        setState(() {
-          _profilePhotoUrl = downloadUrl;
-        });
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('savedPhotoUrl', _profilePhotoUrl);
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile photo updated successfully!'),
-            backgroundColor: Color(0xFF00897B),
-          ),
-        );
-      } else {
-        throw Exception('Failed to update user profile photo');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading photo: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isUploadingPhoto = false);
-      }
-    }
-  }
+    } 
 
   Future<void> _updateProfile() async {
   if (!_formKey.currentState!.validate()) return;
