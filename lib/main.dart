@@ -5711,13 +5711,6 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
                                                                      
-// ============================================================================
-// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH MULTI-BRANCH SUB-FOLDERS)
-// ============================================================================
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
 
 // ============================================================================
 // TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH MULTI-BRANCH SUB-FOLDERS)
