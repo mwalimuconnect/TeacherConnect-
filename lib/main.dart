@@ -3961,56 +3961,50 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     }
   }
 
-  Future<void> _toggleIdentityEditPermission(String memberId, bool currentStatus, int index) async {
-    final bool newStatus = !currentStatus;
+  Future<void> _toggleIdentityEdit(String userId, bool currentCanEdit) async {
+  // If currentCanEdit is true, we want to revoke (send false).
+  // If currentCanEdit is false, we want to grant (send true).
+  final bool targetStatus = !currentCanEdit;
 
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token') ?? '';
+  try {
+    final response = await http.put(
+      Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$userId'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'canEditTsc': targetStatus}),
+    );
 
-      final response = await http.put(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-identity-edit/$memberId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'canEditTsc': newStatus}),
-      );
+    final data = jsonDecode(response.body);
 
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && data['success'] == true) {
-        setState(() {
-          _members[index]['canEditTsc'] = newStatus;
-        });
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Permission updated successfully'),
-            backgroundColor: Colors.teal,
-          ),
-        );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Failed to update permission'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
+    if (response.statusCode == 200 && data['success'] == true) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error updating permission: $e'),
+          // Display the exact message returned by your backend route
+          content: Text(data['message'] ?? 'Identity rights updated successfully.'),
+          backgroundColor: const Color(0xFF00897B),
+        ),
+      );
+      _fetchAdminMembers(); // Refresh list to show correct button state
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(data['message'] ?? 'Failed to update identity rights.'),
           backgroundColor: Colors.red,
         ),
       );
     }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
-
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
