@@ -6217,14 +6217,14 @@ class FolderDetailItemListScreen extends StatelessWidget {
                 icon: const Icon(Icons.download, size: 18),
                 label: const Text('View/Get'),
                 onPressed: () => onDownloadPressed(),              
-                ),
-             ),
+            ),
           ),
-        }
-      ),
-    );
-  },
-}
+        ),
+      },
+  );
+  );
+  }
+  }
 
 
                               
