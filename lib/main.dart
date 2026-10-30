@@ -5809,7 +5809,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Home Science',
   ];
 
-  final List> _standardResourceSubFolders = [
+  final  _standardResourceSubFolders = [
     {
       'title': 'Schemes of Work',
       'subtitle': 'Termly and weekly teaching plans',
