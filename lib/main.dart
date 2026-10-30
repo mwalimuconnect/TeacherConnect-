@@ -959,7 +959,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
                                                                                          
-
 // ==========================================
 // 3. FORGOT & RESET PASSWORD SCREENS (DIRECT VERIFICATION)
 // ==========================================
@@ -5792,7 +5791,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // Clean, single subject list for resource navigation
   final List<String> _subjects = [
     'English',
     'Literature',
@@ -5811,8 +5809,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Home Science',
   ];
 
-    // Standard category sub-folders nested inside each subject folder
-  final _standardResourceSubFolders = [
+  final List> _standardResourceSubFolders = [
+    {
       'title': 'Schemes of Work',
       'subtitle': 'Termly and weekly teaching plans',
       'keyword': 'scheme',
@@ -6090,7 +6088,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                 ),
     );
   }
-   
+
+  
   // ============================================================================
   // VISUAL PDF PREVIEW MODAL
   // ============================================================================
