@@ -5775,10 +5775,6 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
                                                                         
-
-// ============================================================================
-// TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
-// ============================================================================
 // ============================================================================
 // TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
 // ============================================================================
@@ -5792,11 +5788,11 @@ class TeacherResourcesTab extends StatefulWidget {
 }
 
 class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
-  List _resources = [];
+  List<dynamic> _resources = [];
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // Clean, single subject list for resource navigation & uploading
+  // Clean, single subject list for resource navigation
   final List<String> _subjects = [
     'English',
     'Literature',
@@ -5873,7 +5869,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
         if (mounted) {
           setState(() {
             _errorMessage =
-                'Failed to load resources. Server returned status code ${response.statusCode}';
+                'Failed to load resources. Status code ${response.statusCode}';
             _isLoading = false;
           });
         }
@@ -5953,13 +5949,11 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-  // Helper method to open a subject's sub-folders
   void _openSubjectFolder(String subjectName) {
     final currentRole = widget.userRole?.toLowerCase() ?? '';
     final bool isAdmin =
         currentRole.contains('admin') || currentRole == 'administrator';
 
-    // Filter resources matching this specific subject
     final filteredResources = _resources.where((r) {
       final sub = (r['subject'] ?? r['category'] ?? '').toString().toLowerCase();
       return sub.contains(subjectName.toLowerCase());
@@ -6024,7 +6018,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Optional Upload Button for Admin/Authorized Users
                       if (isAdmin) ...[
                         SizedBox(
                           width: double.infinity,
@@ -6098,6 +6091,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                 ),
     );
   }
+   
   // ============================================================================
   // VISUAL PDF PREVIEW MODAL
   // ============================================================================
