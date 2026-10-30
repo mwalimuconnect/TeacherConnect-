@@ -6159,73 +6159,7 @@ class GenericSubFolderScreen extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// FOLDER ITEM LIST SCREEN (TOP-LEVEL WIDGET)
-// ============================================================================
-class FolderDetailItemListScreen extends StatelessWidget {
-  final String folderTitle;
-  final List resources;
-  final Function(dynamic) onDownload;
-
-  const FolderDetailItemListScreen({
-    Key? key,
-    required this.folderTitle,
-    required this.resources,
-    required this.onDownload,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(folderTitle),
-        backgroundColor: Colors.teal,
-      ),
-      body: resources.isEmpty
-          ? const Center(
-              child: Text(
-                'No resources found in this folder yet.',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            )
-          : ListView.builder(
-              itemCount: resources.length,
-              padding: const EdgeInsets.all(12),
-              itemBuilder: (context, index) {
-                final item = resources[index];
-                final title = item['title'] ?? 'Untitled';
-                final category = item['category'] ?? 'General';
-                final form = item['form'] ?? 'General';
-                final price = item['price'] ?? 50;
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  child: ListTile(
-                    leading: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 36),
-                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Category: $category • Form: $form\nPrice: KES $price'),
-                    isThreeLine: true,
-                    trailing: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade50,
-                        foregroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('View/Get'),
-                      onPressed: () => onDownload(item),
-                    ),
-                  ),
-                );
-              },
-            ),
-    );
-  }
-}
-                              
+                            
 // ============================================================================
 // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
 // ============================================================================
@@ -6853,7 +6787,73 @@ class _SubjectFolderDetailScreenState
             ),
     );
   }
-}            
+} 
+
+// ============================================================================
+// FOLDER ITEM LIST SCREEN (TOP-LEVEL WIDGET)
+// ============================================================================
+class FolderDetailItemListScreen extends StatelessWidget {
+  final String folderTitle;
+  final List resources;
+  final Function(dynamic) onDownload;
+
+  const FolderDetailItemListScreen({
+    Key? key,
+    required this.folderTitle,
+    required this.resources,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(folderTitle),
+        backgroundColor: Colors.teal,
+      ),
+      body: resources.isEmpty
+          ? const Center(
+              child: Text(
+                'No resources found in this folder yet.',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+          : ListView.builder(
+              itemCount: resources.length,
+              padding: const EdgeInsets.all(12),
+              itemBuilder: (context, index) {
+                final item = resources[index];
+                final title = item['title'] ?? 'Untitled';
+                final category = item['category'] ?? 'General';
+                final form = item['form'] ?? 'General';
+                final price = item['price'] ?? 50;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: ListTile(
+                    leading: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 36),
+                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Category: $category • Form: $form\nPrice: KES $price'),
+                    isThreeLine: true,
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade50,
+                        foregroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('View/Get'),
+                      onPressed: () => onDownload(item),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
                  
 // =========================================================================
 // Payment Modal with Strict Payment Verification
