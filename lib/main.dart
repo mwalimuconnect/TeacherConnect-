@@ -6088,7 +6088,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                 ),
     );
   }
-
+}
    
                                                                            
 // ============================================================================
