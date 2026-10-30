@@ -5465,7 +5465,7 @@ class TotalMembersScreen extends StatefulWidget {
 
 class _TotalMembersScreenState extends State<TotalMembersScreen> {
   bool _isLoading = false;
-  List<dynamic> _members = [];
+  List <dynamic> _members = [];
   int _rowsPerPage = PaginatedDataTable.defaultRowsPerPage;
 
   @override
@@ -5614,7 +5614,7 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
 // PAGINATED DATA SOURCE FOR MEMBERS
 // ==========================================
 class _MemberDataTableSource extends DataTableSource {
-  final List<dynamic> _members;
+  final <List> _members;
   final BuildContext _context;
 
   _MemberDataTableSource(this._members, this._context);
@@ -5724,12 +5724,12 @@ class TeacherResourcesTab extends StatefulWidget {
 }
 
 class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
-  List<dynamic> _resources = [];
+  List _resources = [];
   bool _isLoading = true;
   String _errorMessage = '';
   String _selectedCategory = 'All';
 
-  final List<String> _categories = [
+  final List _categories = [
     'All',
     'Schemes of Work',
     'Lesson Plans',
@@ -5738,7 +5738,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Projects',
   ];
 
-  final List<String> _subjects = [
+  final List _subjects = [
     'English / Literature',
     'Kiswahili / Fasihi',
     'Exams & Marking Schemes',
@@ -5871,7 +5871,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 
   @override
   Widget build(BuildContext context) {
-    List<dynamic> filteredResources = _resources;
+    List filteredResources = _resources;
     if (_selectedCategory != 'All') {
       filteredResources = _resources.where((res) {
         final cat = res['category']?.toString().toLowerCase() ?? '';
@@ -5879,7 +5879,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
       }).toList();
     }
 
-    final List<String> scienceSubjects = [
+    final List scienceSubjects = [
       'Mathematics',
       'Biology',
       'Chemistry',
@@ -6094,8 +6094,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
 // ============================================================================
 class GenericSubFolderScreen extends StatelessWidget {
   final String parentTitle;
-  final List> subFolders;
-  final List<dynamic> allResources;
+  final List subFolders;
+  final List allResources;
   final Function(dynamic) onDownload;
 
   const GenericSubFolderScreen({
@@ -6165,7 +6165,7 @@ class GenericSubFolderScreen extends StatelessWidget {
 // ============================================================================
 class FolderDetailItemListScreen extends StatelessWidget {
   final String folderTitle;
-  final List<dynamic> resources;
+  final List resources;
   final Function(dynamic) onDownload;
 
   const FolderDetailItemListScreen({
