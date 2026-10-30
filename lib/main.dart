@@ -6467,8 +6467,9 @@ class GenericSubFolderScreen extends StatelessWidget {
       ),
     ),
   ],
-),                                             
-                                                                                                                                                                           
+),                                         
+}        
+}
 // ============================================================================
 // SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & In-App PDF Preview)
 // ============================================================================
