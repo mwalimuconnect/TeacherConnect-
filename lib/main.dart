@@ -6017,7 +6017,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                         {'title': 'Paper One', 'subtitle': '$subjectName Paper 1 materials', 'keyword': 'paper 1'},
                                         {'title': 'Paper Two', 'subtitle': '$subjectName Paper 2 materials', 'keyword': 'paper 2'},
                                       ];
-
                                 final subjectResources = filteredResources.where((res) {
                                   final sub = res['subject']?.toString().toLowerCase() ?? '';
                                   return sub.contains(subjectName.toLowerCase());
