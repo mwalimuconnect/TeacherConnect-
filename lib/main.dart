@@ -6216,17 +6216,15 @@ class FolderDetailItemListScreen extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.download, size: 18),
                 label: const Text('View/Get'),
-                onPressed: () => onDownloadPressed(),
-              ),
-            ),
+                onPressed: () => onDownloadPressed(),              
+
           ),
         ),
       ),
-    );
-  },
-);
-}
-      
+    ),
+  );
+
+                              
 // ============================================================================
 // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
 // ============================================================================
