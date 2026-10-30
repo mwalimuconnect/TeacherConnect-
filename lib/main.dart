@@ -6259,7 +6259,6 @@ class GenericSubFolderScreen extends StatelessWidget {
         );
       }
     }
-  }
 
   @override
   Widget build(BuildContext context) {
