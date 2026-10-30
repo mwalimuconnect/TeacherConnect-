@@ -6258,14 +6258,18 @@ class GenericSubFolderScreen extends StatelessWidget {
   final String parentTitle;
   final List subFolders;
   final List allResources;
+  final bool isAdmin;
   final Function(dynamic) onDownload;
+  final Function(BuildContext, String, String, double, VoidCallback) onPreview;
 
   const GenericSubFolderScreen({
     Key? key,
     required this.parentTitle,
     required this.subFolders,
     required this.allResources,
+    required this.isAdmin,
     required this.onDownload,
+    required this.onPreview,
   }) : super(key: key);
 
   @override
@@ -6305,10 +6309,12 @@ class GenericSubFolderScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => FolderDetailItemListScreen(
-                        folderTitle: title,
+                      builder: (context) => SubjectFolderDetailScreen(
+                        subject: title,
                         resources: filteredList,
+                        isAdmin: isAdmin,
                         onDownload: onDownload,
+                        onPreview: onPreview,
                       ),
                     ),
                   );
