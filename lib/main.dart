@@ -6422,53 +6422,51 @@ class FolderDetailItemListScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.folder,
-                                        color: Colors.teal.shade400,
-                                        size: 38,
-                                      ),
-                                      const Spacer(),
-                                      const Icon(Icons.chevron_right,
-                                          color: Colors.grey),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    subjectName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-          Text(
-            '$count ${count == 1 ? 'item' : 'items'}',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 12,
+                               child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.folder,
+                          color: Colors.teal.shade400,
+                          size: 38,
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.chevron_right, color: Colors.grey),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      subjectName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$count ${count == 1 ? 'item' : 'items'}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     ),
-  );
-},
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-                                               
+  ],
+),                                             
                                                                                                                                                                            
 // ============================================================================
 // SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & In-App PDF Preview)
