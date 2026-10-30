@@ -6209,21 +6209,22 @@ class FolderDetailItemListScreen extends StatelessWidget {
                     subtitle: Text('Category: $category • Form: $form\nPrice: KES $price'),
                     isThreeLine: true,
                     trailing: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal.shade50,
-                  foregroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                icon: const Icon(Icons.download, size: 18),
-                label: const Text('View/Get'),
-                onPressed: () => onDownloadPressed(),              
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade50,
+                        foregroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('View/Get'),
+                      onPressed: () => onDownload(item),
+                    ),
+                  ),
+                );
+              },
             ),
-          ),
-        ),
-      },
-  );
-  );
+    );
   }
+}
                               
 // ============================================================================
 // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
