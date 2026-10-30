@@ -5779,6 +5779,9 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 // TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
 // ============================================================================
+// ============================================================================
+// TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
+// ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
 
@@ -5792,21 +5795,13 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   List _resources = [];
   bool _isLoading = true;
   String _errorMessage = '';
-  String _selectedCategory = 'All';
 
-  final List _categories = [
-    'All',
-    'Schemes of Work',
-    'Lesson Plans',
-    'Exams & Marking Schemes',
-    'Subject Notes',
-    'Projects',
-  ];
-
-  final List _subjects = [
-    'English / Literature',
-    'Kiswahili / Fasihi',
-    'Exams & Marking Schemes',
+  // Clean, single subject list for resource navigation & uploading
+  final List<String> _subjects = [
+    'English',
+    'Literature',
+    'Kiswahili',
+    'Fasihi',
     'Mathematics',
     'Biology',
     'Chemistry',
@@ -5818,6 +5813,35 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Agriculture',
     'Computer Studies',
     'Home Science',
+  ];
+
+  // Standard category sub-folders nested inside each subject folder
+  final List> _standardResourceSubFolders = [
+    {
+      'title': 'Schemes of Work',
+      'subtitle': 'Termly and weekly teaching plans',
+      'keyword': 'scheme',
+    },
+    {
+      'title': 'Lesson Plans',
+      'subtitle': 'Daily structured lesson guides',
+      'keyword': 'lesson',
+    },
+    {
+      'title': 'Exams & Marking Schemes',
+      'subtitle': 'Assessment tests and scoring guides',
+      'keyword': 'exam',
+    },
+    {
+      'title': 'Subject Notes',
+      'subtitle': 'Comprehensive revision notes & excerpts',
+      'keyword': 'notes',
+    },
+    {
+      'title': 'Projects',
+      'subtitle': 'Practical tasks & CSL activities',
+      'keyword': 'project',
+    },
   ];
 
   @override
@@ -5886,11 +5910,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
               'https://teacher-connect-backend.vercel.app/api/resources/download/$input?isAdmin=$isAdmin';
         } else {
           targetUrl = input;
-          if (targetUrl.contains('cloudinary.com') &&
-              !targetUrl.contains('fl_attachment')) {
-            targetUrl =
-                targetUrl.replaceFirst('/upload/', '/upload/fl_attachment/');
-          }
         }
       }
     }
@@ -5934,6 +5953,151 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
+  // Helper method to open a subject's sub-folders
+  void _openSubjectFolder(String subjectName) {
+    final currentRole = widget.userRole?.toLowerCase() ?? '';
+    final bool isAdmin =
+        currentRole.contains('admin') || currentRole == 'administrator';
+
+    // Filter resources matching this specific subject
+    final filteredResources = _resources.where((r) {
+      final sub = (r['subject'] ?? r['category'] ?? '').toString().toLowerCase();
+      return sub.contains(subjectName.toLowerCase());
+    }).toList();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GenericSubFolderScreen(
+          parentTitle: '$subjectName Folders',
+          subFolders: _standardResourceSubFolders,
+          allResources: filteredResources,
+          isAdmin: isAdmin,
+          onDownload: _downloadOrOpenUrl,
+          onPreview: (ctx, url, title, price, callback) => 
+              _showPdfPreviewModal(ctx, url, title, price, callback),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentRole = widget.userRole?.toLowerCase() ?? '';
+    final bool isAdmin =
+        currentRole.contains('admin') || currentRole == 'administrator';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Teacher Resources'),
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchResources,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_errorMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _fetchResources,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Optional Upload Button for Admin/Authorized Users
+                      if (isAdmin) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal),
+                            icon: const Icon(Icons.cloud_upload),
+                            label: const Text('UPLOAD NEW RESOURCE'),
+                            onPressed: () {
+                              // Navigate to your Upload Resource screen
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      const Text(
+                        'Select Subject',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: GridView.builder(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.3,
+                          ),
+                          itemCount: _subjects.length,
+                          itemBuilder: (context, index) {
+                            final subject = _subjects[index];
+                            return InkWell(
+                              onTap: () => _openSubjectFolder(subject),
+                              child: Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                         MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                         CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.folder,
+                                          size: 36, color: Colors.teal),
+                                      const Spacer(),
+                                      Text(
+                                        subject,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+    );
+  }
   // ============================================================================
   // VISUAL PDF PREVIEW MODAL
   // ============================================================================
