@@ -5711,9 +5711,8 @@ class _MemberDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
                                                                      
-
 // ============================================================================
-// TEACHER RESOURCES TAB (FOLDER DIRECTORY VIEW WITH ADMIN BYPASS & DYNAMIC PAPERS)
+// TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
@@ -5878,23 +5877,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
         final cat = res['category']?.toString().toLowerCase() ?? '';
         return cat.contains(_selectedCategory.toLowerCase());
       }).toList();
-
-    final Map<String, String> subjectSubtitles = {
-      'English / Literature': 'Language, Grammar & Literature & Setbooks',
-      'Kiswahili / Fasihi': 'Sarufi, Insha, Fasihi & Setbooks',
-      'Exams & Marking Schemes': 'Papers & Confidential Answers',
-      'Mathematics': 'Algebra, Calculus & Geometry',
-      'Biology': 'Practicals, Notes & Exams',
-      'Chemistry': 'Formulations, Notes & Practical Guides',
-      'Physics': 'Mechanics, Electricity & Revision',
-      'History': 'Government, World Wars & Local History',
-      'Geography': 'Maps, Physical & Economic Geography',
-      'CRE': 'Christian Religious Education Notes',
-      'Business Studies': 'Accounting, Economics & Commerce',
-      'Agriculture': 'Crop Production & Animal Health',
-      'Computer Studies': 'Programming, ICT & Applications',
-      'Home Science': 'Foods, Nutrition & Clothing',
-    };
+    }
 
     final List<String> scienceSubjects = [
       'Mathematics',
@@ -6106,6 +6089,143 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 }
+
+// ============================================================================
+// GENERIC SUB-FOLDER SCREEN (TOP-LEVEL WIDGET)
+// ============================================================================
+class GenericSubFolderScreen extends StatelessWidget {
+  final String parentTitle;
+  final List> subFolders;
+  final List<dynamic> allResources;
+  final Function(dynamic) onDownload;
+
+  const GenericSubFolderScreen({
+    Key? key,
+    required this.parentTitle,
+    required this.subFolders,
+    required this.allResources,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(parentTitle),
+        backgroundColor: Colors.teal,
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: subFolders.length,
+        itemBuilder: (context, index) {
+          final sub = subFolders[index];
+          final title = sub['title']!;
+          final subtitle = sub['subtitle']!;
+          final keyword = sub['keyword']!;
+
+          final filteredList = allResources.where((res) {
+            final titleText = res['title']?.toString().toLowerCase() ?? '';
+            final catText = res['category']?.toString().toLowerCase() ?? '';
+            return titleText.contains(keyword) || catText.contains(keyword);
+          }).toList();
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                leading: const Icon(Icons.folder_special, size: 40, color: Colors.teal),
+                title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: Text('$subtitle\n(${filteredList.length} items available)'),
+                isThreeLine: true,
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FolderDetailItemListScreen(
+                        folderTitle: title,
+                        resources: filteredList,
+                        onDownload: onDownload,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// FOLDER ITEM LIST SCREEN (TOP-LEVEL WIDGET)
+// ============================================================================
+class FolderDetailItemListScreen extends StatelessWidget {
+  final String folderTitle;
+  final List<dynamic> resources;
+  final Function(dynamic) onDownload;
+
+  const FolderDetailItemListScreen({
+    Key? key,
+    required this.folderTitle,
+    required this.resources,
+    required this.onDownload,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(folderTitle),
+        backgroundColor: Colors.teal,
+      ),
+      body: resources.isEmpty
+          ? const Center(
+              child: Text(
+                'No resources found in this folder yet.',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+          : ListView.builder(
+              itemCount: resources.length,
+              padding: const EdgeInsets.all(12),
+              itemBuilder: (context, index) {
+                final item = resources[index];
+                final title = item['title'] ?? 'Untitled';
+                final category = item['category'] ?? 'General';
+                final form = item['form'] ?? 'General';
+                final price = item['price'] ?? 50;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: ListTile(
+                    leading: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 36),
+                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Category: $category • Form: $form\nPrice: KES $price'),
+                    isThreeLine: true,
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      icon: const Icon(Icons.download, size: 16),
+                      label: const Text('View/Get'),
+                      onPressed: () => onDownload(item),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}    
 // ============================================================================
 // GENERIC SUB-FOLDER SCREEN
 // ============================================================================
