@@ -5714,6 +5714,9 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 // TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
 // ============================================================================
+// ============================================================================
+// TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
+// ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
 
@@ -6225,11 +6228,10 @@ class FolderDetailItemListScreen extends StatelessWidget {
             ),
     );
   }
-}    
-                                                    
-  // ============================================================================
-  // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
-  // ============================================================================
+}                                                    
+// ============================================================================
+// VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
+// ============================================================================
   void _showPdfPreviewModal(
     BuildContext context,
     String pdfUrl,
