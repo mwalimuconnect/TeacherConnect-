@@ -6089,41 +6089,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 
-  // ============================================================================
-  // VISUAL PDF PREVIEW MODAL
-  // ============================================================================
-     void _showPdfPreviewModal(
-    BuildContext context,
-    String pdfUrl,
-    String title,
-    double price,
-    VoidCallback onDownloadPressed,
-  ) async {
-    final String encodedUrl = Uri.encodeComponent(pdfUrl);
-    final String viewerUrl = 'https://docs.google.com/viewer?url=$encodedUrl&embedded=true';
-    
-    final Uri uri = Uri.parse(viewerUrl);
-
-    try {
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-
-      if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open preview document.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening preview: $e')),
-        );
-      }
-    }
-  }
-
+   
                                                                            
 // ============================================================================
 // GENERIC SUB-FOLDER SCREEN (TOP-LEVEL WIDGET)
