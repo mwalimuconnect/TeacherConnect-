@@ -5811,9 +5811,8 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Home Science',
   ];
 
-  // Standard category sub-folders nested inside each subject folder
+    // Standard category sub-folders nested inside each subject folder
   final List> _standardResourceSubFolders = [
-    {
       'title': 'Schemes of Work',
       'subtitle': 'Termly and weekly teaching plans',
       'keyword': 'scheme',
