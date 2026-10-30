@@ -5714,9 +5714,6 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 // TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
 // ============================================================================
-// ============================================================================
-// TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
-// ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
 
@@ -6007,7 +6004,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                 );
                               } else {
                                 final bool isScience = scienceSubjects.contains(subjectName);
-                                final List> paperSubFolders = isScience
+                                final paperSubFolders = isScience
                                     ? [
                                         {'title': 'Paper One', 'subtitle': '$subjectName Paper 1 materials', 'keyword': 'paper 1'},
                                         {'title': 'Paper Two', 'subtitle': '$subjectName Paper 2 materials', 'keyword': 'paper 2'},
