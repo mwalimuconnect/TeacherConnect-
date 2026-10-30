@@ -6224,9 +6224,6 @@ class FolderDetailItemListScreen extends StatelessWidget {
   );
   );
   }
-  }
-
-
                               
 // ============================================================================
 // VISUAL PDF PREVIEW (USING GOOGLE VIEWER TO PREVENT AUTO-DOWNLOAD)
