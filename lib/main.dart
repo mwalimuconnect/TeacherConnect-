@@ -6089,11 +6089,10 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 
-  
   // ============================================================================
   // VISUAL PDF PREVIEW MODAL
   // ============================================================================
-  void _showPdfPreviewModal(
+     void _showPdfPreviewModal(
     BuildContext context,
     String pdfUrl,
     String title,
@@ -6125,297 +6124,159 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final String currentRole = widget.userRole?.toLowerCase() ?? '';
+  void _openSubjectFolder(String subjectName) {
+    final currentRole = widget.userRole?.toLowerCase() ?? '';
     final bool isAdmin =
         currentRole.contains('admin') || currentRole == 'administrator';
 
-    List filteredResources = _resources;
-    if (_selectedCategory != 'All') {
-      filteredResources = _resources.where((res) {
-        final cat = res['category']?.toString().toLowerCase() ?? '';
-        final selectedCat = _selectedCategory.toLowerCase();
+    final filteredResources = _resources.where((r) {
+      final sub = (r['subject'] ?? r['category'] ?? '').toString().toLowerCase();
+      return sub.contains(subjectName.toLowerCase());
+    }).toList();
 
-        if (selectedCat.contains('notes') && cat.contains('notes')) {
-          return true;
-        }
-        if (selectedCat.contains('exam') && cat.contains('exam')) {
-          return true;
-        }
-        if (selectedCat.contains('schemes') && cat.contains('scheme')) {
-          return true;
-        }
-        if (selectedCat.contains('lesson') && cat.contains('lesson')) {
-          return true;
-        }
-        if (selectedCat.contains('project') && cat.contains('project')) {
-          return true;
-        }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GenericSubFolderScreen(
+          parentTitle: '$subjectName Folders',
+          subFolders: _standardResourceSubFolders,
+          allResources: filteredResources,
+          isAdmin: isAdmin,
+          onDownload: _downloadOrOpenUrl,
+          onPreview: (ctx, url, title, price, callback) => 
+              _showPdfPreviewModal(ctx, url, title, price, callback),
+        ),
+      ),
+    );
+  }
 
-        return cat.contains(selectedCat);
-      }).toList();
-    }
-
-    final List scienceSubjects = [
-      'Mathematics',
-      'Biology',
-      'Chemistry',
-      'Physics',
-      'Agriculture',
-      'Computer Studies',
-      'Home Science',
-    ];
+  @override
+  Widget build(BuildContext context) {
+    final currentRole = widget.userRole?.toLowerCase() ?? '';
+    final bool isAdmin =
+        currentRole.contains('admin') || currentRole == 'administrator';
 
     return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(45),
-                backgroundColor: Colors.teal,
-              ),
-              icon: const Icon(Icons.upload_file, color: Colors.white),
-              label: const Text(
-                'UPLOAD NEW RESOURCE',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddResourceScreen(),
-                  ),
-                );
-
-                if (result == true) {
-                  _fetchResources();
-                }
-              },
-            ),
+      appBar: AppBar(
+        title: const Text('Teacher Resources'),
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchResources,
           ),
-          Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = _selectedCategory == category;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: FilterChip(
-                    label: Text(category),
-                    selected: isSelected,
-                    selectedColor: Colors.teal.shade100,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.teal.shade900 : Colors.black87,
-                      fontWeight: FontWeight.w500,
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_errorMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _fetchResources,
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
                   ),
-                );
-              },
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-                : _errorMessage.isNotEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(_errorMessage,
-                                  style: const TextStyle(color: Colors.red),
-                                  textAlign: TextAlign.center),
-                              const SizedBox(height: 12),
-                              ElevatedButton(
-                                onPressed: _fetchResources,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isAdmin) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal),
+                            icon: const Icon(Icons.cloud_upload),
+                            label: const Text('UPLOAD NEW RESOURCE'),
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AddResourceScreen(),
+                                ),
+                              );
+
+                              if (result == true) {
+                                _fetchResources();
+                              }
+                            },
                           ),
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _fetchResources,
+                        const SizedBox(height: 12),
+                      ],
+                      const Text(
+                        'Select Subject',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
                         child: GridView.builder(
-                          padding: const EdgeInsets.all(12),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 1.3,
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
+                            childAspectRatio: 1.3,
                           ),
                           itemCount: _subjects.length,
                           itemBuilder: (context, index) {
-                            final subjectName = _subjects[index];
-
-                            final folderResources = filteredResources.where((res) {
-                              final sub = res['subject']?.toString().toLowerCase() ?? '';
-                              final cat = res['category']?.toString().toLowerCase() ?? '';
-                              if (subjectName == 'Exams & Marking Schemes') {
-                                return cat.contains('exam');
-                              }
-                              return sub.contains(subjectName.toLowerCase().split(' ')[0]);
-                            }).toList();
-
-                            final int count = folderResources.length;
-
+                            final subject = _subjects[index];
                             return InkWell(
-                              onTap: () {
-                                if (subjectName == 'English / Literature') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GenericSubFolderScreen(
-                                        parentTitle: 'English / Literature Folders',
-                                        subFolders: const [
-                                          {'title': 'English Language', 'subtitle': 'Grammar, functional writing & papers', 'keyword': 'english'},
-                                          {'title': 'Literature', 'subtitle': 'Setbooks, excerpts, notes & revision', 'keyword': 'literature'},
-                                        ],
-                                        allResources: filteredResources,
-                                        isAdmin: isAdmin,
-                                        onDownload: _downloadOrOpenUrl,
-                                        onPreview: (ctx, url, title, price, callback) => 
-                                        _showPdfPreviewModal(ctx, url, title, price, callback),
-                                      ),
-                                    ),
-                                  );
-                                } else if (subjectName == 'Kiswahili / Fasihi') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GenericSubFolderScreen(
-                                        parentTitle: 'Kiswahili / Fasihi Folders',
-                                        subFolders: const [
-                                          {'title': 'Kiswahili (Lugha & Sarufi)', 'subtitle': 'Sarufi, Insha & Lugha', 'keyword': 'kiswahili'},
-                                          {'title': 'Fasihi', 'subtitle': 'Riwaya, Tamthilia, Ushairi & Miongozo', 'keyword': 'fasihi'},
-                                        ],
-                                        allResources: filteredResources,
-                                        isAdmin: isAdmin,
-                                        onDownload: _downloadOrOpenUrl,
-                                        onPreview: (ctx, url, title, price, callback) => 
-                                        _showPdfPreviewModal(ctx, url, title, price, callback),
-                                      ),
-                                    ),
-                                  );
-                                } else if (subjectName == 'Exams & Marking Schemes') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GenericSubFolderScreen(
-                                        parentTitle: 'Exams & Marking Schemes Folders',
-                                        subFolders: const [
-                                          {'title': 'Exams & Question Papers', 'subtitle': 'Assessment tests, CATs & Term exams', 'keyword': 'exam'},
-                                          {'title': 'Marking Schemes', 'subtitle': 'Answers, scoring guides & rubrics', 'keyword': 'marking'},
-                                        ],
-                                        allResources: filteredResources,
-                                        isAdmin: isAdmin,
-                                        onDownload: _downloadOrOpenUrl,
-                                        onPreview: (ctx, url, title, price, callback) => 
-                                        _showPdfPreviewModal(ctx, url, title, price, callback),
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  final bool isScience = scienceSubjects.contains(subjectName);
-                                  final paperSubFolders = isScience
-                                      ? [
-                                          {'title': 'Paper One', 'subtitle': '$subjectName Paper 1 materials', 'keyword': 'paper 1'},
-                                          {'title': 'Paper Two', 'subtitle': '$subjectName Paper 2 materials', 'keyword': 'paper 2'},
-                                          {'title': 'Paper Three', 'subtitle': '$subjectName Paper 3 / Practical', 'keyword': 'paper 3'},
-                                        ]
-                                      : [
-                                          {'title': 'Paper One', 'subtitle': '$subjectName Paper 1 materials', 'keyword': 'paper 1'},
-                                          {'title': 'Paper Two', 'subtitle': '$subjectName Paper 2 materials', 'keyword': 'paper 2'},
-                                        ];
-                                  final subjectResources = filteredResources.where((res) {
-                                    final sub = res['subject']?.toString().toLowerCase() ?? '';
-                                    return sub.contains(subjectName.toLowerCase());
-                                  }).toList();
-
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => SubjectFolderDetailScreen(
-                                        subject: subjectName,
-                                        resources: subjectResources,
-                                        isAdmin: isAdmin,
-                                        onDownload: _downloadOrOpenUrl,
-                                        onPreview: (ctx, url, title, price, callback) =>
-                                        _showPdfPreviewModal(ctx, url, title, price, callback),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.15),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                  border: Border.all(color: Colors.teal.shade100),
+                              onTap: () => _openSubjectFolder(subject),
+                              child: Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(Icons.folder, color: Colors.teal.shade400, size: 38),
-                                        const Spacer(),
-                                        const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-                                      ],
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      subjectName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                         MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                         CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.folder,
+                                          size: 36, color: Colors.teal),
+                                      const Spacer(),
+                                      Text(
+                                        subject,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '$count ${count == 1 ? 'item' : 'items'}',
-                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
                           },
                         ),
                       ),
-          ),
-        ],
-      ),
+                    ],
+                  ),
+                ),
     );
   }
 }
-
+                                  
 // ============================================================================
 // GENERIC SUB-FOLDER SCREEN (TOP-LEVEL WIDGET)
 // ============================================================================
