@@ -5614,7 +5614,7 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
 // PAGINATED DATA SOURCE FOR MEMBERS
 // ==========================================
 class _MemberDataTableSource extends DataTableSource {
-  final <List> _members;
+  final List<dynamic> _members;
   final BuildContext _context;
 
   _MemberDataTableSource(this._members, this._context);
@@ -5710,7 +5710,7 @@ class _MemberDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-                                                                     
+                                                                        
 // ============================================================================
 // TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
 // ============================================================================
