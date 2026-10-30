@@ -6132,6 +6132,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                         allResources: filteredResources,
                                         isAdmin: isAdmin,
                                         onDownload: _downloadOrOpenUrl,
+                                        onPreview: (ctx, url, title, price, callback) => 
                                         _showPdfPreviewModal(ctx, url, title, price, callback),
                                       ),
                                     ),
@@ -6149,6 +6150,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                         allResources: filteredResources,
                                         isAdmin: isAdmin,
                                         onDownload: _downloadOrOpenUrl,
+                                        onPreview: (ctx, url, title, price, callback) => 
                                         _showPdfPreviewModal(ctx, url, title, price, callback),
                                       ),
                                     ),
@@ -6166,6 +6168,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                         allResources: filteredResources,
                                         isAdmin: isAdmin,
                                         onDownload: _downloadOrOpenUrl,
+                                        onPreview: (ctx, url, title, price, callback) => 
                                         _showPdfPreviewModal(ctx, url, title, price, callback),
                                       ),
                                     ),
@@ -6196,7 +6199,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                                         isAdmin: isAdmin,
                                         onDownload: _downloadOrOpenUrl,
                                         onPreview: (ctx, url, title, price, callback) =>
-                                            _showPdfPreviewModal(ctx, url, title, price, callback),
+                                        _showPdfPreviewModal(ctx, url, title, price, callback),
                                       ),
                                     ),
                                   );
