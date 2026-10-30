@@ -6449,26 +6449,26 @@ class FolderDetailItemListScreen extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    '$count ${count == 1 ? 'item' : 'items'}',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-        ),
-      ],
+          Text(
+            '$count ${count == 1 ? 'item' : 'items'}',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+},
+            ),
+          ),
+        ],
+      ),
     );
   }
-} 
-                                       
+}
+                                               
                                                                                                                                                                            
 // ============================================================================
 // SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & In-App PDF Preview)
