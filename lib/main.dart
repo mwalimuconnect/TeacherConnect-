@@ -5311,7 +5311,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         child: SizedBox(
           width: double.infinity,
           child: PaginatedDataTable(
-            rowsPerPage: PaginatedDataTable.defaultRowsPerColumn ?? 10,
+            rowsPerPage: PaginatedDataTable.defaultRowsPerPage: 10,
             showCheckboxColumn: false,
             columnSpacing: 16,
             horizontalMargin: 12,
