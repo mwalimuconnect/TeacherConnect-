@@ -4117,7 +4117,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 }
 
 // ==========================================
-// ADMIN MEMBER IDENTITY MANAGEMENT SCREEN (WITH PULL-TO-REFRESH)
+// ADMIN MEMBER IDENTITY & RIGHTS MANAGEMENT SCREEN
 // ==========================================
 
 class AdminMemberIdentityManagementScreen extends StatefulWidget {
@@ -4176,6 +4176,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     }
   }
 
+  // 1. Toggle Identity Edit Permission (canEditTsc)
   Future<void> _toggleIdentityEditPermission(String memberId, bool currentStatus, int index) async {
     final bool targetStatus = !currentStatus;
 
@@ -4202,7 +4203,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data['message'] ?? 'Permission updated successfully'),
+            content: Text(data['message'] ?? 'Identity edit permission updated'),
             backgroundColor: Colors.teal,
           ),
         );
@@ -4226,11 +4227,148 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     }
   }
 
+  // 2. Toggle Resource Upload Permission (canUploadResources)
+  Future<void> _toggleUploadPermission(String memberId, bool currentStatus, int index) async {
+    final bool targetStatus = !currentStatus;
+
+    // Optimistically update UI
+    setState(() {
+      _members[index]['canUploadResources'] = targetStatus;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+
+      final response = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-upload-permission/$memberId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'canUploadResources': targetStatus}),
+      );
+
+      if (response.statusCode != 200) {
+        // Revert on failure
+        setState(() {
+          _members[index]['canUploadResources'] = currentStatus;
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update upload rights on server'), backgroundColor: Colors.red),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(targetStatus ? 'Resource upload rights granted.' : 'Resource upload rights revoked.'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _members[index]['canUploadResources'] = currentStatus;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Network error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  // 3. Edit Member Details Dialog
+  void _showEditDetailsDialog(Map<String, dynamic> member, int index) {
+    final memberId = member['id'] ?? member['_id'] ?? '';
+    final nameController = TextEditingController(text: member['fullName'] ?? member['name'] ?? '');
+    final tscController = TextEditingController(text: member['tscNumber'] ?? '');
+    final schoolController = TextEditingController(text: member['currentSchool'] ?? member['school'] ?? '');
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Update Member Details'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Full Name', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: tscController,
+                  decoration: const InputDecoration(labelText: 'TSC Number', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: schoolController,
+                  decoration: const InputDecoration(labelText: 'Current School', border: OutlineInputBorder()),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      setDialogState(() => isSaving = true);
+                      try {
+                        final prefs = await SharedPreferences.getInstance();
+                        final token = prefs.getString('auth_token') ?? '';
+
+                        final response = await http.put(
+                          Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members/$memberId'),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+                          },
+                          body: jsonEncode({
+                            'fullName': nameController.text.trim(),
+                            'tscNumber': tscController.text.trim(),
+                            'currentSchool': schoolController.text.trim(),
+                          }),
+                        );
+
+                        if (response.statusCode == 200) {
+                          Navigator.pop(dialogContext);
+                          _fetchMembers();
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Member details updated successfully!'), backgroundColor: Colors.teal),
+                          );
+                        } else {
+                          setDialogState(() => isSaving = false);
+                        }
+                      } catch (e) {
+                        setDialogState(() => isSaving = false);
+                      }
+                    },
+              child: isSaving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Save Changes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Identity Rights'),
+        title: const Text('Manage Identity & Rights'),
         backgroundColor: Colors.teal,
       ),
       body: _isLoading && _members.isEmpty
@@ -4274,39 +4412,97 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                             final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
                             final String tsc = member['tscNumber'] ?? 'N/A';
                             final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
+                            final String school = member['currentSchool'] ?? member['school'] ?? 'No School';
                             
+                            // Parse Edit TSC Rights
                             final rawCanEdit = member['canEditTsc'];
                             final bool canEdit = rawCanEdit == true || 
                                                  rawCanEdit.toString().toLowerCase() == 'true' || 
                                                  rawCanEdit == 1 || 
                                                  rawCanEdit == '1';
 
+                            // Parse Resource Upload Rights
+                            final bool canUpload = member['canUploadResources'] == true;
+
                             return Card(
                               elevation: 2,
-                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              margin: const EdgeInsets.symmetric(vertical: 8),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: canEdit ? Colors.green.shade100 : Colors.grey.shade200,
-                                  child: Icon(
-                                    canEdit ? Icons.lock_open : Icons.lock,
-                                    color: canEdit ? Colors.green : Colors.grey,
-                                  ),
-                                ),
-                                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text('TSC: $tsc | ID: $idNo\nStatus: ${canEdit ? "Unlocked for Editing" : "Locked"}'),
-                                isThreeLine: true,
-                                trailing: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: canEdit ? Colors.orange : Colors.teal,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
-                                  child: Text(
-                                    canEdit ? 'Revoke' : 'Grant Edit',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Header row: Avatar, Name & Edit Button
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: Colors.teal.shade100,
+                                          child: Text(
+                                            name.isNotEmpty ? name[0].toUpperCase() : 'T',
+                                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                              Text('TSC: $tsc | ID: $idNo\nSchool: $school', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                                            ],
+                                          ),
+                                        ),
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.teal,
+                                            side: const BorderSide(color: Colors.teal),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          ),
+                                          icon: const Icon(Icons.edit, size: 16),
+                                          label: const Text('Edit Details'),
+                                          onPressed: () => _showEditDetailsDialog(member, index),
+                                        ),
+                                      ],
+                                    ),
+                                    const Divider(height: 20),
+                                    
+                                    // Right 1: Identity Edit Permission (`canEditTsc`)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Identity Edit Permission:', style: TextStyle(fontWeight: FontWeight.w500)),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: canEdit ? Colors.orange : Colors.teal,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          ),
+                                          onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
+                                          child: Text(
+                                            canEdit ? 'Revoke Edit' : 'Grant Edit',
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    // Right 2: Resource Upload Rights (`canUploadResources`)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Resource Upload Rights:', style: TextStyle(fontWeight: FontWeight.w500)),
+                                        Switch(
+                                          value: canUpload,
+                                          activeColor: Colors.teal,
+                                          onChanged: (bool value) {
+                                            _toggleUploadPermission(memberId, canUpload, index);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
@@ -4316,8 +4512,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     );
   }
 }
- 
-                                                                                                                                                                                                 
+                                                                                                                                                                                                      
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
@@ -4531,181 +4726,7 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
     );
   }
 }
-
-//============================================
-// ADMIN GRANTS UPLOADING RIGHTS FOR MEMBERS 
-//=============================================
-class AdminManageUploadRightsScreen extends StatefulWidget {
-  const AdminManageUploadRightsScreen({Key? key}) : super(key: key);
-
-  @override
-  State<AdminManageUploadRightsScreen> createState() => _AdminManageUploadRightsScreenState();
-}
-
-class _AdminManageUploadRightsScreenState extends State<AdminManageUploadRightsScreen> {
-  List<dynamic> _members = [];
-  bool _isLoading = true;
-  String _errorMessage = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchMembers();
-  }
-
-  // Fetch all approved members from your backend
-  Future<void> _fetchMembers() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    try {
-      final response = await http.get(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (mounted) {
-          setState(() {
-            _members = data['members'] ?? [];
-            _isLoading = false;
-          });
-        }
-      } else {
-        throw Exception('Failed to load members (Status: ${response.statusCode})');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Error: $e';
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Toggle permission API call
-  Future<void> _toggleUploadPermission(String userId, bool currentStatus) async {
-    final bool newStatus = !currentStatus;
-
-    // Optimistically update UI first for snappy response
-    setState(() {
-      final index = _members.indexWhere((m) => (m['_id'] ?? m['id']) == userId);
-      if (index != -1) {
-        _members[index]['canUploadResources'] = newStatus;
-      }
-    });
-
-    try {
-      final response = await http.put(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-upload-permission/$userId'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'canUploadResources': newStatus}),
-      );
-
-      if (response.statusCode != 200) {
-        // Revert UI change if server request fails
-        setState(() {
-          final index = _members.indexWhere((m) => (m['_id'] ?? m['id']) == userId);
-          if (index != -1) {
-            _members[index]['canUploadResources'] = currentStatus;
-          }
-        });
-        throw Exception('Failed to update permission on server');
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(newStatus ? 'Upload rights granted.' : 'Upload rights revoked.'),
-              backgroundColor: Colors.teal,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Network error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Teacher Upload Rights'),
-        backgroundColor: Colors.teal,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchMembers,
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-          : _errorMessage.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
-                        const SizedBox(height: 12),
-                        ElevatedButton(onPressed: _fetchMembers, child: const Text('Retry')),
-                      ],
-                    ),
-                  ),
-                )
-              : _members.isEmpty
-                  ? const Center(child: Text('No registered members found.'))
-                  : ListView.builder(
-                      itemCount: _members.length,
-                      padding: const EdgeInsets.all(8.0),
-                      itemBuilder: (context, index) {
-                        final member = _members[index];
-                        final userId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
-                        final fullName = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
-                        final tscNumber = member['tscNumber'] ?? 'No TSC';
-                        final school = member['currentSchool'] ?? member['school'] ?? 'No School';
-                        final bool canUpload = member['canUploadResources'] == true;
-
-                        return Card(
-                          elevation: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Colors.teal.shade100,
-                              child: Text(
-                                fullName.isNotEmpty ? fullName[0].toUpperCase() : 'T',
-                                style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            title: Text(fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('TSC: $tscNumber\nSchool: $school'),
-                            isThreeLine: true,
-                            trailing: Switch(
-                              value: canUpload,
-                              activeColor: Colors.teal,
-                              onChanged: (bool value) {
-                                _toggleUploadPermission(userId, canUpload);
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-    );
-  }
-}
-     
+         
 // ==========================================
 // MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
 // ==========================================
