@@ -4721,9 +4721,11 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
   }
 }
          
+
 // ==========================================
-// MANAGE ALL LISTINGS (SORTED ALPHABETICALLY & PAGINATED)
+// UPDATED LISTING MODEL WITH USER ID FALLBACKS
 // ==========================================
+
 class ManageListingsScreen extends StatefulWidget {
   final String? categoryType;
 
@@ -4776,8 +4778,8 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 
         // Sort listings alphabetically by teacher name
         loadedListings.sort((a, b) {
-          final nameA = (a.teacherName ?? '').toString().toLowerCase();
-          final nameB = (b.teacherName ?? '').toString().toLowerCase();
+          final nameA = (a.teacherName).toLowerCase();
+          final nameB = (b.teacherName).toLowerCase();
           return nameA.compareTo(nameB);
         });
 
@@ -5030,22 +5032,22 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                         DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
                       ],
-                        source: _ListingDataTableSource(
-                          _listings,
-                          context,
-                          onApprove: _approveSwap,
-                          onEdit: _editListing,
-                          onDelete: _deleteListing,
-                        ),
+                      source: _ListingDataTableSource(
+                        _listings,
+                        context,
+                        onApprove: _approveSwap,
+                        onEdit: _editListing,
+                        onDelete: _deleteListing,
+                      ),
                     ),
                   ),
                 ),
     );
   }
 }
-                                                                
+
 // ==========================================
-// DATA SOURCE WITH EXACT CELL ALIGNMENT
+// DATA SOURCE WITH AUTOMATIC USER NAVIGATION
 // ==========================================
 class _ListingDataTableSource extends DataTableSource {
   final List<ListingModel> _listings;
@@ -5068,8 +5070,8 @@ class _ListingDataTableSource extends DataTableSource {
     final listing = _listings[index];
     final String tsc = listing.tscNumber ?? 'N/A';
     
-    // Uses listing.id as safe fallback to avoid getter undefined errors
-    final String targetId = listing.id;
+    // Automatically extracts the user/creator ID resolved in ListingModel.fromJson
+    final String targetUserId = listing.userId; 
 
     return DataRow.byIndex(
       index: index,
@@ -5082,18 +5084,17 @@ class _ListingDataTableSource extends DataTableSource {
         },
       ),
       cells: [
-        // 1. Row Number cell matching the '#' column header
         DataCell(Text('${index + 1}')),
         
-        // 2. Clickable Teacher Name Cell
+        // Clickable Teacher Name Cell -> Opens ProfileScreen with correct User ID
         DataCell(
           InkWell(
             onTap: () {
-              if (targetId.isNotEmpty) {
+              if (targetUserId.isNotEmpty) {
                 Navigator.push(
                   _context,
                   MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userId: targetId),
+                    builder: (context) => ProfileScreen(userId: targetUserId),
                   ),
                 );
               }
@@ -5110,7 +5111,6 @@ class _ListingDataTableSource extends DataTableSource {
         ),
 
         DataCell(Text(listing.category)),
-        // Subject Combination column mapped correctly
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -5170,7 +5170,7 @@ class _ListingDataTableSource extends DataTableSource {
               if (!listing.isApproved)
                 IconButton(
                   icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-                  tooltip: 'Approve Listing',
+                   tooltip: 'Approve Listing',
                   onPressed: () => onApprove(listing.id),
                 ),
               IconButton(
@@ -5199,10 +5199,7 @@ class _ListingDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-                                               
-// ==========================================
-// PENDING APPROVALS MODULE (4 CATEGORIES)
-// ==========================================
+                                                                                                
 // ==========================================
 // PENDING APPROVALS SCREEN & DATA SOURCE
 // ==========================================
