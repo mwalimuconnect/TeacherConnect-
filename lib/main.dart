@@ -4116,8 +4116,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
+
 // ==========================================
-// ADMIN MEMBER IDENTITY & RIGHTS MANAGEMENT SCREEN (FOLDABLE CARDS)
+// ADMIN MEMBER IDENTITY & RIGHTS MANAGEMENT SCREEN (STREAMLINED)
 // ==========================================
 
 class AdminMemberIdentityManagementScreen extends StatefulWidget {
@@ -4130,12 +4131,22 @@ class AdminMemberIdentityManagementScreen extends StatefulWidget {
 class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentityManagementScreen> {
   bool _isLoading = true;
   List<dynamic> _members = [];
+  List<dynamic> _filteredMembers = [];
   String? _errorMessage;
+  
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchMembers();
+    _searchController.addListener(_filterMembers);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchMembers() async {
@@ -4158,8 +4169,18 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        List<dynamic> membersList = data['members'] ?? [];
+
+        // Sort members alphabetically by full name
+        membersList.sort((a, b) {
+          final nameA = (a['fullName'] ?? a['name'] ?? '').toString().toLowerCase();
+          final nameB = (b['fullName'] ?? b['name'] ?? '').toString().toLowerCase();
+          return nameA.compareTo(nameB);
+        });
+
         setState(() {
-          _members = data['members'] ?? [];
+          _members = membersList;
+          _filteredMembers = membersList;
           _isLoading = false;
         });
       } else {
@@ -4174,6 +4195,19 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
         _isLoading = false;
       });
     }
+  }
+
+  void _filterMembers() {
+    final query = _searchController.text.toLowerCase().trim();
+    setState(() {
+      _filteredMembers = _members.where((member) {
+        final name = (member['fullName'] ?? member['name'] ?? '').toLowerCase();
+        final tsc = (member['tscNumber'] ?? '').toLowerCase();
+        final school = (member['currentSchool'] ?? member['school'] ?? '').toLowerCase();
+        
+        return name.contains(query) || tsc.contains(query) || school.contains(query);
+      }).toList();
+    });
   }
 
   // 1. Toggle Identity Edit Permission (`canEditTsc`)
@@ -4197,7 +4231,10 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
 
       if (response.statusCode == 200 && data['success'] == true) {
         setState(() {
-          _members[index]['canEditTsc'] = targetStatus;
+          final originalIndex = _members.indexWhere((m) => (m['id'] ?? m['_id']) == memberId);
+          if (originalIndex != -1) {
+            _members[originalIndex]['canEditTsc'] = targetStatus;
+          }
         });
 
         if (!mounted) return;
@@ -4231,9 +4268,12 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
   Future<void> _toggleUploadPermission(String memberId, bool currentStatus, int index) async {
     final bool targetStatus = !currentStatus;
 
-    setState(() {
-      _members[index]['canUploadResources'] = targetStatus;
-    });
+    final originalIndex = _members.indexWhere((m) => (m['id'] ?? m['_id']) == memberId);
+    if (originalIndex != -1) {
+      setState(() {
+        _members[originalIndex]['canUploadResources'] = targetStatus;
+      });
+    }
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -4249,9 +4289,11 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
       );
 
       if (response.statusCode != 200) {
-        setState(() {
-          _members[index]['canUploadResources'] = currentStatus;
-        });
+        if (originalIndex != -1) {
+          setState(() {
+            _members[originalIndex]['canUploadResources'] = currentStatus;
+          });
+        }
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to update upload rights on server'), backgroundColor: Colors.red),
@@ -4266,100 +4308,16 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
         );
       }
     } catch (e) {
-      setState(() {
-        _members[index]['canUploadResources'] = currentStatus;
-      });
+      if (originalIndex != -1) {
+        setState(() {
+          _members[originalIndex]['canUploadResources'] = currentStatus;
+        });
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Network error: $e'), backgroundColor: Colors.red),
       );
     }
-  }
-
-  // 3. Edit Member Details Dialog
-  void _showEditDetailsDialog(Map<String, dynamic> member, int index) {
-    final memberId = member['id'] ?? member['_id'] ?? '';
-    final nameController = TextEditingController(text: member['fullName'] ?? member['name'] ?? '');
-    final tscController = TextEditingController(text: member['tscNumber'] ?? '');
-    final schoolController = TextEditingController(text: member['currentSchool'] ?? member['school'] ?? '');
-    bool isSaving = false;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Update Member Details'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Full Name', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: tscController,
-                  decoration: const InputDecoration(labelText: 'TSC Number', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: schoolController,
-                  decoration: const InputDecoration(labelText: 'Current School', border: OutlineInputBorder()),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      setDialogState(() => isSaving = true);
-                      try {
-                        final prefs = await SharedPreferences.getInstance();
-                        final token = prefs.getString('auth_token') ?? '';
-
-                        final response = await http.put(
-                          Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members/$memberId'),
-                          headers: {
-                            'Content-Type': 'application/json',
-                            if (token.isNotEmpty) 'Authorization': 'Bearer $token',
-                          },
-                          body: jsonEncode({
-                            'fullName': nameController.text.trim(),
-                            'tscNumber': tscController.text.trim(),
-                            'currentSchool': schoolController.text.trim(),
-                          }),
-                        );
-
-                        if (response.statusCode == 200) {
-                          Navigator.pop(dialogContext);
-                          _fetchMembers();
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Member details updated successfully!'), backgroundColor: Colors.teal),
-                          );
-                        } else {
-                          setDialogState(() => isSaving = false);
-                        }
-                      } catch (e) {
-                        setDialogState(() => isSaving = false);
-                      }
-                    },
-              child: isSaving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Save Changes', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -4389,119 +4347,147 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                     ),
                   ),
                 )
-              : RefreshIndicator(
-                  onRefresh: _fetchMembers,
-                  color: Colors.teal,
-                  child: _members.isEmpty
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 250),
-                            Center(child: Text('No registered members found.')),
-                          ],
-                        )
-                      : ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: _members.length,
-                          padding: const EdgeInsets.all(12),
-                          itemBuilder: (context, index) {
-                            final member = _members[index];
-                            final String memberId = member['id'] ?? member['_id'] ?? '';
-                            final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
-                            final String tsc = member['tscNumber'] ?? 'N/A';
-                            final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
-                            final String school = member['currentSchool'] ?? member['school'] ?? 'No School';
-                            
-                            // Parse Edit TSC Rights
-                            final rawCanEdit = member['canEditTsc'];
-                            final bool canEdit = rawCanEdit == true || 
-                                                 rawCanEdit.toString().toLowerCase() == 'true' || 
-                                                 rawCanEdit == 1 || 
-                                                 rawCanEdit == '1';
-
-                            // Parse Resource Upload Rights
-                            final bool canUpload = member['canUploadResources'] == true;
-
-                            return Card(
-                              elevation: 2,
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              child: ExpansionTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.teal.shade100,
-                                  child: Text(
-                                    name.isNotEmpty ? name[0].toUpperCase() : 'T',
-                                    style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text('TSC: $tsc | School: $school', overflow: TextOverflow.ellipsis),
-                                childrenPadding: const EdgeInsets.all(16.0),
-                                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Detailed Info & Edit Details Button
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('National ID: $idNo', style: const TextStyle(color: Colors.grey)),
-                                      OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.teal,
-                                          side: const BorderSide(color: Colors.teal),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        ),
-                                        icon: const Icon(Icons.edit, size: 16),
-                                        label: const Text('Edit Details'),
-                                        onPressed: () => _showEditDetailsDialog(member, index),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 20),
-
-                                  // Right 1: Identity Edit Permission (`canEditTsc`)
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Identity Edit Permission:', style: TextStyle(fontWeight: FontWeight.w500)),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: canEdit ? Colors.orange : Colors.teal,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        ),
-                                        onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
-                                        child: Text(
-                                          canEdit ? 'Revoke Edit' : 'Grant Edit',
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // Right 2: Resource Upload Rights (`canUploadResources`)
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Resource Upload Rights:', style: TextStyle(fontWeight: FontWeight.w500)),
-                                      Switch(
-                                        value: canUpload,
-                                        activeColor: Colors.teal,
-                                        onChanged: (bool value) {
-                                          _toggleUploadPermission(memberId, canUpload, index);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+              : Column(
+                  children: [
+                    // --- SEARCH BAR HEADER ---
+                    Container(
+                      padding: const EdgeInsets.all(12.0),
+                      color: Colors.white,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search by name, TSC, or school...',
+                          prefixIcon: const Icon(Icons.search, color: Colors.teal),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, color: Colors.grey),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _filterMembers();
+                                  },
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.teal, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                         ),
+                      ),
+                    ),
+
+                    // --- MEMBER LIST ---
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _fetchMembers,
+                        color: Colors.teal,
+                        child: _filteredMembers.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: const [
+                                  SizedBox(height: 200),
+                                  Center(child: Text('No members found matching your search.', style: TextStyle(color: Colors.grey))),
+                                ],
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                itemCount: _filteredMembers.length,
+                                padding: const EdgeInsets.all(12),
+                                itemBuilder: (context, index) {
+                                  final member = _filteredMembers[index];
+                                  final String memberId = member['id'] ?? member['_id'] ?? '';
+                                  final String name = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
+                                  final String tsc = member['tscNumber'] ?? 'N/A';
+                                  final String idNo = member['nationalId'] ?? member['idNumber'] ?? 'N/A';
+                                  final String school = member['currentSchool'] ?? member['school'] ?? 'No School';
+                                  
+                                  // Parse Edit TSC Rights
+                                  final rawCanEdit = member['canEditTsc'];
+                                  final bool canEdit = rawCanEdit == true || 
+                                                       rawCanEdit.toString().toLowerCase() == 'true' || 
+                                                       rawCanEdit == 1 || 
+                                                       rawCanEdit == '1';
+
+                                  // Parse Resource Upload Rights
+                                  final bool canUpload = member['canUploadResources'] == true;
+
+                                  return Card(
+                                    elevation: 2,
+                                    margin: const EdgeInsets.symmetric(vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    child: ExpansionTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Colors.teal.shade100,
+                                        child: Text(
+                                          name.isNotEmpty ? name[0].toUpperCase() : 'T',
+                                          style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      subtitle: Text('TSC: $tsc | School: $school', overflow: TextOverflow.ellipsis),
+                                      childrenPadding: const EdgeInsets.all(16.0),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // National ID info row (replaces the old edit details button area)
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text('National ID: $idNo', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+                                          ],
+                                        ),
+                                        const Divider(height: 20),
+
+                                        // Identity Edit Permission (`canEditTsc`)
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Identity Edit Permission:', style: TextStyle(fontWeight: FontWeight.w500)),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: canEdit ? Colors.orange : Colors.teal,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                              ),
+                                              onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
+                                              child: Text(
+                                                canEdit ? 'Revoke Edit' : 'Grant Edit',
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+
+                                        // Resource Upload Rights (`canUploadResources`)
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Resource Upload Rights:', style: TextStyle(fontWeight: FontWeight.w500)),
+                                            Switch(
+                                              value: canUpload,
+                                              activeColor: Colors.teal,
+                                              onChanged: (bool value) {
+                                                _toggleUploadPermission(memberId, canUpload, index);
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
     );
   }
-}
+}                                     
                                                                                                                                                                                                                     
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
