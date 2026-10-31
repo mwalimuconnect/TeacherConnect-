@@ -129,6 +129,7 @@ class MyApp extends StatelessWidget {
 // ==========================================
 class ListingModel {
   final String id;
+  final String userId; // 👈 Added user/creator account ID
   final String teacherName;
   final String schoolName;
   final String subject;
@@ -146,6 +147,7 @@ class ListingModel {
 
   ListingModel({
     this.id = '',
+    this.userId = '', // 👈 Added default
     this.teacherName = '',
     this.schoolName = '',
     required this.subject,
@@ -168,6 +170,18 @@ class ListingModel {
         (json['userId'] is Map<String, dynamic>) ? json['userId'] :
         (json['user'] is Map<String, dynamic>) ? json['user'] :
         (json['postedBy'] is Map<String, dynamic>) ? json['postedBy'] : {};
+
+    // Extract User/Creator ID safely across various formats
+    final Object? rawUserIdValue = 
+        (json['userId'] is String ? json['userId'] : null) ??
+        (json['user'] is String ? json['user'] : null) ??
+        (json['postedBy'] is String ? json['postedBy'] : null) ??
+        json['creatorId'] ?? 
+        json['ownerId'] ?? 
+        userMap['_id'] ?? 
+        userMap['id'];
+
+    final String extractedUserId = rawUserIdValue != null ? rawUserIdValue.toString().trim() : '';
 
     // 1. Extract raw TSC Number string across top-level & nested user keys
     final Object? rawTscValue = json['tscNumber'] ?? 
@@ -220,6 +234,7 @@ class ListingModel {
 
     return ListingModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
+      userId: extractedUserId, // 👈 Assigned extracted user ID
       teacherName: (json['teacherName'] ?? 
                     json['fullName'] ?? 
                     json['userName'] ?? 
@@ -254,7 +269,7 @@ class ListingModel {
       isApproved: json['isApproved'] == true || json['status'] == 'approved',
     );
   }
-}       
+}
                                                                                                 
 // =========================================================
 // 1. MEMBER REGISTRATION SCREEN
