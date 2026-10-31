@@ -4531,6 +4531,180 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
     );
   }
 }
+
+//============================================
+// ADMIN GRANTS UPLOADING RIGHTS FOR MEMBERS 
+//=============================================
+class AdminManageUploadRightsScreen extends StatefulWidget {
+  const AdminManageUploadRightsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AdminManageUploadRightsScreen> createState() => _AdminManageUploadRightsScreenState();
+}
+
+class _AdminManageUploadRightsScreenState extends State<AdminManageUploadRightsScreen> {
+  List<dynamic> _members = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMembers();
+  }
+
+  // Fetch all approved members from your backend
+  Future<void> _fetchMembers() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/members'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _members = data['members'] ?? [];
+            _isLoading = false;
+          });
+        }
+      } else {
+        throw Exception('Failed to load members (Status: ${response.statusCode})');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Toggle permission API call
+  Future<void> _toggleUploadPermission(String userId, bool currentStatus) async {
+    final bool newStatus = !currentStatus;
+
+    // Optimistically update UI first for snappy response
+    setState(() {
+      final index = _members.indexWhere((m) => (m['_id'] ?? m['id']) == userId);
+      if (index != -1) {
+        _members[index]['canUploadResources'] = newStatus;
+      }
+    });
+
+    try {
+      final response = await http.put(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/admin/grant-upload-permission/$userId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'canUploadResources': newStatus}),
+      );
+
+      if (response.statusCode != 200) {
+        // Revert UI change if server request fails
+        setState(() {
+          final index = _members.indexWhere((m) => (m['_id'] ?? m['id']) == userId);
+          if (index != -1) {
+            _members[index]['canUploadResources'] = currentStatus;
+          }
+        });
+        throw Exception('Failed to update permission on server');
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(newStatus ? 'Upload rights granted.' : 'Upload rights revoked.'),
+              backgroundColor: Colors.teal,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Network error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Manage Teacher Upload Rights'),
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchMembers,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+          : _errorMessage.isNotEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 12),
+                        ElevatedButton(onPressed: _fetchMembers, child: const Text('Retry')),
+                      ],
+                    ),
+                  ),
+                )
+              : _members.isEmpty
+                  ? const Center(child: Text('No registered members found.'))
+                  : ListView.builder(
+                      itemCount: _members.length,
+                      padding: const EdgeInsets.all(8.0),
+                      itemBuilder: (context, index) {
+                        final member = _members[index];
+                        final userId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
+                        final fullName = member['fullName'] ?? member['name'] ?? 'Unknown Teacher';
+                        final tscNumber = member['tscNumber'] ?? 'No TSC';
+                        final school = member['currentSchool'] ?? member['school'] ?? 'No School';
+                        final bool canUpload = member['canUploadResources'] == true;
+
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.teal.shade100,
+                              child: Text(
+                                fullName.isNotEmpty ? fullName[0].toUpperCase() : 'T',
+                                style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            title: Text(fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text('TSC: $tscNumber\nSchool: $school'),
+                            isThreeLine: true,
+                            trailing: Switch(
+                              value: canUpload,
+                              activeColor: Colors.teal,
+                              onChanged: (bool value) {
+                                _toggleUploadPermission(userId, canUpload);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+    );
+  }
+}
      
 // ==========================================
 // MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
