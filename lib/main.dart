@@ -5030,12 +5030,14 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 // ==========================================
 class _ListingDataTableSource extends DataTableSource {
   final List<ListingModel> _listings;
+  final BuildContext _context; // 👈 Added context for navigation
   final Function(String) onApprove;
   final Function(ListingModel) onEdit;
   final Function(String) onDelete;
 
   _ListingDataTableSource(
-    this._listings, {
+    this._listings,
+    this._context, { // 👈 Required context argument
     required this.onApprove,
     required this.onEdit,
     required this.onDelete,
@@ -5046,6 +5048,9 @@ class _ListingDataTableSource extends DataTableSource {
     if (index >= _listings.length) return null;
     final listing = _listings[index];
     final String tsc = listing.tscNumber ?? 'N/A';
+    // Assuming your ListingModel contains a userId field. 
+    // If it's nested or named differently, adjust `listing.userId` accordingly.
+    final String userId = listing.userId ?? ''; 
 
     return DataRow.byIndex(
       index: index,
@@ -5061,7 +5066,30 @@ class _ListingDataTableSource extends DataTableSource {
         // 1. Row Number cell matching the '#' column header
         DataCell(Text('${index + 1}')),
         
-        DataCell(Text(listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A')),
+        // --- TAPABLE TEACHER NAME CELL ---
+        DataCell(
+          InkWell(
+            onTap: () {
+              if (userId.isNotEmpty) {
+                Navigator.push(
+                  _context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(userId: userId),
+                  ),
+                );
+              }
+            },
+            child: Text(
+              listing.teacherName.isNotEmpty ? listing.teacherName : 'N/A',
+              style: const TextStyle(
+                color: Colors.teal,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ),
+
         DataCell(Text(listing.category)),
         // Subject Combination column mapped correctly
         DataCell(
@@ -5152,8 +5180,7 @@ class _ListingDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-         
-                
+                        
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
