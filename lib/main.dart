@@ -4116,9 +4116,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-
 // ==========================================
-// ADMIN MEMBER IDENTITY & RIGHTS MANAGEMENT SCREEN (STREAMLINED)
+// ADMIN MEMBER IDENTITY & RIGHTS MANAGEMENT SCREEN (COMPLETE)
 // ==========================================
 
 class AdminMemberIdentityManagementScreen extends StatefulWidget {
@@ -4427,12 +4426,31 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                                           style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
                                         ),
                                       ),
-                                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      // --- TAPABLE NAME LINK ---
+                                      title: InkWell(
+                                        onTap: () {
+                                          if (memberId.isNotEmpty) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => ProfileScreen(userId: memberId),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.teal,
+                                            decoration: TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
                                       subtitle: Text('TSC: $tsc | School: $school', overflow: TextOverflow.ellipsis),
                                       childrenPadding: const EdgeInsets.all(16.0),
                                       expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // National ID info row (replaces the old edit details button area)
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
@@ -4487,8 +4505,8 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                 ),
     );
   }
-}                                     
-                                                                                                                                                                                                                    
+}
+                                                                                                                                                                                                                                                                                                                                                    
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
@@ -5376,16 +5394,11 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             items: _pendingMembers,
             headers: const ['Full Name', 'Phone Number', 'TSC / ID Number', 'Actions'],
             source: _PendingApprovalTableSource(
-              items: _pendingMembers,
-              type: 'member',
-              onAction: _handleApprovalAction,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+  items: _currentTabItems,
+  type: _currentTabType,
+  context: context, // 👈 Add this required parameter here
+  onAction: _handleApprovalAction,
+),
 
 // ==========================================
 // 4-COLUMN PAGINATED DATA TABLE SOURCE (WITH PROFILE NAVIGATION)
