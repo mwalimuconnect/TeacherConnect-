@@ -5203,6 +5203,9 @@ class _ListingDataTableSource extends DataTableSource {
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
+// ==========================================
+// PENDING APPROVALS SCREEN & DATA SOURCE
+// ==========================================
 
 class PendingApprovalsScreen extends StatefulWidget {
   const PendingApprovalsScreen({super.key});
@@ -5217,8 +5220,8 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   bool _isLoading = false;
 
   List<dynamic> _pendingSwaps = [];
-  List<dynamic> _pendingBomSeekers = [];
-  List<dynamic> _pendingBomVacancies = [];
+  List<dynamic> _pendingBonSeekers = [];
+  List<dynamic> _pendingBonVacancies = [];
   List<dynamic> _pendingMembers = [];
 
   @override
@@ -5247,8 +5250,8 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 
         setState(() {
           _pendingSwaps = data['swaps'] ?? [];
-          _pendingBomSeekers = data['bomSeekers'] ?? [];
-          _pendingBomVacancies = data['bomVacancies'] ?? [];
+          _pendingBonSeekers = data['bomSeekers'] ?? [];
+          _pendingBonVacancies = data['bomVacancies'] ?? [];
           _pendingMembers = data['members'] ?? [];
         });
       }
@@ -5269,11 +5272,10 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       );
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '${isApprove ? "Approved" : "Rejected"} successfully.',
-            ),
+            content: Text('${isApprove ? "Approved" : "Rejected"} successfully.'),
             backgroundColor: isApprove ? Colors.green : Colors.red,
           ),
         );
@@ -5309,31 +5311,29 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         child: SizedBox(
           width: double.infinity,
           child: PaginatedDataTable(
-            rowsPerPage: PaginatedDataTable.defaultRowsPerPage,
+            rowsPerPage: PaginatedDataTable.defaultRowsPerColumn ?? 10,
             showCheckboxColumn: false,
             columnSpacing: 16,
             horizontalMargin: 12,
-            columns: headers
-                .map((h) => DataColumn(
-                      label: Text(
-                        h,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ))
-                .toList(),
+            columns: headers.map((h) => DataColumn(
+              label: Text(
+                h,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            )).toList(),
             source: source,
           ),
         ),
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pending Approvals'),
         backgroundColor: Colors.teal,
-        // 👇 Move the TabBar inside the AppBar here:
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -5394,11 +5394,11 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 
           // 4. NEW MEMBER REGISTRATIONS TABLE
           _buildTableTab(
-            items: _currentTabItems,
-            headers: const ['Name', 'Details', 'Info', 'Actions'],
+            items: _pendingMembers,
+            headers: const ['Full Name', 'Phone Number', 'TSC / ID Number', 'Actions'],
             source: _PendingApprovalTableSource(
-              items: _currentTabItems,
-              type: _currentTabType,
+              items: _pendingMembers,
+              type: 'member',
               context: context,
               onAction: _handleApprovalAction,
             ),
@@ -5407,91 +5407,57 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       ),
     );
   }
-                     
-// ==========================================
-// 4-COLUMN PAGINATED DATA TABLE SOURCE (WITH PROFILE NAVIGATION)
-// ==========================================
+}
 
+// ==========================================
+// 4-COLUMN PAGINATED DATA TABLE SOURCE
+// ==========================================
 class _PendingApprovalTableSource extends DataTableSource {
   final List<dynamic> items;
   final String type;
-  final BuildContext context; // 👈 Added navigation context
+  final BuildContext context;
   final Function(String id, String type, bool isApprove) onAction;
 
   _PendingApprovalTableSource({
     required this.items,
     required this.type,
-    required this.context, // 👈 Required context argument
+    required this.context,
     required this.onAction,
   });
 
   @override
   DataRow? getRow(int index) {
     if (index >= items.length) return null;
-
     final item = items[index];
-    final String id = item['_id'] ?? item['id'] ?? '';
-    
-    // Extract user ID for profile navigation (fallback to _id for member type)
-    final String userId = (type == 'member')
-        ? id
-        : (item['userId'] ?? item['user']?['_id'] ?? item['user'] ?? '');
-
-    String col1 = 'N/A';
-    String col2 = 'N/A';
-    String col3 = 'N/A';
-
-    switch (type) {
-      case 'swap':
-        col1 = item['fullName'] ?? item['name'] ?? item['teacherName'] ?? 'N/A';
-        col2 = '${item['subject1'] ?? item['subject'] ?? ''} / ${item['subject2'] ?? ''}';
-        col3 = '${item['county'] ?? item['currentCounty'] ?? ''} -> ${item['targetCounty'] ?? ''}';
-        break;
-
-      case 'bom_seeker':
-        col1 = item['fullName'] ?? item['name'] ?? item['teacherName'] ?? 'N/A';
-        col2 = '${item['subject1'] ?? item['subject'] ?? ''} / ${item['subject2'] ?? ''}';
-        col3 = item['county'] ?? item['currentCounty'] ?? item['targetCounty'] ?? 'N/A';
-        break;
-
-      case 'bom_vacancy':
-        col1 = item['schoolName'] ?? item['title'] ?? 'N/A';
-        col2 = item['subject'] ?? item['subject1'] ?? 'N/A';
-        col3 = item['county'] ?? item['currentCounty'] ?? 'N/A';
-        break;
-
-      case 'member':
-        col1 = item['fullName'] ?? item['name'] ?? 'N/A';
-        col2 = item['phoneNumber'] ?? item['phone'] ?? 'N/A';
-        col3 = 'TSC: ${item['tscNumber'] ?? 'N/A'} | ID: ${item['idNumber'] ?? item['nationalId'] ?? 'N/A'}';
-        break;
-    }
+    final String itemId = item['id'] ?? item['_id'] ?? '';
+    final String col1 = item['teacherName'] ?? item['fullName'] ?? item['schoolName'] ?? 'N/A';
+    final String col2 = item['subject'] ?? item['subjectsNeeded'] ?? item['phone'] ?? 'N/A';
+    final String col3 = item['currentCounty'] ?? item['targetCounty'] ?? item['tscNumber'] ?? 'N/A';
 
     return DataRow.byIndex(
       index: index,
       cells: [
-        // --- TAPABLE COL1 CELL (Navigates to Profile if userId exists) ---
         DataCell(
-          userId.isNotEmpty && type != 'bom_vacancy'
-              ? InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileScreen(userId: userId),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    col1,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal,
-                      decoration: TextDecoration.underline,
-                    ),
+          InkWell(
+            onTap: () {
+              if (itemId.isNotEmpty && type == 'member') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(userId: itemId),
                   ),
-                )
-              : Text(col1, style: const TextStyle(fontWeight: FontWeight.w600)),
+                );
+              }
+            },
+            child: Text(
+              col1,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: type == 'member' ? Colors.teal : Colors.black87,
+                decoration: type == 'member' ? TextDecoration.underline : TextDecoration.none,
+              ),
+            ),
+          ),
         ),
         DataCell(Text(col2)),
         DataCell(Text(col3)),
@@ -5500,14 +5466,14 @@ class _PendingApprovalTableSource extends DataTableSource {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.check_circle, color: Colors.green),
+                icon: const Icon(Icons.check_circle_outline, color: Colors.green),
                 tooltip: 'Approve',
-                onPressed: () => onAction(id, type, true),
+                onPressed: () => onAction(itemId, type, true),
               ),
               IconButton(
-                icon: const Icon(Icons.cancel, color: Colors.red),
+                icon: const Icon(Icons.cancel_outlined, color: Colors.red),
                 tooltip: 'Reject',
-                onPressed: () => onAction(id, type, false),
+                onPressed: () => onAction(itemId, type, false),
               ),
             ],
           ),
@@ -5525,7 +5491,7 @@ class _PendingApprovalTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-                                                  
+                                                                           
 // ==========================================
 // PAYMENT HISTORY SCREEN (PAGINATED TABLE)
 // ==========================================
