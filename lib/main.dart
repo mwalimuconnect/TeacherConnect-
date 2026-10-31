@@ -6098,413 +6098,308 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 // TEACHER RESOURCES TAB (TOP-LEVEL WIDGET)
 // ============================================================================
-class TeacherResourcesTab extends StatefulWidget {
-  final String? userRole;
-  final Map<String, dynamic>? userData; // Added to read 'canUploadResources'
 
-  const TeacherResourcesTab({Key? key, this.userRole, this.userData}) : super(key: key);
+class AddResourceScreen extends StatefulWidget {
+  const AddResourceScreen({Key? key}) : super(key: key);
 
   @override
-  State<TeacherResourcesTab> createState() => _TeacherResourcesTabState();
+  State<AddResourceScreen> createState() => _AddResourceScreenState();
 }
 
-class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
-  List<dynamic> _resources = [];
-  bool _isLoading = true;
-  String _errorMessage = '';
+class _AddResourceScreenState extends State<AddResourceScreen> {
+  final _formKey = GlobalKey<FormState>();
+  
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _fileUrlController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
-  final List<String> _subjects = [
-    'English',
-    'Literature',
-    'Kiswahili',
-    'Fasihi',
-    'Mathematics',
-    'Biology',
-    'Chemistry',
-    'Physics',
-    'History',
-    'Geography',
-    'CRE',
-    'Business Studies',
-    'Agriculture',
-    'Computer Studies',
-    'Home Science',
+  List<String> _subjects = [];
+  String? _selectedSubject;
+  
+  final List<String> _categories = [
+    'Schemes of Work',
+    'Lesson Plans',
+    'Exams & Marking Schemes',
+    'Subject Notes',
+    'Projects',
   ];
+  String? _selectedCategory;
 
-  final _standardResourceSubFolders = [
-    {
-      'title': 'Schemes of Work',
-      'subtitle': 'Termly and weekly teaching plans',
-      'keyword': 'scheme',
-    },
-    {
-      'title': 'Lesson Plans',
-      'subtitle': 'Daily structured lesson guides',
-      'keyword': 'lesson',
-    },
-    {
-      'title': 'Exams & Marking Schemes',
-      'subtitle': 'Assessment tests and scoring guides',
-      'keyword': 'exam',
-    },
-    {
-      'title': 'Subject Notes',
-      'subtitle': 'Comprehensive revision notes & excerpts',
-      'keyword': 'notes',
-    },
-    {
-      'title': 'Projects',
-      'subtitle': 'Practical tasks & CSL activities',
-      'keyword': 'project',
-    },
-  ];
+  final List<String> _forms = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'General'];
+  String? _selectedForm = 'Form 4';
+
+  bool _isLoadingSubjects = true;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchResources();
+    _fetchSubjects();
   }
 
-  Future<void> _fetchResources() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
+  // Fetch clean single subjects from the backend endpoint
+  Future<void> _fetchSubjects() async {
     try {
       final response = await http.get(
-        Uri.parse('https://teacher-connect-backend.vercel.app/api/resources'),
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/resources/subjects'),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final List<dynamic> data = jsonDecode(response.body);
         if (mounted) {
           setState(() {
-            _resources = data is List ? data : (data['resources'] ?? []);
-            _isLoading = false;
+            _subjects = data.map((item) => item.toString()).toList();
+            _isLoadingSubjects = false;
           });
         }
       } else {
-        if (mounted) {
-          setState(() {
-            _errorMessage =
-                'Failed to load resources. Status code ${response.statusCode}';
-            _isLoading = false;
-          });
-        }
+        throw Exception('Failed to load subjects');
       }
     } catch (e) {
+      debugPrint('Error fetching single subjects: $e');
       if (mounted) {
+        // Fallback list of clean single subjects if network request fails
         setState(() {
-          _errorMessage = 'Network error: $e';
-          _isLoading = false;
+          _subjects = [
+            'English',
+            'Literature',
+            'Kiswahili',
+            'Fasihi',
+            'Mathematics',
+            'Biology',
+            'Chemistry',
+            'Physics',
+            'History',
+            'Geography',
+            'CRE',
+            'Business Studies',
+            'Agriculture',
+            'Computer Studies',
+            'Home Science',
+          ];
+          _isLoadingSubjects = false;
         });
       }
     }
   }
 
-  Future<void> _downloadOrOpenUrl(dynamic resourceInput) async {
-    String targetUrl = '';
-    final String currentRole = widget.userRole?.toLowerCase() ?? '';
-    final bool isAdmin =
-        currentRole.contains('admin') || currentRole == 'administrator';
-
-    if (resourceInput is Map) {
-      final String resourceId = resourceInput['_id']?.toString() ??
-          resourceInput['id']?.toString() ??
-          '';
-      if (resourceId.isNotEmpty) {
-        targetUrl =
-            'https://teacher-connect-backend.vercel.app/api/resources/download/$resourceId?isAdmin=$isAdmin';
-      }
-    } else if (resourceInput is String) {
-      String input = resourceInput.trim();
-      if (input.isNotEmpty) {
-        if (!input.startsWith('http://') && !input.startsWith('https://')) {
-          targetUrl =
-              'https://teacher-connect-backend.vercel.app/api/resources/download/$input?isAdmin=$isAdmin';
-        } else {
-          targetUrl = input;
-        }
-      }
-    }
-
-    if (targetUrl.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid resource link or identifier.')),
-        );
-      }
+  Future<void> _submitResource() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedSubject == null || _selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select both a subject and a category.')),
+      );
       return;
     }
 
-    final Uri uri = Uri.parse(targetUrl);
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
+      final response = await http.post(
+        Uri.parse('https://teacher-connect-backend.vercel.app/api/resources'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': _titleController.text.trim(),
+          'category': _selectedCategory,
+          'subject': _selectedSubject,
+          'form': _selectedForm,
+          'fileUrl': _fileUrlController.text.trim(),
+          'price': double.tryParse(_priceController.text.trim()) ?? 50,
+          'description': _descriptionController.text.trim(),
+        }),
       );
 
-      if (!launched) {
-        launched = await launchUrl(
-          uri,
-          mode: LaunchMode.platformDefault,
-        );
-      }
-
-      if (!launched && mounted) {
+      if (response.statusCode == 201 && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $targetUrl')),
+          const SnackBar(content: Text('Resource uploaded successfully!'), backgroundColor: Colors.teal),
         );
+        Navigator.pop(context, true); // Return true to trigger data refresh in parent
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['error'] ?? 'Failed to upload resource');
       }
     } catch (e) {
-      debugPrint('Url Launcher Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening link: $e')),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
-    }
-  }
-
-  void _openSubjectFolder(String subjectName) {
-    final currentRole = widget.userRole?.toLowerCase() ?? '';
-    final bool isAdmin =
-        currentRole.contains('admin') || currentRole == 'administrator';
-
-    final filteredResources = _resources.where((r) {
-      final sub = (r['subject'] ?? r['category'] ?? '').toString().toLowerCase();
-      return sub.contains(subjectName.toLowerCase());
-    }).toList();
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GenericSubFolderScreen(
-          parentTitle: '$subjectName Folders',
-          subFolders: _standardResourceSubFolders,
-          allResources: filteredResources,
-          isAdmin: isAdmin,
-          onDownload: _downloadOrOpenUrl,
-          onPreview: (ctx, url, title, price, callback) => 
-              _showPdfPreviewModal(ctx, url, title, price, callback),
-        ),
-      ),
-    );
-  }
-
-  // PROPERLY NESTED PDF PREVIEW METHOD
-  void _showPdfPreviewModal(
-    BuildContext context,
-    String pdfUrl,
-    String title,
-    dynamic price,
-    Function? callback,
-  ) async {
-    final String encodedUrl = Uri.encodeComponent(pdfUrl);
-    final String viewerUrl = 'https://docs.google.com/viewer?url=$encodedUrl&embedded=true';
-    final Uri uri = Uri.parse(viewerUrl);
-
-    try {
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-
-      if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open preview document.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening preview: $e')),
-        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final currentRole = widget.userRole?.toLowerCase() ?? '';
-    final bool isAdmin =
-        currentRole.contains('admin') || currentRole == 'administrator';
-    
-    // Check if member has explicit upload rights granted by admin
-    final bool hasExplicitRights = widget.userData?['canUploadResources'] == true;
-    final bool canUpload = isAdmin || hasExplicitRights;
+  void dispose() {
+    _titleController.dispose();
+    _fileUrlController.dispose();
+    _priceController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Teacher Resources'),
+        title: const Text('Add Teacher Resource'),
         backgroundColor: Colors.teal,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchResources,
-          ),
-        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_errorMessage,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red)),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: _fetchResources,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // CONDITIONAL UPLOAD BUTTON OR REQUEST PROMPT
-                      if (canUpload) ...[
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              foregroundColor: Colors.white,
-                            ),
-                            icon: const Icon(Icons.cloud_upload, color: Colors.white),
-                            label: const Text(
-                              'UPLOAD NEW RESOURCE',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                            onPressed: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AddResourceScreen(),
-                                ),
-                              );
-
-                              if (result == true) {
-                                _fetchResources();
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ] else ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.teal.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.teal.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.lock_outline, color: Colors.teal),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Upload Rights Restricted',
-                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
-                                    ),
-                                    Text(
-                                      'Request permission from an admin to share resources.',
-                                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              TextButton(
-                                style: TextButton.styleFrom(backgroundColor: Colors.teal),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Upload rights request sent to admin team.')),
-                                  );
-                                },
-                                child: const Text('Request', style: TextStyle(color: Colors.white)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-
-                      const Text(
-                        'Select Subject',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.3,
-                          ),
-                          itemCount: _subjects.length,
-                          itemBuilder: (context, index) {
-                            final subject = _subjects[index];
-                            return InkWell(
-                              onTap: () => _openSubjectFolder(subject),
-                              child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Column(
-                                    mainAxisAlignment:
-                                         MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                         CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(Icons.folder,
-                                          size: 36, color: Colors.teal),
-                                      const Spacer(),
-                                      Text(
-                                        subject,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Resource Title
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Resource Title',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.title, color: Colors.teal),
                 ),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Please enter a title' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Subject Dropdown (Pulls single subjects cleanly)
+              _isLoadingSubjects
+                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                  : DropdownButtonFormField<String>(
+                      value: _selectedSubject,
+                      decoration: const InputDecoration(
+                        labelText: 'Select Subject',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.book, color: Colors.teal),
+                      ),
+                      items: _subjects.map((subject) {
+                        return DropdownMenuItem(
+                          value: subject,
+                          child: Text(subject),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedSubject = val;
+                        });
+                      },
+                      validator: (val) => val == null ? 'Please select a subject' : null,
+                    ),
+              const SizedBox(height: 16),
+
+              // Category Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Resource Category',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category, color: Colors.teal),
+                ),
+                items: _categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedCategory = val;
+                  });
+                },
+                validator: (val) => val == null ? 'Please select a category' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Form Level Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedForm,
+                decoration: const InputDecoration(
+                  labelText: 'Target Form / Level',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.school, color: Colors.teal),
+                ),
+                items: _forms.map((form) {
+                  return DropdownMenuItem(
+                    value: form,
+                    child: Text(form),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedForm = val;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // File URL
+              TextFormField(
+                controller: _fileUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Document / File URL (Cloudinary, Drive, etc.)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.link, color: Colors.teal),
+                ),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Please enter a valid file link' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Price (KES)
+              TextFormField(
+                controller: _priceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Price in KES (Leave blank or 0 for free)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.money, color: Colors.teal),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Description
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description (Optional)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.description, color: Colors.teal),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Submit Button
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _isSubmitting ? null : _submitResource,
+                child: _isSubmitting
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'SUBMIT RESOURCE',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
-}
-
+}                        
+            
 // ============================================================================
 // GENERIC SUB-FOLDER SCREEN (TOP-LEVEL WIDGET)
 // ============================================================================
