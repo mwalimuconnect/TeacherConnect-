@@ -5966,7 +5966,7 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
                       children: [
                         // --- SEARCH BAR HEADER ---
                         Container(
-                          margin: const EdgeInsets.bottom(12.0),
+                          margin: const EdgeInsets.only(bottom: 12.0),
                           child: TextField(
                             controller: _searchController,
                             decoration: InputDecoration(
