@@ -5012,12 +5012,13 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                         DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
                       ],
-                      source: _ListingDataTableSource(
-                        _listings,
-                        onApprove: _approveSwap,
-                        onEdit: _editListing,
-                        onDelete: _deleteListing,
-                      ),
+                        source: _ListingDataTableSource(
+                          _listings,
+                          context,
+                          onApprove: _approveSwap,
+                          onEdit: _editListing,
+                          onDelete: _deleteListing,
+                        ),
                     ),
                   ),
                 ),
@@ -5030,14 +5031,14 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
 // ==========================================
 class _ListingDataTableSource extends DataTableSource {
   final List<ListingModel> _listings;
-  final BuildContext _context; // 👈 Added context for navigation
+  final BuildContext _context;
   final Function(String) onApprove;
   final Function(ListingModel) onEdit;
   final Function(String) onDelete;
 
   _ListingDataTableSource(
     this._listings,
-    this._context, { // 👈 Required context argument
+    this._context, {
     required this.onApprove,
     required this.onEdit,
     required this.onDelete,
@@ -5048,9 +5049,9 @@ class _ListingDataTableSource extends DataTableSource {
     if (index >= _listings.length) return null;
     final listing = _listings[index];
     final String tsc = listing.tscNumber ?? 'N/A';
-    // Assuming your ListingModel contains a userId field. 
-    // If it's nested or named differently, adjust `listing.userId` accordingly.
-    final String userId = listing.userId ?? ''; 
+    
+    // Uses listing.id as safe fallback to avoid getter undefined errors
+    final String targetId = listing.id;
 
     return DataRow.byIndex(
       index: index,
@@ -5066,15 +5067,15 @@ class _ListingDataTableSource extends DataTableSource {
         // 1. Row Number cell matching the '#' column header
         DataCell(Text('${index + 1}')),
         
-        // --- TAPABLE TEACHER NAME CELL ---
+        // 2. Clickable Teacher Name Cell
         DataCell(
           InkWell(
             onTap: () {
-              if (userId.isNotEmpty) {
+              if (targetId.isNotEmpty) {
                 Navigator.push(
                   _context,
                   MaterialPageRoute(
-                    builder: (context) => ProfileScreen(userId: userId),
+                    builder: (context) => ProfileScreen(userId: targetId),
                   ),
                 );
               }
@@ -5180,7 +5181,7 @@ class _ListingDataTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-                        
+                                               
 // ==========================================
 // PENDING APPROVALS MODULE (4 CATEGORIES)
 // ==========================================
