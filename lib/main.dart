@@ -5387,17 +5387,19 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 }
 
 // ==========================================
-// 4-COLUMN PAGINATED DATA TABLE SOURCE
+// 4-COLUMN PAGINATED DATA TABLE SOURCE (WITH PROFILE NAVIGATION)
 // ==========================================
 
 class _PendingApprovalTableSource extends DataTableSource {
   final List<dynamic> items;
   final String type;
+  final BuildContext context; // 👈 Added navigation context
   final Function(String id, String type, bool isApprove) onAction;
 
   _PendingApprovalTableSource({
     required this.items,
     required this.type,
+    required this.context, // 👈 Required context argument
     required this.onAction,
   });
 
@@ -5407,6 +5409,11 @@ class _PendingApprovalTableSource extends DataTableSource {
 
     final item = items[index];
     final String id = item['_id'] ?? item['id'] ?? '';
+    
+    // Extract user ID for profile navigation (fallback to _id for member type)
+    final String userId = (type == 'member')
+        ? id
+        : (item['userId'] ?? item['user']?['_id'] ?? item['user'] ?? '');
 
     String col1 = 'N/A';
     String col2 = 'N/A';
@@ -5414,34 +5421,56 @@ class _PendingApprovalTableSource extends DataTableSource {
 
     switch (type) {
       case 'swap':
-        col1 = item['fullName'] ?? item['name'] ?? 'N/A';
-        col2 = '${item['subject1'] ?? ''} / ${item['subject2'] ?? ''}';
-        col3 = '${item['county'] ?? ''} -> ${item['targetCounty'] ?? ''}';
+        col1 = item['fullName'] ?? item['name'] ?? item['teacherName'] ?? 'N/A';
+        col2 = '${item['subject1'] ?? item['subject'] ?? ''} / ${item['subject2'] ?? ''}';
+        col3 = '${item['county'] ?? item['currentCounty'] ?? ''} -> ${item['targetCounty'] ?? ''}';
         break;
 
       case 'bom_seeker':
-        col1 = item['fullName'] ?? item['name'] ?? 'N/A';
-        col2 = '${item['subject1'] ?? ''} / ${item['subject2'] ?? ''}';
-        col3 = item['county'] ?? item['targetCounty'] ?? 'N/A';
+        col1 = item['fullName'] ?? item['name'] ?? item['teacherName'] ?? 'N/A';
+        col2 = '${item['subject1'] ?? item['subject'] ?? ''} / ${item['subject2'] ?? ''}';
+        col3 = item['county'] ?? item['currentCounty'] ?? item['targetCounty'] ?? 'N/A';
         break;
 
       case 'bom_vacancy':
         col1 = item['schoolName'] ?? item['title'] ?? 'N/A';
         col2 = item['subject'] ?? item['subject1'] ?? 'N/A';
-        col3 = item['county'] ?? 'N/A';
+        col3 = item['county'] ?? item['currentCounty'] ?? 'N/A';
         break;
 
       case 'member':
         col1 = item['fullName'] ?? item['name'] ?? 'N/A';
         col2 = item['phoneNumber'] ?? item['phone'] ?? 'N/A';
-        col3 = 'TSC: ${item['tscNumber'] ?? 'N/A'} | ID: ${item['idNumber'] ?? 'N/A'}';
+        col3 = 'TSC: ${item['tscNumber'] ?? 'N/A'} | ID: ${item['idNumber'] ?? item['nationalId'] ?? 'N/A'}';
         break;
     }
 
     return DataRow.byIndex(
       index: index,
       cells: [
-        DataCell(Text(col1, style: const TextStyle(fontWeight: FontWeight.w600))),
+        // --- TAPABLE COL1 CELL (Navigates to Profile if userId exists) ---
+        DataCell(
+          userId.isNotEmpty && type != 'bom_vacancy'
+              ? InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileScreen(userId: userId),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    col1,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                )
+              : Text(col1, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ),
         DataCell(Text(col2)),
         DataCell(Text(col3)),
         DataCell(
@@ -5474,7 +5503,7 @@ class _PendingApprovalTableSource extends DataTableSource {
   @override
   int get selectedRowCount => 0;
 }
-                                                
+                                                  
 // ==========================================
 // PAYMENT HISTORY SCREEN (PAGINATED TABLE)
 // ==========================================
