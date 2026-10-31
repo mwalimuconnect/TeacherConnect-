@@ -4704,7 +4704,7 @@ class _AdminSupportTicketsTabState extends State<AdminSupportTicketsTab> {
 }
          
 // ==========================================
-// MANAGE ALL LISTINGS (CLEANED PAGINATED UI)
+// MANAGE ALL LISTINGS (SORTED ALPHABETICALLY & PAGINATED)
 // ==========================================
 class ManageListingsScreen extends StatefulWidget {
   final String? categoryType;
@@ -4755,6 +4755,13 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
         final List<ListingModel> loadedListings = rawData.map((item) {
           return ListingModel.fromJson(item as Map<String, dynamic>);
         }).toList();
+
+        // Sort listings alphabetically by teacher name
+        loadedListings.sort((a, b) {
+          final nameA = (a.teacherName ?? '').toString().toLowerCase();
+          final nameB = (b.teacherName ?? '').toString().toLowerCase();
+          return nameA.compareTo(nameB);
+        });
 
         if (mounted) {
           setState(() {
@@ -4992,7 +4999,7 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                       showCheckboxColumn: false,
                       rowsPerPage: 10,
                       columns: const [
-                        DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))), // 👈 Added Numbering Header
+                        DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(label: Text('Teacher / User', style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -5016,9 +5023,8 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
                 ),
     );
   }
-} 
-                                    
-                        
+}
+                                                                
 // ==========================================
 // DATA SOURCE WITH EXACT CELL ALIGNMENT
 // ==========================================
