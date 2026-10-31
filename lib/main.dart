@@ -5327,13 +5327,24 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pending Approvals'),
         backgroundColor: Colors.teal,
+        // 👇 Move the TabBar inside the AppBar here:
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          indicatorColor: Colors.amber,
+          tabs: [
+            Tab(text: 'TSC Swaps (${_pendingSwaps.length})'),
+            Tab(text: 'BOM Job Seekers (${_pendingBonSeekers.length})'),
+            Tab(text: 'BOM Vacancies (${_pendingBonVacancies.length})'),
+            Tab(text: 'New Members (${_pendingMembers.length})'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -5341,69 +5352,62 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             onPressed: _fetchAllPendingApprovals,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: Colors.amber,
-          tabs: [
-            Tab(text: 'TSC Swaps (${_pendingSwaps.length})'),
-            Tab(text: 'BOM Job Seekers (${_pendingBomSeekers.length})'),
-            Tab(text: 'BOM Vacancies (${_pendingBomVacancies.length})'),
-            Tab(text: 'New Members (${_pendingMembers.length})'),
-          ],
-        ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 1. SEEKING SWAP TABLE (4 COLUMNS)
+          // 1. SEEKING SWAP TABLE
           _buildTableTab(
             items: _pendingSwaps,
             headers: const ['Applicant', 'Subjects', 'Counties', 'Actions'],
             source: _PendingApprovalTableSource(
               items: _pendingSwaps,
               type: 'swap',
-              context: context, 
-              onAction: _handleApprovalAction,
-            ),
-          ),
-
-          // 2. SEEKING BOM JOBS TABLE (4 COLUMNS)
-          _buildTableTab(
-            items: _pendingBomSeekers,
-            headers: const ['Teacher', 'Subjects', 'Target Location', 'Actions'],
-            source: _PendingApprovalTableSource(
-              items: _pendingBomSeekers,
-              type: 'bom_seeker',
-              context: context, 
-              onAction: _handleApprovalAction,
-            ),
-          ),
-
-          // 3. AVAILABLE BOM JOBS TABLE (4 COLUMNS)
-          _buildTableTab(
-            items: _pendingBomVacancies,
-            headers: const ['School Name', 'Subject Needed', 'County', 'Actions'],
-            source: _PendingApprovalTableSource(
-              items: _pendingBomVacancies,
-              type: 'bom_vacancy',
-              context: context, 
+              context: context,
               onAction: _handleApprovalAction,
             ),
           ),
           
-         // 4. DYNAMIC / CURRENT TAB TABLE (4 COLUMNS)
-         _buildTableTab(
-          items: _currentTabItems,
-          headers: const ['Name', 'Details', 'Info', 'Actions'],
-          source: _PendingApprovalTableSource(
-          items: _currentTabItems,
-          type: _currentTabType,
-          context: context,
-          onAction: _handleApprovalAction,
-        ),
-      ),
+          // 2. SEEKING BOM JOBS TABLE
+          _buildTableTab(
+            items: _pendingBonSeekers,
+            headers: const ['Teacher', 'Subjects', 'Target Location', 'Actions'],
+            source: _PendingApprovalTableSource(
+              items: _pendingBonSeekers,
+              type: 'bom_seeker',
+              context: context,
+              onAction: _handleApprovalAction,
+            ),
+          ),
 
+          // 3. AVAILABLE BOM VACANCIES TABLE
+          _buildTableTab(
+            items: _pendingBonVacancies,
+            headers: const ['School Name', 'Subject Needed', 'County', 'Actions'],
+            source: _PendingApprovalTableSource(
+              items: _pendingBonVacancies,
+              type: 'bom_vacancy',
+              context: context,
+              onAction: _handleApprovalAction,
+            ),
+          ),
+
+          // 4. NEW MEMBER REGISTRATIONS TABLE
+          _buildTableTab(
+            items: _currentTabItems,
+            headers: const ['Name', 'Details', 'Info', 'Actions'],
+            source: _PendingApprovalTableSource(
+              items: _currentTabItems,
+              type: _currentTabType,
+              context: context,
+              onAction: _handleApprovalAction,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+                     
 // ==========================================
 // 4-COLUMN PAGINATED DATA TABLE SOURCE (WITH PROFILE NAVIGATION)
 // ==========================================
