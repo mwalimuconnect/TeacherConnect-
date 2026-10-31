@@ -5838,9 +5838,8 @@ class _JobSeekerDataTableSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
 
-        
 // ==========================================
-// TOTAL MEMBERS SCREEN (PAGINATED DATATABLE)
+// TOTAL MEMBERS SCREEN (SORTED ALPHABETICALLY & SEARCHABLE)
 // ==========================================
 
 class TotalMembersScreen extends StatefulWidget {
@@ -5852,13 +5851,23 @@ class TotalMembersScreen extends StatefulWidget {
 
 class _TotalMembersScreenState extends State<TotalMembersScreen> {
   bool _isLoading = false;
-  List <dynamic> _members = [];
+  List<dynamic> _members = [];
+  List<dynamic> _filteredMembers = [];
   int _rowsPerPage = PaginatedDataTable.defaultRowsPerPage;
+  
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchMembers();
+    _searchController.addListener(_filterMembers);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchMembers() async {
@@ -5871,9 +5880,21 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          _members = data is List ? data : (data['members'] ?? []);
+        List<dynamic> membersList = data is List ? data : (data['members'] ?? []);
+
+        // Sort members alphabetically by full name
+        membersList.sort((a, b) {
+          final nameA = (a['fullName'] ?? a['name'] ?? '').toString().toLowerCase();
+          final nameB = (b['fullName'] ?? b['name'] ?? '').toString().toLowerCase();
+          return nameA.compareTo(nameB);
         });
+
+        if (mounted) {
+          setState(() {
+            _members = membersList;
+            _filteredMembers = membersList;
+          });
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -5891,14 +5912,33 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
     }
   }
 
+  void _filterMembers() {
+    final query = _searchController.text.toLowerCase().trim();
+    setState(() {
+      _filteredMembers = _members.where((member) {
+        final name = (member['fullName'] ?? member['name'] ?? '').toString().toLowerCase();
+        final phone = (member['phoneNumber'] ?? member['phone'] ?? '').toString().toLowerCase();
+        final tsc = (member['tscNumber'] ?? '').toString().toLowerCase();
+        final idNo = (member['nationalId'] ?? member['idNumber'] ?? '').toString().toLowerCase();
+        final subject = (member['subjectCombo'] ?? member['subjects'] ?? '').toString().toLowerCase();
+
+        return name.contains(query) ||
+            phone.contains(query) ||
+            tsc.contains(query) ||
+            idNo.contains(query) ||
+            subject.contains(query);
+      }).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Pass context to the data source for row tapping / profile navigation
-    final memberDataSource = _MemberDataTableSource(_members, context);
+    // Pass filtered & sorted list to the data source
+    final memberDataSource = _MemberDataTableSource(_filteredMembers, context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Total Members (${_members.length})'),
+        title: Text('Total Members (${_filteredMembers.length})'),
         backgroundColor: Colors.teal,
         actions: [
           IconButton(
@@ -5922,81 +5962,116 @@ class _TotalMembersScreenState extends State<TotalMembersScreen> {
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(12.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: PaginatedDataTable(
-                        header: const Text(
-                          'Registered Members Directory',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    child: Column(
+                      children: [
+                        // --- SEARCH BAR HEADER ---
+                        Container(
+                          margin: const EdgeInsets.bottom(12.0),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search by Name, Phone, TSC, ID, or Subject...',
+                              prefixIcon: const Icon(Icons.search, color: Colors.teal),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, color: Colors.grey),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _filterMembers();
+                                      },
+                                    )
+                                  : null,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: Colors.teal, width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                            ),
                           ),
                         ),
-                        rowsPerPage: _rowsPerPage,
-                        availableRowsPerPage: const [10, 20, 50],
-                        onRowsPerPageChanged: (int? value) {
-                          if (value != null) {
-                            setState(() {
-                              _rowsPerPage = value;
-                            });
-                          }
-                        },
-                        showCheckboxColumn: false,
-                        columnSpacing: 20,
-                        horizontalMargin: 12,
-                        columns: const [
-                          DataColumn(
-                            label: Text(
-                              '#',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+
+                        // --- PAGINATED DATA TABLE ---
+                        SizedBox(
+                          width: double.infinity,
+                          child: PaginatedDataTable(
+                            header: const Text(
+                              'Registered Members Directory',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
+                            rowsPerPage: _rowsPerPage,
+                            availableRowsPerPage: const [10, 20, 50],
+                            onRowsPerPageChanged: (int? value) {
+                              if (value != null) {
+                                setState(() {
+                                  _rowsPerPage = value;
+                                });
+                              }
+                            },
+                            showCheckboxColumn: false,
+                            columnSpacing: 20,
+                            horizontalMargin: 12,
+                            columns: const [
+                              DataColumn(
+                                label: Text(
+                                  '#',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Name',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Phone Number',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'TSC Number',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'ID Number',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Subject Combo',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Joined Date',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                            source: memberDataSource,
                           ),
-                          DataColumn(
-                            label: Text(
-                              'Name',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'Phone Number',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'TSC Number',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'ID Number',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'Subject Combo',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'Joined Date',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                        source: memberDataSource,
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
     );
   }
-}
-        
+}                           
+                                  
 // ==========================================
 // PAGINATED DATA SOURCE FOR MEMBERS
 // ==========================================
