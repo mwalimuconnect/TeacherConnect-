@@ -5392,18 +5392,17 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             ),
           ),
           
-// 4. DYNAMIC / CURRENT TAB TABLE (4 COLUMNS)
-// ==========================================
-_buildTableTab(
-  items: _currentTabItems,
-  headers: const ['Name', 'Details', 'Info', 'Actions'],
-  source: _PendingApprovalTableSource(
-    items: _currentTabItems,
-    type: _currentTabType,
-    context: context,
-    onAction: _handleApprovalAction,
-  ),
-),
+         // 4. DYNAMIC / CURRENT TAB TABLE (4 COLUMNS)
+         _buildTableTab(
+          items: _currentTabItems,
+          headers: const ['Name', 'Details', 'Info', 'Actions'],
+          source: _PendingApprovalTableSource(
+          items: _currentTabItems,
+          type: _currentTabType,
+          context: context,
+          onAction: _handleApprovalAction,
+        ),
+      ),
 
 // ==========================================
 // 4-COLUMN PAGINATED DATA TABLE SOURCE (WITH PROFILE NAVIGATION)
