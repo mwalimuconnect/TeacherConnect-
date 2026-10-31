@@ -5363,6 +5363,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             source: _PendingApprovalTableSource(
               items: _pendingSwaps,
               type: 'swap',
+              context: context, 
               onAction: _handleApprovalAction,
             ),
           ),
@@ -5374,6 +5375,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             source: _PendingApprovalTableSource(
               items: _pendingBomSeekers,
               type: 'bom_seeker',
+              context: context, 
               onAction: _handleApprovalAction,
             ),
           ),
@@ -5385,19 +5387,22 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             source: _PendingApprovalTableSource(
               items: _pendingBomVacancies,
               type: 'bom_vacancy',
+              context: context, 
               onAction: _handleApprovalAction,
             ),
           ),
-
-          // 4. NEW MEMBER REGISTRATIONS TABLE (4 COLUMNS)
-          _buildTableTab(
-            items: _pendingMembers,
-            headers: const ['Full Name', 'Phone Number', 'TSC / ID Number', 'Actions'],
-            source: _PendingApprovalTableSource(
+          
+// 4. DYNAMIC / CURRENT TAB TABLE (4 COLUMNS)
+// ==========================================
+_buildTableTab(
   items: _currentTabItems,
-  type: _currentTabType,
-  context: context, // 👈 Add this required parameter here
-  onAction: _handleApprovalAction,
+  headers: const ['Name', 'Details', 'Info', 'Actions'],
+  source: _PendingApprovalTableSource(
+    items: _currentTabItems,
+    type: _currentTabType,
+    context: context,
+    onAction: _handleApprovalAction,
+  ),
 ),
 
 // ==========================================
