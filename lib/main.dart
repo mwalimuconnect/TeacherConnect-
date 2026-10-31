@@ -4117,7 +4117,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 }
 
 // ==========================================
-// ADMIN MEMBER IDENTITY & RIGHTS MANAGEMENT SCREEN
+// ADMIN MEMBER IDENTITY & RIGHTS MANAGEMENT SCREEN (FOLDABLE CARDS)
 // ==========================================
 
 class AdminMemberIdentityManagementScreen extends StatefulWidget {
@@ -4176,7 +4176,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     }
   }
 
-  // 1. Toggle Identity Edit Permission (canEditTsc)
+  // 1. Toggle Identity Edit Permission (`canEditTsc`)
   Future<void> _toggleIdentityEditPermission(String memberId, bool currentStatus, int index) async {
     final bool targetStatus = !currentStatus;
 
@@ -4227,11 +4227,10 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     }
   }
 
-  // 2. Toggle Resource Upload Permission (canUploadResources)
+  // 2. Toggle Resource Upload Permission (`canUploadResources`)
   Future<void> _toggleUploadPermission(String memberId, bool currentStatus, int index) async {
     final bool targetStatus = !currentStatus;
 
-    // Optimistically update UI
     setState(() {
       _members[index]['canUploadResources'] = targetStatus;
     });
@@ -4250,7 +4249,6 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
       );
 
       if (response.statusCode != 200) {
-        // Revert on failure
         setState(() {
           _members[index]['canUploadResources'] = currentStatus;
         });
@@ -4428,82 +4426,74 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
                               elevation: 2,
                               margin: const EdgeInsets.symmetric(vertical: 8),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Header row: Avatar, Name & Edit Button
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          backgroundColor: Colors.teal.shade100,
-                                          child: Text(
-                                            name.isNotEmpty ? name[0].toUpperCase() : 'T',
-                                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                              Text('TSC: $tsc | ID: $idNo\nSchool: $school', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                                            ],
-                                          ),
-                                        ),
-                                        OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.teal,
-                                            side: const BorderSide(color: Colors.teal),
-                                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                                          ),
-                                          icon: const Icon(Icons.edit, size: 16),
-                                          label: const Text('Edit Details'),
-                                          onPressed: () => _showEditDetailsDialog(member, index),
-                                        ),
-                                      ],
-                                    ),
-                                    const Divider(height: 20),
-                                    
-                                    // Right 1: Identity Edit Permission (`canEditTsc`)
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Identity Edit Permission:', style: TextStyle(fontWeight: FontWeight.w500)),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: canEdit ? Colors.orange : Colors.teal,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                          ),
-                                          onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
-                                          child: Text(
-                                            canEdit ? 'Revoke Edit' : 'Grant Edit',
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    // Right 2: Resource Upload Rights (`canUploadResources`)
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Resource Upload Rights:', style: TextStyle(fontWeight: FontWeight.w500)),
-                                        Switch(
-                                          value: canUpload,
-                                          activeColor: Colors.teal,
-                                          onChanged: (bool value) {
-                                            _toggleUploadPermission(memberId, canUpload, index);
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                              child: ExpansionTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.teal.shade100,
+                                  child: Text(
+                                    name.isNotEmpty ? name[0].toUpperCase() : 'T',
+                                    style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
+                                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text('TSC: $tsc | School: $school', overflow: TextOverflow.ellipsis),
+                                childrenPadding: const EdgeInsets.all(16.0),
+                                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Detailed Info & Edit Details Button
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('National ID: $idNo', style: const TextStyle(color: Colors.grey)),
+                                      OutlinedButton.icon(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.teal,
+                                          side: const BorderSide(color: Colors.teal),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        ),
+                                        icon: const Icon(Icons.edit, size: 16),
+                                        label: const Text('Edit Details'),
+                                        onPressed: () => _showEditDetailsDialog(member, index),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider(height: 20),
+
+                                  // Right 1: Identity Edit Permission (`canEditTsc`)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text('Identity Edit Permission:', style: TextStyle(fontWeight: FontWeight.w500)),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: canEdit ? Colors.orange : Colors.teal,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        ),
+                                        onPressed: () => _toggleIdentityEditPermission(memberId, canEdit, index),
+                                        child: Text(
+                                          canEdit ? 'Revoke Edit' : 'Grant Edit',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Right 2: Resource Upload Rights (`canUploadResources`)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text('Resource Upload Rights:', style: TextStyle(fontWeight: FontWeight.w500)),
+                                      Switch(
+                                        value: canUpload,
+                                        activeColor: Colors.teal,
+                                        onChanged: (bool value) {
+                                          _toggleUploadPermission(memberId, canUpload, index);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             );
                           },
@@ -4512,7 +4502,7 @@ class _AdminMemberIdentityManagementScreenState extends State<AdminMemberIdentit
     );
   }
 }
-                                                                                                                                                                                                      
+                                                                                                                                                                                                                    
 // ==========================================
 // ADMIN SUPPORT TICKETS TAB WIDGET
 // ==========================================
