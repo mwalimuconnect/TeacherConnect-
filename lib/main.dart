@@ -5926,8 +5926,9 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
+  final Map<String, dynamic>? userData; // Added to read 'canUploadResources'
 
-  const TeacherResourcesTab({Key? key, this.userRole}) : super(key: key);
+  const TeacherResourcesTab({Key? key, this.userRole, this.userData}) : super(key: key);
 
   @override
   State<TeacherResourcesTab> createState() => _TeacherResourcesTabState();
@@ -5956,7 +5957,7 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     'Home Science',
   ];
 
-  final  _standardResourceSubFolders = [
+  final _standardResourceSubFolders = [
     {
       'title': 'Schemes of Work',
       'subtitle': 'Termly and weekly teaching plans',
@@ -6119,11 +6120,47 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 
+  // PROPERLY NESTED PDF PREVIEW METHOD
+  void _showPdfPreviewModal(
+    BuildContext context,
+    String pdfUrl,
+    String title,
+    dynamic price,
+    Function? callback,
+  ) async {
+    final String encodedUrl = Uri.encodeComponent(pdfUrl);
+    final String viewerUrl = 'https://docs.google.com/viewer?url=$encodedUrl&embedded=true';
+    final Uri uri = Uri.parse(viewerUrl);
+
+    try {
+      bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open preview document.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening preview: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentRole = widget.userRole?.toLowerCase() ?? '';
     final bool isAdmin =
         currentRole.contains('admin') || currentRole == 'administrator';
+    
+    // Check if member has explicit upload rights granted by admin
+    final bool hasExplicitRights = widget.userData?['canUploadResources'] == true;
+    final bool canUpload = isAdmin || hasExplicitRights;
 
     return Scaffold(
       appBar: AppBar(
@@ -6162,21 +6199,78 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (isAdmin) ...[
+                      // CONDITIONAL UPLOAD BUTTON OR REQUEST PROMPT
+                      if (canUpload) ...[
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal),
-                            icon: const Icon(Icons.cloud_upload),
-                            label: const Text('UPLOAD NEW RESOURCE'),
-                            onPressed: () {
-                              // Navigate to your Upload Resource screen
+                              backgroundColor: Colors.teal,
+                              foregroundColor: Colors.white,
+                            ),
+                            icon: const Icon(Icons.cloud_upload, color: Colors.white),
+                            label: const Text(
+                              'UPLOAD NEW RESOURCE',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AddResourceScreen(),
+                                ),
+                              );
+
+                              if (result == true) {
+                                _fetchResources();
+                              }
                             },
                           ),
                         ),
                         const SizedBox(height: 12),
+                      ] else ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.teal.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.lock_outline, color: Colors.teal),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Upload Rights Restricted',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                                    ),
+                                    Text(
+                                      'Request permission from an admin to share resources.',
+                                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                style: TextButton.styleFrom(backgroundColor: Colors.teal),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Upload rights request sent to admin team.')),
+                                  );
+                                },
+                                child: const Text('Request', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                       ],
+
                       const Text(
                         'Select Subject',
                         style: TextStyle(
@@ -6236,39 +6330,6 @@ class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
     );
   }
 }
-   
-  void _showPdfPreviewModal(
-    BuildContext context,
-    String pdfUrl,
-    String title,
-    dynamic price,
-    Function? callback,
-  ) async {
-    final String encodedUrl = Uri.encodeComponent(pdfUrl);
-    final String viewerUrl = 'https://docs.google.com/viewer?url=$encodedUrl&embedded=true';
-    
-    final Uri uri = Uri.parse(viewerUrl);
-
-    try {
-      bool launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-
-      if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open preview document.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening preview: $e')),
-        );
-      }
-    }
-  }
- 
 
 // ============================================================================
 // GENERIC SUB-FOLDER SCREEN (TOP-LEVEL WIDGET)
@@ -6346,7 +6407,7 @@ class GenericSubFolderScreen extends StatelessWidget {
     );
   }
 }
-
+                             
 // ============================================================================
 // SUBJECT FOLDER DETAIL SCREEN (With Admin Edit, Delete & In-App PDF Preview)
 // ============================================================================
