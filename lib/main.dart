@@ -2468,10 +2468,9 @@ class TeacherPortalTables {
     );
   }
 }
-               
-                                                                                                                                                                       
+                                                                                                                                                                                     
 // =========================================================
-// TEACHER PORTAL MAIN SCREEN (Streamlined Header)
+// TEACHER PORTAL MAIN SCREEN (Streamlined Header + Ownership Check)
 // =========================================================
 class TeacherPortalScreen extends StatefulWidget {
   final String userId;
@@ -2594,7 +2593,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       ...seekingBom,
     ].where((item) => 
       (item.contactPhone.isNotEmpty && item.contactPhone == widget.userPhone) ||
-      (item.teacherName.isNotEmpty && item.teacherName.toLowerCase().trim() == widget.userName.toLowerCase().trim())
+      (item.teacherName.isNotEmpty && item.teacherName.toLowerCase().trim() == widget.userName.toLowerCase().trim()) ||
+      (item.userId != null && item.userId == widget.userId)
     ).toList();
 
     showModalBottomSheet(
@@ -2628,7 +2628,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                 child: userPosts.isEmpty
                     ? const Center(
                         child: Text(
-                          'You have not posted any listings yet under this phone/name.',
+                          'You have not posted any listings yet under this account.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.grey),
                         ),
@@ -2687,7 +2687,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                                       if (confirm == true) {
                                         try {
                                           final res = await http.delete(
-                                            Uri.parse('$_baseUrl/api/listings/${post.id}'),
+                                            Uri.parse('$_baseUrl/api/listings/${post.id}?userId=${widget.userId}&isAdmin=$isAdmin'),
                                           );
                                           if (res.statusCode == 200 || res.statusCode == 204) {
                                             Navigator.pop(ctx);
@@ -2717,6 +2717,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
+
   void _showEditPostDialog(BuildContext context, ListingModel post) {
     final TextEditingController nameController = TextEditingController(text: post.teacherName);
     final TextEditingController schoolController = TextEditingController(text: post.schoolName);
@@ -2775,7 +2776,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                     onPressed: () async {
                       try {
                         final response = await http.put(
-                          Uri.parse('$_baseUrl/api/listings/${post.id}'),
+                          Uri.parse('$_baseUrl/api/listings/${post.id}?userId=${widget.userId}&isAdmin=$isAdmin'),
                           headers: {'Content-Type': 'application/json'},
                           body: jsonEncode({
                             'teacherName': nameController.text.trim(),
@@ -2833,8 +2834,15 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     }
   }
 
+  // 🔑 Updated: Automatically unlocks if user is admin, paid, OR the original owner of the listing
   bool isListingUnlocked(ListingModel listing) {
-    return isAdmin || listing.isPaid;
+    final bool isOwner = widget.userId.isNotEmpty && (
+      (listing.userId != null && listing.userId == widget.userId) ||
+      (listing.contactPhone.isNotEmpty && listing.contactPhone == widget.userPhone) ||
+      (listing.teacherName.isNotEmpty && listing.teacherName.toLowerCase().trim() == widget.userName.toLowerCase().trim())
+    );
+
+    return isAdmin || listing.isPaid || isOwner;
   }
 
   String _getDisplayName(ListingModel listing) {
@@ -2957,7 +2965,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       },
     );
   }
-   void _showPaymentModal(BuildContext context, ListingModel listing) {
+
+  void _showPaymentModal(BuildContext context, ListingModel listing) {
     if (isListingUnlocked(listing)) {
       _showContactDetailsModal(context, listing);
       return;
@@ -3074,6 +3083,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => DynamicPostListingModal(
+        userId: widget.userId,
         userName: widget.userName,
         userPhone: widget.userPhone,
       ),
@@ -3120,7 +3130,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       MaterialPageRoute(builder: (_) => const AuthScreen()),
     );
   }
-
   Widget _buildTabBody(Widget tableWidget) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -3382,7 +3391,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
-                  TeacherResourcesTab(userRole: widget.userRole),
+                  TeacherResourcesTab(userId: widget.userId, userRole: widget.userRole),
                 ],
               ),
             ),
@@ -3397,7 +3406,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     );
   }
 }
-                                                                                                                                                                                                                                                                                                                                                                                                               
+                                                                                                                                                                                                                                                                                                                                                                                                                                    
 // ==========================================
 // 3. ADMIN DASHBOARD MODULE
 // ==========================================
