@@ -8010,11 +8010,13 @@ class _BomVacancyDataTableSource extends DataTableSource {
 class DynamicPostListingModal extends StatefulWidget {
   final String userName;
   final String userPhone;
+  final String userId;
 
   const DynamicPostListingModal({
     Key? key,
     required this.userName,
     required this.userPhone,
+    required this.userId,
   }) : super(key: key);
 
   @override
