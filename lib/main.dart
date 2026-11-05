@@ -6257,9 +6257,6 @@ class TeacherResourcesTab extends StatefulWidget {
   @override
   State<TeacherResourcesTab> createState() => _TeacherResourcesTabState();
 }
-  @override
-  State<TeacherResourcesTab> createState() => _TeacherResourcesTabState();
-}
 
 class _TeacherResourcesTabState extends State<TeacherResourcesTab> {
   List<dynamic> _resources = [];
