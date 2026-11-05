@@ -3391,7 +3391,10 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                       onPayPressed: _showPaymentModal,
                     ),
                   ),
-                  TeacherResourcesTab(userId: widget.userId, userRole: widget.userRole),
+                  TeacherResourcesTab(
+                    userRole: widget.userRole,
+                    userData: {'userId': widget.userId},
+                  ),
                 ],
               ),
             ),
