@@ -6243,9 +6243,13 @@ class _MemberDataTableSource extends DataTableSource {
 // ============================================================================
 class TeacherResourcesTab extends StatefulWidget {
   final String? userRole;
-  final Map<String, dynamic>? userData; // Added to read 'canUploadResources'
+  final String? userId; // 👈 Updated to accept userId directly
 
-  const TeacherResourcesTab({Key? key, this.userRole, this.userData}) : super(key: key);
+  const TeacherResourcesTab({
+    Key? key,
+    this.userRole,
+    this.userId,
+  }) : super(key: key);
 
   @override
   State<TeacherResourcesTab> createState() => _TeacherResourcesTabState();
